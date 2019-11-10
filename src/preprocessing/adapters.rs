@@ -5,6 +5,7 @@ use std::error::Error;
 pub enum Label {
     Positive,
     Negative,
+    Unassigned,
 }
 
 #[derive(Debug)]
@@ -12,6 +13,36 @@ pub struct Example {
     sentence_1: String,
     sentence_2: String,
     label: Label,
+}
+
+impl Example {
+    fn new(sentence_1: &str, sentence_2: &str, label: &str) -> Result<Self, Box<dyn Error>> {
+        Ok(Example {
+            sentence_1: String::from(sentence_1),
+            sentence_2: String::from(sentence_2),
+            label: match label {
+                "0" => Ok(Label::Negative),
+                "1" => Ok(Label::Positive),
+                _ => Err("invalid label class (must be 0 or 1)")
+            }?,
+        })
+    }
+
+    pub fn new_from_string(sentence: &str) -> Self {
+        Example {
+            sentence_1: String::from(sentence),
+            sentence_2: String::from(""),
+            label: Label::Unassigned,
+        }
+    }
+
+    pub fn new_from_strings(sentence_1: &str, sentence_2: &str) -> Self {
+        Example {
+            sentence_1: String::from(sentence_1),
+            sentence_2: String::from(sentence_2),
+            label: Label::Unassigned,
+        }
+    }
 }
 
 pub fn read_sst2(path: &str, sep: u8) -> Result<Vec<Example>, Box<dyn Error>> {
@@ -26,15 +57,7 @@ pub fn read_sst2(path: &str, sep: u8) -> Result<Vec<Example>, Box<dyn Error>> {
 
     for result in rdr.records() {
         let record = result?;
-        let example = Example {
-            sentence_1: String::from(&record[0]),
-            sentence_2: String::from(""),
-            label: match &record[1] {
-                "0" => Ok(Label::Negative),
-                "1" => Ok(Label::Positive),
-                _ => Err("invalid label encountered")
-            }?,
-        };
+        let example = Example::new(&record[0], "", &record[1])?;
         examples.push(example);
     };
     Ok(examples)

@@ -1,6 +1,7 @@
 use transformers;
 use transformers::preprocessing::vocab::base_vocab::Vocab;
 use std::process;
+use transformers::preprocessing::adapters::Example;
 
 fn main() {
 
@@ -22,5 +23,8 @@ fn main() {
     };
 
     println!("{:?}", _data);
+
+    let _test_sentence = Example::new_from_string("it \'s a charming and often affecting journey. ");
+    println!("{:?}", _test_sentence);
 
 }
