@@ -1,2 +1,2 @@
-pub mod vocab;
-pub use vocab::base_vocab::{BaseVocab};
+pub mod preprocessing;
+pub use preprocessing::vocab::base_vocab::{BaseVocab};

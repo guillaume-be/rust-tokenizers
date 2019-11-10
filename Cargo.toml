@@ -5,6 +5,7 @@ authors = ["Guillaume B <guillaume.becquin@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+csv = "1.1"
 
 [lib]
 name = "transformers"
