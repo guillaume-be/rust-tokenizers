@@ -18,6 +18,10 @@ impl BertVocab {
 impl Vocab for BertVocab {
     fn unknown_value() -> &'static str { "[UNK]" }
 
+    fn special_values(&self) -> &HashMap<String, i64> {
+        &self.special_values
+    }
+
     fn from_file(path: &str) -> BertVocab {
         let values = BertVocab::read_vocab_file(path);
         let mut special_values = HashMap::new();

@@ -10,9 +10,9 @@ pub enum Label {
 
 #[derive(Debug)]
 pub struct Example {
-    sentence_1: String,
-    sentence_2: String,
-    label: Label,
+    pub sentence_1: String,
+    pub sentence_2: String,
+    pub label: Label,
 }
 
 impl Example {
