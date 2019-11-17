@@ -36,4 +36,6 @@ fn main() {
     let tokenized_output = base_tokenizer::split_on_special_tokens(&_test_sentence.sentence_1, &bert_vocab);
     println!("{:?}", tokenized_output);
 
+    let output = &base_tokenizer::tokenize_cjk_chars(&_test_sentence.sentence_1);
+    println!("{:?}", output);
 }
