@@ -39,7 +39,7 @@ fn split_with_separator<'a>(text: &'a str, separator: &'a str) -> Vec<&'a str> {
 pub fn tokenize_cjk_chars(text: &str) -> String {
     let mut output = String::new();
     for character in text.chars() {
-        if is_cjk_char(character) {
+        if is_cjk_char(&character) {
             output.push(' ');
             output.push(character);
             output.push(' ');
@@ -50,8 +50,8 @@ pub fn tokenize_cjk_chars(text: &str) -> String {
     output
 }
 
-fn is_cjk_char(character: char) -> bool {
-    let u32_char = character as u32;
+fn is_cjk_char(character: &char) -> bool {
+    let u32_char = *character as u32;
     ((u32_char >= 0x4E00) & (u32_char <= 0x9FFF)) |
         ((u32_char >= 0x3400) & (u32_char <= 0x4DBF)) |
         ((u32_char >= 0x20000) & (u32_char <= 0x2A6DF)) |
@@ -60,4 +60,8 @@ fn is_cjk_char(character: char) -> bool {
         ((u32_char >= 0x2B820) & (u32_char <= 0x2CEAF)) |
         ((u32_char >= 0xF900) & (u32_char <= 0xFAFF)) |
         ((u32_char >= 0x2F800) & (u32_char <= 0x2FA1F))
+}
+
+pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
+    text.split(' ').collect()
 }

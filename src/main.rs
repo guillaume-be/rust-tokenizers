@@ -2,7 +2,7 @@ use transformers;
 use transformers::preprocessing::vocab::base_vocab::Vocab;
 use std::process;
 use transformers::preprocessing::adapters::Example;
-use transformers::base_tokenizer;
+use transformers::preprocessing::tokenizer::bert_tokenizer::tokenize_bert;
 
 fn main() {
 
@@ -33,9 +33,7 @@ fn main() {
     let _test_sentence = Example::new_from_string("[MASK]it \'s a charming [SEP] [SEP] and often [MASK] affecting journey. [MASK]");
     println!("{:?}", _test_sentence);
 
-    let tokenized_output = base_tokenizer::split_on_special_tokens(&_test_sentence.sentence_1, &bert_vocab);
+    let tokenized_output = tokenize_bert(&_test_sentence.sentence_1, &bert_vocab);
     println!("{:?}", tokenized_output);
 
-    let output = &base_tokenizer::tokenize_cjk_chars(&_test_sentence.sentence_1);
-    println!("{:?}", output);
 }
