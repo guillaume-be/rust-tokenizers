@@ -1,4 +1,6 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
+use unicode_normalization::is_nfd;
+use unicode_normalization::char::{decompose_canonical, is_combining_mark};
 
 pub fn split_on_special_tokens<'a>(text: &'a str, vocab: &'a impl Vocab) -> Vec<&'a str> {
     let mut text_list: Vec<&str> = vec!(text);
@@ -65,3 +67,17 @@ fn is_cjk_char(character: &char) -> bool {
 pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
     text.split_whitespace().collect()
 }
+
+pub fn strip_accents(text: String) -> String {
+    if !is_nfd(&text) {
+        let mut decomposed_string: String = String::with_capacity(text.capacity());
+        for character in text.chars() {
+            decompose_canonical(character,
+                                |c| if !is_combining_mark(c) { decomposed_string.push(c) });
+        }
+        decomposed_string
+    } else {
+        text
+    }
+}
+

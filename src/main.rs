@@ -28,7 +28,7 @@ fn main() {
         }
     };
 
-    println!("{:?}", _data);
+//    println!("{:?}", _data);
 
 //    let _test_sentence = Example::new_from_string("[MASK]it \'s a charming [SEP] [SEP] and often [MASK] affecting journey. [MASK]");
     let _test_sentence = Example::new_from_string("[MASK]Reprise au tout début des années [SEP]1960[SEP] par le commissariat à l'énergie atomique (CEA), cette structure reste, au xxie siècle, l'un des principaux employeurs de main d'œuvre de la commune.");
