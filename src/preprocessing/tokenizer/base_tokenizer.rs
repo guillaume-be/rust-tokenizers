@@ -63,5 +63,5 @@ fn is_cjk_char(character: &char) -> bool {
 }
 
 pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
-    text.split(' ').collect()
+    text.split_whitespace().collect()
 }
