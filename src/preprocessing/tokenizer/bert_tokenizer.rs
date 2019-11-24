@@ -29,10 +29,10 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
         tokenized_text.push(BertVocab::unknown_value().to_owned());
     } else {
         let char_indices: Vec<usize> = token.char_indices().map(|v| v.0).collect();
-        let max_end: usize = *char_indices.last().unwrap() + 1;
+        let max_end: usize = char_indices.last().unwrap() + token.chars().last().unwrap().len_utf8();
         let mut start: usize = 0;
-        let mut pos_end: usize = char_indices.len() - 1;
-        let mut end = max_end;
+        let mut pos_end;
+        let mut end;
         while start < max_end {
             end = max_end;
             pos_end = char_indices.len() - 1;
@@ -42,14 +42,16 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
                     substr = format!("##{}", substr);
                 }
                 if match vocab.values().get(&substr) {
-                    Some(index) => true,
+                    Some(_) => true,
                     None => false
                 } {
                     tokenized_text.push(substr);
                     break;
                 }
-                if pos_end == 0 {
-                    break;
+                if pos_end == start {
+                    let mut tokenized_text: Vec<String> = Vec::new();
+                    tokenized_text.push(BertVocab::unknown_value().to_owned());
+                    return tokenized_text;
                 }
                 pos_end = pos_end - 1;
                 end = char_indices[pos_end + 1];
