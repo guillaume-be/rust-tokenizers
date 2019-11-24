@@ -64,6 +64,7 @@ fn is_cjk_char(character: &char) -> bool {
         ((u32_char >= 0x2F800) & (u32_char <= 0x2FA1F))
 }
 
+//ToDo: Add the control chars to the list of whitespaces
 pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
     text.split_whitespace().collect()
 }

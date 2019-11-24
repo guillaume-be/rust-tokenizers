@@ -7,6 +7,8 @@ use std::process;
 pub trait Vocab {
     fn unknown_value() -> &'static str;
 
+    fn values(&self) -> &HashMap<String, i64>;
+
     fn special_values(&self) -> &HashMap<String, i64>;
 
     fn from_file(path: &str) -> Self;
@@ -64,9 +66,14 @@ pub struct BaseVocab {
 impl Vocab for BaseVocab {
     fn unknown_value() -> &'static str { "[UNK]" }
 
+    fn values(&self) -> &HashMap<String, i64> {
+        &self.values
+    }
+
     fn special_values(&self) -> &HashMap<String, i64> {
         &self.special_values
     }
+
 
     fn from_file(path: &str) -> BaseVocab {
         let values = BaseVocab::read_vocab_file(path);
