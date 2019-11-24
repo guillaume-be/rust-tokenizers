@@ -1,5 +1,5 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents};
+use crate::preprocessing::tokenizer::base_tokenizer::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct};
 
 pub fn tokenize_bert(text: &str, vocab: &impl Vocab) -> Vec<String> {
     let tokenized_text: Vec<String> = {
@@ -18,13 +18,19 @@ pub fn tokenize_bert(text: &str, vocab: &impl Vocab) -> Vec<String> {
         .map(|s| s.to_string())
         .collect();
 
-
     for string in tokenized_text.iter_mut() {
         if !vocab.special_values().contains_key(string) {
             *string = string.to_lowercase();
             *string = strip_accents(string.to_owned());
         }
     }
+
+    let tokenized_text: Vec<String> = tokenized_text
+        .iter()
+        .map(|v| split_on_punct(v.to_owned(), vocab))
+        .flatten()
+        .map(|s| s.to_string())
+        .collect();
 
     tokenized_text
 }

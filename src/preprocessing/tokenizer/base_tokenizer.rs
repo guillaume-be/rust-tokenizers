@@ -72,12 +72,42 @@ pub fn strip_accents(text: String) -> String {
     if !is_nfd(&text) {
         let mut decomposed_string: String = String::with_capacity(text.capacity());
         for character in text.chars() {
-            decompose_canonical(character,
-                                |c| if !is_combining_mark(c) { decomposed_string.push(c) });
+            decompose_canonical(character, |c| if !is_combining_mark(c) { decomposed_string.push(c) });
         }
         decomposed_string
     } else {
         text
+    }
+}
+
+pub fn split_on_punct(text: String, vocab: &impl Vocab) -> Vec<String> {
+    let mut output: Vec<String> = Vec::new();
+    let mut start_new_word: bool = true;
+    let mut temp_string = String::new();
+    if vocab.special_values().contains_key(&text) {
+        output.push(text);
+        output
+    } else {
+        for character in text.chars() {
+            if character.is_ascii_punctuation() {
+                if !&temp_string.is_empty() {
+                    output.push(temp_string.clone());
+                    temp_string = String::new();
+                }
+                output.push(character.to_string());
+                start_new_word = true
+            } else {
+                if start_new_word {
+                    temp_string = String::new();
+                }
+                start_new_word = false;
+                temp_string.push(character);
+            }
+        }
+        if !start_new_word & !&temp_string.is_empty() {
+            output.push(temp_string.clone());
+        }
+        output
     }
 }
 
