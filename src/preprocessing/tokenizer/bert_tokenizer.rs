@@ -41,10 +41,7 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
                 if start > 0 {
                     substr = format!("##{}", substr);
                 }
-                if match vocab.values().get(&substr) {
-                    Some(_) => true,
-                    None => false
-                } {
+                if vocab.values().contains_key(&substr) {
                     tokenized_text.push(substr);
                     break;
                 }
