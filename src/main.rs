@@ -35,6 +35,10 @@ fn main() {
 //    let _test_sentence = Example::new_from_string("[CLS]吉村洋文辭職參選日本大阪府知事後，與其同屬大阪維新會的前大阪府知事松井一郎在哪一次選舉成功接替吉村洋文的位置？");
     println!("{:?}", _test_sentence);
 
+//    for example in _data{
+//        tokenize_bert(&example.sentence_1, &bert_vocab);
+//    }
+
     let tokenized_output = tokenize_bert(&_test_sentence.sentence_1, &bert_vocab);
     println!("{:?}", tokenized_output);
 

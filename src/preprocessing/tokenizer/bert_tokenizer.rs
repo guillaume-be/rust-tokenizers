@@ -11,7 +11,13 @@ pub fn tokenize_bert(text: &str, vocab: &impl Vocab) -> Vec<String> {
         temp_text
     };
 
-    let mut tokenized_text: Vec<String> = tokenized_text
+    let tokenized_text = tokenize_basic(tokenized_text, vocab);
+
+    tokenized_text
+}
+
+fn tokenize_basic(tokens: Vec<String>, vocab: &impl Vocab) -> Vec<String> {
+    let mut tokenized_text: Vec<String> = tokens
         .iter()
         .map(|v| whitespace_tokenize(&v))
         .flatten()
@@ -28,6 +34,13 @@ pub fn tokenize_bert(text: &str, vocab: &impl Vocab) -> Vec<String> {
     let tokenized_text: Vec<String> = tokenized_text
         .iter()
         .map(|v| split_on_punct(v.to_owned(), vocab))
+        .flatten()
+        .map(|s| s.to_string())
+        .collect();
+
+    let tokenized_text: Vec<String> = tokenized_text
+        .iter()
+        .map(|v| whitespace_tokenize(&v))
         .flatten()
         .map(|s| s.to_string())
         .collect();
