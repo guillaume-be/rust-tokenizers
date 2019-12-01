@@ -168,7 +168,10 @@ mod tests {
             ("[CLS]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
-            ("[PAD]".to_owned(), 7)
+            ("[中]".to_owned(), 7),
+            ("华".to_owned(), 8),
+            ("人]".to_owned(), 9),
+            ("[PAD]".to_owned(), 10)
         ].iter().cloned().collect();
 
         let special_values: HashMap<String, i64> = [
@@ -176,7 +179,7 @@ mod tests {
             ("[CLS]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
-            ("[PAD]".to_owned(), 7)
+            ("[PAD]".to_owned(), 10)
         ].iter().cloned().collect();
 
         BertVocab { values, unknown_value: "[UNK]", special_values }
@@ -188,25 +191,72 @@ mod tests {
         let vocab = generate_test_vocab();
 
 //        When & Then
-        assert_eq!(split_on_special_tokens("Sentence with [MASK] token.", &vocab),
-                   vec!("Sentence with", "[MASK]", "token."));
-        assert_eq!(split_on_special_tokens("[CLS]Sentence with [MASK] token.", &vocab),
-                   vec!("[CLS]", "Sentence with", "[MASK]", "token."));
-        assert_eq!(split_on_special_tokens("[CLS]", &vocab),
-                   vec!("[CLS]"));
-        assert_eq!(split_on_special_tokens("[CLS][PAD]", &vocab),
-                   vec!("[CLS]", "[PAD]"));
-        assert_eq!(split_on_special_tokens("[CLS] [PAD]", &vocab),
-                   vec!("[CLS]", "[PAD]"));
-        assert_eq!(split_on_special_tokens("[CLS]       [PAD]", &vocab),
-                   vec!("[CLS]", "[PAD]"));
-        assert_eq!(split_on_special_tokens("asdf[CLS]", &vocab),
-                   vec!("asdf", "[CLS]"));
-        assert_eq!(split_on_special_tokens("No special token in sentence", &vocab),
-                   vec!("No special token in sentence"));
-        assert_eq!(split_on_special_tokens("", &vocab),
-                   vec!(""));
-        assert_eq!(split_on_special_tokens("[UNK]中华人民共和国 [PAD] asdf", &vocab),
-                   vec!("[UNK]", "中华人民共和国", "[PAD]", "asdf"));
+        for (source_text, expected_result) in [
+            (
+                "Sentence with [MASK] token.",
+                vec!("Sentence with", "[MASK]", "token.")
+            ),
+            (
+                "[CLS]Sentence with [MASK] token.",
+                vec!("[CLS]", "Sentence with", "[MASK]", "token.")
+            ),
+            (
+                "[CLS]",
+                vec!("[CLS]")
+            ),
+            (
+                "[CLS] [PAD]",
+                vec!("[CLS]", "[PAD]")
+            ),
+            (
+                "[CLS]       [PAD]",
+                vec!("[CLS]", "[PAD]")
+            ),
+            (
+                "asdf[CLS]",
+                vec!("asdf", "[CLS]")
+            ),
+            (
+                "No special token in sentence",
+                vec!("No special token in sentence")
+            ),
+            (
+                "",
+                vec!("")
+            ),
+            (
+                "[UNK]中华人民共和国 [PAD] asdf",
+                vec!("[UNK]", "中华人民共和国", "[PAD]", "asdf")
+            ),
+        ].iter() {
+            assert_eq!(split_on_special_tokens(*source_text, &vocab), *expected_result);
+        }
+    }
+
+    #[test]
+    fn test_tokenize_cjk_chars() {
+//        Given
+
+//        When & Then
+        for (source_text, expected_result) in [
+            (
+                "[UNK]中华人民共和国 [PAD] asdf",
+                String::from("[UNK] 中  华  人  民  共  和  国  [PAD] asdf")
+            ),
+            (
+                "中",
+                String::from(" 中 ")
+            ),
+            (
+                "中b华",
+                String::from(" 中 b 华 ")
+            ),
+            (
+                "中[PAD]华",
+                String::from(" 中 [PAD] 华 ")
+            ),
+        ].iter() {
+            assert_eq!(tokenize_cjk_chars(source_text), *expected_result);
+        }
     }
 }
