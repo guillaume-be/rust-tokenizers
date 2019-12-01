@@ -22,6 +22,10 @@ pub fn split_on_special_tokens<'a>(text: &'a str, vocab: &'a impl Vocab) -> Vec<
 fn split_with_separator<'a>(text: &'a str, separator: &'a str) -> Vec<&'a str> {
     let split_text: Vec<&str> = text.split(separator).collect();
     let mut result: Vec<&str> = vec!();
+    if text.is_empty() {
+        result.push(text);
+        return result;
+    }
     for (i, subtext) in split_text.iter().enumerate() {
         let trimmed_subtext = subtext.trim();
         if (i == 0) & trimmed_subtext.is_empty() {
@@ -148,4 +152,61 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
         }
     }
     tokenized_text
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn generate_test_vocab() -> BertVocab {
+        let values: HashMap<String, i64> = [
+            ("hello".to_owned(), 0),
+            ("world".to_owned(), 1),
+            ("[UNK]".to_owned(), 2),
+            ("!".to_owned(), 3),
+            ("[CLS]".to_owned(), 4),
+            ("[SEP]".to_owned(), 5),
+            ("[MASK]".to_owned(), 6),
+            ("[PAD]".to_owned(), 7)
+        ].iter().cloned().collect();
+
+        let special_values: HashMap<String, i64> = [
+            ("[UNK]".to_owned(), 2),
+            ("[CLS]".to_owned(), 4),
+            ("[SEP]".to_owned(), 5),
+            ("[MASK]".to_owned(), 6),
+            ("[PAD]".to_owned(), 7)
+        ].iter().cloned().collect();
+
+        BertVocab { values, unknown_value: "[UNK]", special_values }
+    }
+
+    #[test]
+    fn test_split_on_special_tokens() {
+//        Given
+        let vocab = generate_test_vocab();
+
+//        When & Then
+        assert_eq!(split_on_special_tokens("Sentence with [MASK] token.", &vocab),
+                   vec!("Sentence with", "[MASK]", "token."));
+        assert_eq!(split_on_special_tokens("[CLS]Sentence with [MASK] token.", &vocab),
+                   vec!("[CLS]", "Sentence with", "[MASK]", "token."));
+        assert_eq!(split_on_special_tokens("[CLS]", &vocab),
+                   vec!("[CLS]"));
+        assert_eq!(split_on_special_tokens("[CLS][PAD]", &vocab),
+                   vec!("[CLS]", "[PAD]"));
+        assert_eq!(split_on_special_tokens("[CLS] [PAD]", &vocab),
+                   vec!("[CLS]", "[PAD]"));
+        assert_eq!(split_on_special_tokens("[CLS]       [PAD]", &vocab),
+                   vec!("[CLS]", "[PAD]"));
+        assert_eq!(split_on_special_tokens("asdf[CLS]", &vocab),
+                   vec!("asdf", "[CLS]"));
+        assert_eq!(split_on_special_tokens("No special token in sentence", &vocab),
+                   vec!("No special token in sentence"));
+        assert_eq!(split_on_special_tokens("", &vocab),
+                   vec!(""));
+        assert_eq!(split_on_special_tokens("[UNK]中华人民共和国 [PAD] asdf", &vocab),
+                   vec!("[UNK]", "中华人民共和国", "[PAD]", "asdf"));
+    }
 }
