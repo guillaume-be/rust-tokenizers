@@ -56,3 +56,106 @@ impl Vocab for BertVocab {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io;
+    use std::io::Write;
+
+    #[test]
+    fn test_create_object() {
+//        Given
+        let values: HashMap<String, i64> = HashMap::new();
+        let special_values: HashMap<String, i64> = HashMap::new();
+        let unknown_value = BertVocab::unknown_value();
+
+//        When
+        let base_vocab = BertVocab {
+            values,
+            unknown_value,
+            special_values,
+        };
+
+//        Then
+        assert_eq!(base_vocab.unknown_value, "[UNK]");
+        assert_eq!(base_vocab.unknown_value, BertVocab::unknown_value());
+        assert_eq!(BertVocab::pad_value(), "[PAD]");
+        assert_eq!(BertVocab::sep_value(), "[SEP]");
+        assert_eq!(BertVocab::cls_value(), "[CLS]");
+        assert_eq!(BertVocab::mask_value(), "[MASK]");
+        assert_eq!(base_vocab.values, *base_vocab.values());
+        assert_eq!(base_vocab.special_values, *base_vocab.special_values());
+    }
+
+    #[test]
+    fn test_create_object_from_file() -> Result<(), io::Error> {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new()?;
+        write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
+        let path = vocab_file.into_temp_path();
+        let target_values: HashMap<String, i64> = [
+            ("hello".to_owned(), 0),
+            ("world".to_owned(), 1),
+            ("[UNK]".to_owned(), 2),
+            ("!".to_owned(), 3),
+            ("[CLS]".to_owned(), 4),
+            ("[SEP]".to_owned(), 5),
+            ("[MASK]".to_owned(), 6),
+            ("[PAD]".to_owned(), 7)
+        ].iter().cloned().collect();
+
+        let special_values: HashMap<String, i64> = [
+            ("[UNK]".to_owned(), 2),
+            ("[CLS]".to_owned(), 4),
+            ("[SEP]".to_owned(), 5),
+            ("[MASK]".to_owned(), 6),
+            ("[PAD]".to_owned(), 7)
+        ].iter().cloned().collect();
+
+//        When
+        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        Then
+        assert_eq!(base_vocab.unknown_value, "[UNK]");
+        assert_eq!(base_vocab.values, target_values);
+        assert_eq!(base_vocab.special_values, special_values);
+        drop(path);
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_create_object_from_file_without_unknown_token() {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new().unwrap();
+        write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS]").unwrap();
+        let path = vocab_file.into_temp_path();
+
+//        When & Then
+        let _base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap());
+    }
+
+    #[test]
+    fn test_encode_tokens() -> Result<(), io::Error> {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new()?;
+        write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
+        let path = vocab_file.into_temp_path();
+        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        When & Then
+        assert_eq!(base_vocab.token_to_id("hello"), 0);
+        assert_eq!(base_vocab.token_to_id("world"), 1);
+        assert_eq!(base_vocab.token_to_id("!"), 3);
+        assert_eq!(base_vocab.token_to_id("[UNK]"), 2);
+        assert_eq!(base_vocab.token_to_id("oov_value"), 2);
+        assert_eq!(base_vocab.token_to_id("[PAD]"), 7);
+        assert_eq!(base_vocab.token_to_id("[MASK]"), 6);
+        assert_eq!(base_vocab.token_to_id("[CLS]"), 4);
+        assert_eq!(base_vocab.token_to_id("[SEP]"), 5);
+
+        drop(path);
+        Ok(())
+    }
+}

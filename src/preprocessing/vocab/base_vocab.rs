@@ -49,7 +49,7 @@ pub trait Vocab {
                                   special_values: &mut HashMap<String, i64>) {
         let token_id = match values.get(token) {
             Some(index) => *index,
-            None => panic!("The unknown value could not be found in the vocabulary")
+            None => panic!("The special value {} could not be found in the vocabulary", token)
         };
         special_values.insert(String::from(token), token_id);
     }
