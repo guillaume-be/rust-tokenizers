@@ -4,7 +4,6 @@ use std::io::{BufReader, BufRead};
 use std::error::Error;
 use std::process;
 
-
 pub trait Vocab {
     fn unknown_value() -> &'static str;
 

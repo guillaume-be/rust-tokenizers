@@ -1,6 +1,26 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct};
+use crate::preprocessing::tokenizer::base_tokenizer::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, Tokenizer, BasicTokenizer};
 use crate::BertVocab;
+use std::rc::Rc;
+
+pub struct BertTokenizer<T: Vocab> {
+    vocab: Rc<T>,
+    base_tokenizer: BasicTokenizer<T>,
+}
+
+impl<T: Vocab> BertTokenizer<T> {
+    pub fn from_file(path: &str) -> BertTokenizer<T> {
+        let vocab = Rc::new(T::from_file(path));
+        let base_tokenizer = BasicTokenizer::from_existing_vocab(vocab.clone());
+        BertTokenizer { vocab, base_tokenizer }
+    }
+}
+
+impl<T: Vocab> Tokenizer for BertTokenizer<T> {
+    fn tokenize(&self, text: &str) -> Vec<String> {
+        vec!()
+    }
+}
 
 pub fn tokenize_bert(text: &str, vocab: &impl Vocab) -> Vec<String> {
     let tokenized_text: Vec<String> = {

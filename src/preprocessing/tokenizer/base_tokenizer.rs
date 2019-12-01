@@ -1,6 +1,70 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use unicode_normalization::is_nfd;
 use unicode_normalization::char::{decompose_canonical, is_combining_mark};
+use std::rc::Rc;
+use std::borrow::Borrow;
+
+pub trait Tokenizer {
+    fn tokenize(&self, text: &str) -> Vec<String>;
+}
+
+pub struct BasicTokenizer<T: Vocab> {
+    vocab: Rc<T>
+}
+
+impl<T: Vocab> BasicTokenizer<T> {
+    pub fn from_file(path: &str) -> BasicTokenizer<T> {
+        let vocab = T::from_file(path);
+        BasicTokenizer { vocab: Rc::new(vocab) }
+    }
+
+    pub fn from_existing_vocab(vocab: Rc<T>) -> BasicTokenizer<T> {
+        BasicTokenizer { vocab: vocab.clone() }
+    }
+}
+
+impl<T: Vocab> Tokenizer for BasicTokenizer<T> {
+    fn tokenize(&self, text: &str) -> Vec<String> {
+        let tokenized_text: Vec<String> = {
+            let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
+            let temp_text: Vec<String> = temp_text.
+                iter().
+                map(|v| tokenize_cjk_chars(v)).
+                collect();
+            temp_text
+        };
+
+        let mut tokenized_text: Vec<String> = tokenized_text
+            .iter()
+            .map(|v| whitespace_tokenize(&v))
+            .flatten()
+            .map(|s| s.to_string())
+            .collect();
+
+        for string in tokenized_text.iter_mut() {
+            if !self.vocab.as_ref().special_values().contains_key(string) {
+                *string = string.to_lowercase();
+                *string = strip_accents(string.to_owned());
+            }
+        }
+
+        let tokenized_text: Vec<String> = tokenized_text
+            .iter()
+            .map(|v| split_on_punct(v.to_owned(), self.vocab.as_ref()))
+            .flatten()
+            .map(|s| s.to_string())
+            .collect();
+
+        let tokenized_text: Vec<String> = tokenized_text
+            .iter()
+            .map(|v| whitespace_tokenize(&v))
+            .flatten()
+            .map(|s| s.to_string())
+            .collect();
+
+        tokenized_text
+    }
+}
 
 pub fn split_on_special_tokens<'a>(text: &'a str, vocab: &'a impl Vocab) -> Vec<&'a str> {
     let mut text_list: Vec<&str> = vec!(text);
