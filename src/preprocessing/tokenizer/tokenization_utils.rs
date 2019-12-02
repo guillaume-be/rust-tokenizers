@@ -2,7 +2,24 @@ use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::BertVocab;
 use unicode_normalization::is_nfd;
 use unicode_normalization::char::{decompose_canonical, is_combining_mark};
+use std::char;
+use std::char::REPLACEMENT_CHARACTER;
+use crate::preprocessing::tokenizer::constants::{WHITESPACE_CHARS, ADDITIONAL_WHITESPACE_CHARS, PUNCTUATION_CHARS};
 
+pub fn clean_text(text: &str) -> String {
+    let mut output = String::new();
+    for character in text.chars() {
+        if is_control(&character) || character == '\x00' || character == REPLACEMENT_CHARACTER {
+            continue;
+        }
+        if is_whitespace(&character) {
+            output.push(' ');
+        } else {
+            output.push(character);
+        }
+    }
+    output
+}
 
 pub fn split_on_special_tokens<'a>(text: &'a str, vocab: &'a impl Vocab) -> Vec<&'a str> {
     let mut text_list: Vec<&str> = vec!(text);
@@ -70,7 +87,34 @@ fn is_cjk_char(character: &char) -> bool {
         ((u32_char >= 0x2F800) & (u32_char <= 0x2FA1F))
 }
 
-//ToDo: Add the control chars to the list of whitespaces
+
+fn is_whitespace(character: &char) -> bool {
+    WHITESPACE_CHARS.contains(&(*character as u32))
+}
+
+fn is_control(character: &char) -> bool {
+    if ADDITIONAL_WHITESPACE_CHARS.contains(character) {
+        return false;
+    } else {
+        character.is_control()
+    }
+}
+
+fn is_punctuation(character: &char) -> bool {
+    let u32_char = *character as u32;
+    if ((u32_char >= 33) & (u32_char <= 47)) |
+        ((u32_char >= 58) & (u32_char <= 64)) |
+        ((u32_char >= 91) & (u32_char <= 96)) |
+        ((u32_char >= 123) & (u32_char <= 126)) {
+        return true;
+    } else {
+        PUNCTUATION_CHARS.contains(&u32_char)
+    }
+
+//    character.is_ascii_punctuation()
+
+}
+
 pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
     text.split_whitespace().collect()
 }
@@ -96,7 +140,7 @@ pub fn split_on_punct(text: String, vocab: &impl Vocab) -> Vec<String> {
         output
     } else {
         for character in text.chars() {
-            if character.is_ascii_punctuation() {
+            if is_punctuation(&character) {
                 if !&temp_string.is_empty() {
                     output.push(temp_string.clone());
                     temp_string = String::new();
@@ -290,6 +334,35 @@ mod tests {
 
         for character in japanese_chars {
             assert!(is_cjk_char(&character));
+        }
+    }
+
+    #[test]
+    fn test_is_whitespace() {
+//        Given
+        let whitespace_chars: [u32; 17] = [
+            0x0020, 0x00A0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003,
+            0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200A,
+            0x202F, 0x205F, 0x3000,
+        ];
+
+        let additional_whitespace_chars: [char; 4] = [
+            ' ', '\n', '\r', '\t'
+        ];
+
+        let non_whitespace_chars: [char; 5] = ['a', '5', '♥', '_', '越'];
+
+//        When & Then
+        for character in whitespace_chars.iter() {
+            assert!(is_whitespace(&char::from_u32(*character).unwrap()));
+        }
+
+        for character in additional_whitespace_chars.iter() {
+            assert!(is_whitespace(character));
+        }
+
+        for character in non_whitespace_chars.iter() {
+            assert!(!is_whitespace(character));
         }
     }
 }

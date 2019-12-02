@@ -1,5 +1,5 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct};
+use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, clean_text};
 use std::sync::Arc;
 use rayon::prelude::*;
 
@@ -29,7 +29,8 @@ impl<T: Vocab + Sync + Send> Tokenizer for BaseTokenizer<T> {
             let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
             let temp_text: Vec<String> = temp_text.
                 iter().
-                map(|v| tokenize_cjk_chars(v)).
+                map(|v| clean_text(v)).
+                map(|v| tokenize_cjk_chars(&v)).
                 collect();
             temp_text
         };

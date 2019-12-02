@@ -1,10 +1,12 @@
 pub mod preprocessing;
-
 pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab};
 pub use preprocessing::tokenizer::bert_tokenizer;
 use pyo3::prelude::*;
 use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
+
+#[macro_use]
+extern crate lazy_static;
 
 #[pyclass(module = "rust_transformers")]
 struct PyBertTokenizer {
