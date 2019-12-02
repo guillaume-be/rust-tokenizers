@@ -1,5 +1,5 @@
 [package]
-name = "transformers"
+name = "rust_transformers"
 version = "0.1.0"
 authors = ["Guillaume B <guillaume.becquin@gmail.com>"]
 edition = "2018"
@@ -8,13 +8,17 @@ edition = "2018"
 csv = "1.1"
 unicode-normalization = "0.1.8"
 
+[dependencies.pyo3]
+version = "0.8.3"
+features = ["extension-module"]
+
 [dev-dependencies]
 tempfile = "3.1.0"
 
 [lib]
-name = "transformers"
+name = "rust_transformers"
 path = "src/lib.rs"
-
+crate-type = ["lib", "cdylib"]
 
 [[bin]]
 name = "rust_transformers_bin"

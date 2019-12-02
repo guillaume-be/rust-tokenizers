@@ -1,18 +1,18 @@
-use transformers;
-use transformers::preprocessing::vocab::base_vocab::Vocab;
+use rust_transformers;
+use rust_transformers::preprocessing::vocab::base_vocab::Vocab;
 use std::process;
-use transformers::preprocessing::adapters::Example;
-use transformers::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
+use rust_transformers::preprocessing::adapters::Example;
+use rust_transformers::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 use std::time::Instant;
-use transformers::preprocessing::tokenizer::base_tokenizer::{BaseTokenizer, Tokenizer};
-use transformers::BertVocab;
+use rust_transformers::preprocessing::tokenizer::base_tokenizer::{BaseTokenizer, Tokenizer};
+use rust_transformers::BertVocab;
 use std::rc::Rc;
 
 fn main() {
     let vocab_path = "E:/Coding/rust-transformers/resources/vocab/bert-base-uncased-vocab.txt";
-    let bert_vocab = Rc::new(transformers::BertVocab::from_file(vocab_path));
+    let bert_vocab = Rc::new(rust_transformers::BertVocab::from_file(vocab_path));
 
-    let _data = match transformers::preprocessing::adapters::read_sst2(
+    let _data = match rust_transformers::preprocessing::adapters::read_sst2(
         "E:/Coding/rust-transformers/resources/data/SST-2/train.tsv",
         b'\t') {
         Ok(examples) => {
