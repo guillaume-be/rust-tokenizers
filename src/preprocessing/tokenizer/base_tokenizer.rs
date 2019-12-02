@@ -1,27 +1,29 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use std::rc::Rc;
 use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct};
+use std::sync::Arc;
+use rayon::prelude::*;
 
 pub trait Tokenizer {
     fn tokenize(&self, text: &str) -> Vec<String>;
+    fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>>;
 }
 
 pub struct BaseTokenizer<T: Vocab> {
-    vocab: Rc<T>
+    vocab: Arc<T>
 }
 
 impl<T: Vocab> BaseTokenizer<T> {
     pub fn from_file(path: &str) -> BaseTokenizer<T> {
         let vocab = T::from_file(path);
-        BaseTokenizer { vocab: Rc::new(vocab) }
+        BaseTokenizer { vocab: Arc::new(vocab) }
     }
 
-    pub fn from_existing_vocab(vocab: Rc<T>) -> BaseTokenizer<T> {
+    pub fn from_existing_vocab(vocab: Arc<T>) -> BaseTokenizer<T> {
         BaseTokenizer { vocab: vocab.clone() }
     }
 }
 
-impl<T: Vocab> Tokenizer for BaseTokenizer<T> {
+impl<T: Vocab + Sync + Send> Tokenizer for BaseTokenizer<T> {
     fn tokenize(&self, text: &str) -> Vec<String> {
         let tokenized_text: Vec<String> = {
             let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
@@ -61,5 +63,12 @@ impl<T: Vocab> Tokenizer for BaseTokenizer<T> {
             .collect();
 
         tokenized_text
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
+        text_list.
+            par_iter().
+            map(|text| self.tokenize(text)).
+            collect()
     }
 }

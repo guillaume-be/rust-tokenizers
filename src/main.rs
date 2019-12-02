@@ -6,11 +6,11 @@ use rust_transformers::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 use std::time::Instant;
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::{BaseTokenizer, Tokenizer};
 use rust_transformers::BertVocab;
-use std::rc::Rc;
+use std::sync::Arc;
 
 fn main() {
     let vocab_path = "E:/Coding/rust-transformers/resources/vocab/bert-base-uncased-vocab.txt";
-    let bert_vocab = Rc::new(rust_transformers::BertVocab::from_file(vocab_path));
+    let bert_vocab = Arc::new(rust_transformers::BertVocab::from_file(vocab_path));
 
     let _data = match rust_transformers::preprocessing::adapters::read_sst2(
         "E:/Coding/rust-transformers/resources/data/SST-2/train.tsv",
@@ -37,11 +37,10 @@ fn main() {
     let bert_tokenizer: BertTokenizer<BertVocab> = BertTokenizer::from_existing_vocab(bert_vocab.clone());
     println!("{:?}", bert_tokenizer.tokenize(&_test_sentence.sentence_1));
 
+    let text_list = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
-//    for example in _data {
-//        bert_tokenizer.tokenize(&example.sentence_1);
-//    }
-//    println!("Elapsed time: {:.2?}", _before.elapsed());
+    let _results = bert_tokenizer.tokenize_list(text_list);
+    println!("Elapsed time: {:.2?}", _before.elapsed());
 
 //    let test_word = String::from("unaffable");
 //    let tokenized_output = tokenize_wordpiece(test_word, &bert_vocab, 100);

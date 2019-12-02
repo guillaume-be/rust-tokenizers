@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 csv = "1.1"
 unicode-normalization = "0.1.8"
+rayon = "1.2.1"
 
 [dependencies.pyo3]
 version = "0.8.3"

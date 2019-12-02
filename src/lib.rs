@@ -1,8 +1,8 @@
 pub mod preprocessing;
+
 pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab};
 pub use preprocessing::tokenizer::bert_tokenizer;
 use pyo3::prelude::*;
-//use pyo3::wrap_pyfunction;
 use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 
@@ -20,8 +20,12 @@ impl PyBertTokenizer {
         });
     }
 
-    fn tokenize(&self, text: String) -> PyResult<Vec<String>> {
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
         Ok(self.tokenizer.tokenize(&text))
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        Ok(self.tokenizer.tokenize_list(text_list))
     }
 }
 
