@@ -56,6 +56,7 @@ impl<T: Vocab + Sync + Send> Tokenizer for BaseTokenizer<T> {
             .map(|s| s.to_string())
             .collect();
 
+//        ToDo: the original code rebuilds the sentence with whitespace separators & then re-tokenizes
         let tokenized_text: Vec<String> = tokenized_text
             .iter()
             .map(|v| whitespace_tokenize(&v))

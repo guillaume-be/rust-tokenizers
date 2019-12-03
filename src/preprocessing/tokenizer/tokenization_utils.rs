@@ -134,7 +134,7 @@ fn is_punctuation(character: &char) -> bool {
 }
 
 pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
-    text.split(' ').collect()
+    text.trim().split(' ').filter(|v| !v.is_empty()).collect()
 }
 
 pub fn strip_accents(text: String) -> String {
@@ -236,7 +236,10 @@ mod tests {
             ("[中]".to_owned(), 7),
             ("华".to_owned(), 8),
             ("人]".to_owned(), 9),
-            ("[PAD]".to_owned(), 10)
+            ("[PAD]".to_owned(), 10),
+            ("una".to_owned(), 10),
+            ("##ffa".to_owned(), 10),
+            ("##ble".to_owned(), 10)
         ].iter().cloned().collect();
 
         let special_values: HashMap<String, i64> = [
@@ -567,6 +570,14 @@ mod tests {
             (
                 "Newlines\nseparated\nsentence",
                 vec!("Newlines\nseparated\nsentence")
+            ),
+            (
+                " leading and trailing spaces           ",
+                vec!("leading", "and", "trailing", "spaces")
+            ),
+            (
+                " Multiple spaces   in-between           ",
+                vec!("Multiple", "spaces", "in-between")
             )
         ];
 
@@ -603,11 +614,71 @@ mod tests {
                 "château",
                 "chateau"
             ),
+            (
+                "München",
+                "Munchen"
+            ),
         ];
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
             assert_eq!(strip_accents(String::from(*source_text)), String::from(*expected_result));
+        }
+    }
+
+    #[test]
+    fn test_split_on_punct() {
+//        Given
+        let vocab = generate_test_vocab();
+        let test_tuples = [
+            (
+                "Sentence One. Sentence Two",
+                vec!("Sentence One", ".", " Sentence Two")
+            ),
+            (
+                "Sentence One.Sentence Two",
+                vec!("Sentence One", ".", "Sentence Two")
+            ),
+            (
+                "Sentence One.!?Sentence Two",
+                vec!("Sentence One", ".", "!", "?", "Sentence Two")
+            ),
+        ];
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(split_on_punct(String::from(*source_text), &vocab),
+                       expected_result.iter().map(|v| String::from(*v)).collect::<Vec<_>>());
+        }
+    }
+
+    #[test]
+    fn test_wordpiece_tokenizer() {
+//        Given
+        let vocab = generate_test_vocab();
+        let test_tuples = [
+            (
+                "unaffable",
+                vec!("una", "##ffa", "##ble")
+            ),
+            (
+                "hello",
+                vec!("hello")
+            ),
+            (
+                "[PAD]",
+                vec!("[PAD]")
+            ),
+            (
+                "51",
+                vec!("[UNK]")
+            ),
+        ];
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(tokenize_wordpiece(String::from(*source_text), &vocab, 100),
+                       expected_result.iter().map(|v| String::from(*v)).collect::<Vec<_>>());
         }
     }
 }
