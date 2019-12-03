@@ -57,6 +57,9 @@ impl Vocab for BertVocab {
     }
 }
 
+//==============================
+// Unit tests
+//==============================
 #[cfg(test)]
 mod tests {
     use super::*;

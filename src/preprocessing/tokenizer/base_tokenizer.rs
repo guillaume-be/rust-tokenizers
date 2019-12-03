@@ -72,3 +72,96 @@ impl<T: Vocab + Sync + Send> Tokenizer for BaseTokenizer<T> {
             collect()
     }
 }
+
+//==============================
+// Unit tests
+//==============================
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::BertVocab;
+    use std::collections::HashMap;
+
+    fn generate_test_vocab() -> BertVocab {
+        let values: HashMap<String, i64> = [
+            ("hello".to_owned(), 0),
+            ("world".to_owned(), 1),
+            ("[UNK]".to_owned(), 2),
+            ("!".to_owned(), 3),
+            ("[CLS]".to_owned(), 4),
+            ("[SEP]".to_owned(), 5),
+            ("[MASK]".to_owned(), 6),
+            ("[中]".to_owned(), 7),
+            ("华".to_owned(), 8),
+            ("人]".to_owned(), 9),
+            ("[PAD]".to_owned(), 10),
+            ("una".to_owned(), 10),
+            ("##ffa".to_owned(), 10),
+            ("##ble".to_owned(), 10)
+        ].iter().cloned().collect();
+
+        let special_values: HashMap<String, i64> = [
+            ("[UNK]".to_owned(), 2),
+            ("[CLS]".to_owned(), 4),
+            ("[SEP]".to_owned(), 5),
+            ("[MASK]".to_owned(), 6),
+            ("[PAD]".to_owned(), 10)
+        ].iter().cloned().collect();
+
+        BertVocab { values, unknown_value: "[UNK]", special_values }
+    }
+
+    #[test]
+    fn test_base_tokenizer() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab);
+        let test_tuples = [
+            (
+                "Sentence with [MASK] token.",
+                vec!("sentence", "with", "[MASK]", "token", ".")
+            ),
+            (
+                "[CLS]Sentence with [MASK] token.",
+                vec!("[CLS]", "sentence", "with", "[MASK]", "token", ".")
+            ),
+            (
+                "[CLS]",
+                vec!("[CLS]")
+            ),
+            (
+                "[CLS] [PAD]",
+                vec!("[CLS]", "[PAD]")
+            ),
+            (
+                "[CLS]       [PAD]",
+                vec!("[CLS]", "[PAD]")
+            ),
+            (
+                "asdf[CLS]",
+                vec!("asdf", "[CLS]")
+            ),
+            (
+                "",
+                vec!()
+            ),
+            (
+                "Allons, Flipote, allons; que d'eux je me délivre.",
+                vec!("allons", ",", "flipote", ",", "allons", ";", "que", "d", "\'", "eux", "je", "me", "delivre", ".")
+            ),
+            (
+                "[UNK]中华人民共和国 [PAD] asdf",
+                vec!("[UNK]", "中", "华", "人", "民", "共", "和", "国", "[PAD]", "asdf")
+            )
+        ];
+        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(base_tokenizer.tokenize(*source_text), *expected_result);
+        }
+
+        assert_eq!(base_tokenizer.tokenize_list(source_texts), expected_results);
+    }
+}

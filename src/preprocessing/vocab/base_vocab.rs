@@ -94,6 +94,9 @@ impl Vocab for BaseVocab {
     }
 }
 
+//==============================
+// Unit tests
+//==============================
 #[cfg(test)]
 mod tests {
     use super::*;
