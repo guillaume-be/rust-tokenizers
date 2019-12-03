@@ -39,10 +39,10 @@ fn main() {
 
     let _text_list: Vec<&str> = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
-//    let _results = bert_tokenizer.tokenize_list(_text_list);
-    for text in _text_list{
-        bert_tokenizer.tokenize(text);
-    }
+    let _results = bert_tokenizer.tokenize_list(_text_list);
+//    for text in _text_list{
+//        bert_tokenizer.tokenize(text);
+//    }
     println!("Elapsed time: {:.2?}", _before.elapsed());
 
 //    let test_word = String::from("unaffable");

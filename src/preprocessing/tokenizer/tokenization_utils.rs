@@ -4,7 +4,8 @@ use unicode_normalization::is_nfd;
 use unicode_normalization::char::{decompose_canonical, is_combining_mark};
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
-use crate::preprocessing::tokenizer::constants::{WHITESPACE_CHARS, ADDITIONAL_WHITESPACE_CHARS, PUNCTUATION_CHARS};
+use crate::preprocessing::tokenizer::constants::{WHITESPACE_CHARS, ADDITIONAL_WHITESPACE_CHARS,
+                                                 PUNCTUATION_CHARS, CONTROL_CHARS};
 
 pub fn clean_text(text: &str) -> String {
     let mut output = String::new();
@@ -93,10 +94,29 @@ fn is_whitespace(character: &char) -> bool {
 }
 
 fn is_control(character: &char) -> bool {
+//    This is a custom method to check if a character is a control character. The BERT tokenizer is
+// taking any character whose unicode category starts with `C` as a control character, which includes
+// the traditional control `Cc` category, but also the format `Cc`, private use `Co` and surrogate `Cs`.
+// The unassigned unicode category `Cn` has been skipped in order to avoid unnecessary checks.
     if ADDITIONAL_WHITESPACE_CHARS.contains(character) {
-        return false;
+        false
     } else {
-        character.is_control()
+        let u32_char = *character as u32;
+        if (u32_char <= 0x001F) |
+            ((u32_char >= 0x0080) & (u32_char <= 0x009F)) |
+            ((u32_char >= 0xE0020) & (u32_char <= 0xE007F)) |
+            ((u32_char >= 0xE000) & (u32_char <= 0xF8FF)) |
+            ((u32_char >= 0xF0000) & (u32_char <= 0xFFFFD)) |
+            ((u32_char >= 0x100000) & (u32_char <= 0x10FFFD)) |
+            ((u32_char >= 0xD800) & (u32_char <= 0xDB7F)) |
+            ((u32_char >= 0xDB80) & (u32_char <= 0xDBFF)) |
+            ((u32_char >= 0xDC00) & (u32_char <= 0xDFFF)) |
+            CONTROL_CHARS.contains(&u32_char)
+        {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -112,7 +132,6 @@ fn is_punctuation(character: &char) -> bool {
     }
 
 //    character.is_ascii_punctuation()
-
 }
 
 pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
@@ -198,6 +217,9 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
     tokenized_text
 }
 
+//==============================
+// Unit tests
+//==============================
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,6 +249,37 @@ mod tests {
         ].iter().cloned().collect();
 
         BertVocab { values, unknown_value: "[UNK]", special_values }
+    }
+
+    #[test]
+    fn test_clean_text() {
+//        Given
+
+//        When & Then
+        for (source_text, expected_result) in [
+            (
+                "Sentence with no special character.",
+                "Sentence with no special character."
+            ),
+            (
+                "Sentence with \n some \r\n line breaks.",
+                "Sentence with   some    line breaks."
+            ),
+            (
+                "Sentence with �replacement character.",
+                "Sentence with replacement character."
+            ),
+            (
+                "Sentence with \t \t tabs.",
+                "Sentence with     tabs."
+            ),
+            (
+                "Sentence with \x00null character.",
+                "Sentence with null character."
+            ),
+        ].iter() {
+            assert_eq!(clean_text(*source_text), *expected_result);
+        }
     }
 
     #[test]
@@ -363,6 +416,68 @@ mod tests {
 
         for character in non_whitespace_chars.iter() {
             assert!(!is_whitespace(character));
+        }
+    }
+
+    #[test]
+    fn test_is_control() {
+//        Given
+        let standard_control_chars_without_space_return_tab: [u32; 62] = [
+            0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x000B,
+            0x000C, 0x000E, 0x000F, 0x0010, 0x0011, 0x0012, 0x0013, 0x0014, 0x0015, 0x0016,
+            0x0017, 0x0018, 0x0019, 0x001A, 0x001B, 0x001C, 0x001D, 0x001E, 0x001F, 0x007F,
+            0x0080, 0x0081, 0x0082, 0x0083, 0x0084, 0x0085, 0x0086, 0x0087, 0x0088, 0x0089,
+            0x008A, 0x008B, 0x008C, 0x008D, 0x008E, 0x008F, 0x0090, 0x0091, 0x0092, 0x0093,
+            0x0094, 0x0095, 0x0096, 0x0097, 0x0098, 0x0099, 0x009A, 0x009B, 0x009C, 0x009D,
+            0x009E, 0x009F
+        ];
+
+        let extended_control_chars: [u32; 223] = [
+            0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x000B, 0x000C,
+            0x000E, 0x000F, 0x0010, 0x0011, 0x0012, 0x0013, 0x0014, 0x0015, 0x0016, 0x0017, 0x0018,
+            0x0019, 0x001A, 0x001B, 0x001C, 0x001D, 0x001E, 0x001F, 0x007F, 0x0080, 0x0081, 0x0082,
+            0x0083, 0x0084, 0x0085, 0x0086, 0x0087, 0x0088, 0x0089, 0x008A,
+            0x008B, 0x008C, 0x008D, 0x008E, 0x008F, 0x0090, 0x0091, 0x0092, 0x0093, 0x0094, 0x0095,
+            0x0096, 0x0097, 0x0098, 0x0099, 0x009A, 0x009B, 0x009C, 0x009D, 0x009E, 0x009F, 0x00AD,
+            0x0600, 0x0601, 0x0602, 0x0603, 0x0604, 0x0605, 0x061C, 0x06DD, 0x070F, 0x08E2, 0x180E,
+            0x200B, 0x200C, 0x200D, 0x200E, 0x200F, 0x202A, 0x202B, 0x202C, 0x202D, 0x202E, 0x2060,
+            0x2061, 0x2062, 0x2063, 0x2064, 0x2066, 0x2067, 0x2068, 0x2069, 0x206A, 0x206B, 0x206C,
+            0x206D, 0x206E, 0x206F, 0xFEFF, 0xFFF9, 0xFFFA, 0xFFFB, 0x110BD, 0x110CD, 0x13430,
+            0x13431, 0x13432, 0x13433, 0x13434, 0x13435, 0x13436, 0x13437, 0x13438, 0x1BCA0, 0x1BCA1,
+            0x1BCA2, 0x1BCA3, 0x1D173, 0x1D174, 0x1D175, 0x1D176, 0x1D177, 0x1D178, 0x1D179, 0x1D17A,
+            0xE0001, 0xE0020, 0xE0021, 0xE0022, 0xE0023, 0xE0024, 0xE0025, 0xE0026, 0xE0027, 0xE0028,
+            0xE0029, 0xE002A, 0xE002B, 0xE002C, 0xE002D, 0xE002E, 0xE002F, 0xE0030, 0xE0031, 0xE0032,
+            0xE0033, 0xE0034, 0xE0035, 0xE0036, 0xE0037, 0xE0038, 0xE0039, 0xE003A, 0xE003B, 0xE003C,
+            0xE003D, 0xE003E, 0xE003F, 0xE0040, 0xE0041, 0xE0042, 0xE0043, 0xE0044, 0xE0045, 0xE0046,
+            0xE0047, 0xE0048, 0xE0049, 0xE004A, 0xE004B, 0xE004C, 0xE004D, 0xE004E, 0xE004F, 0xE0050,
+            0xE0051, 0xE0052, 0xE0053, 0xE0054, 0xE0055, 0xE0056, 0xE0057, 0xE0058, 0xE0059, 0xE005A,
+            0xE005B, 0xE005C, 0xE005D, 0xE005E, 0xE005F, 0xE0060, 0xE0061, 0xE0062, 0xE0063, 0xE0064,
+            0xE0065, 0xE0066, 0xE0067, 0xE0068, 0xE0069, 0xE006A, 0xE006B, 0xE006C, 0xE006D, 0xE006E,
+            0xE006F, 0xE0070, 0xE0071, 0xE0072, 0xE0073, 0xE0074, 0xE0075, 0xE0076, 0xE0077, 0xE0078,
+            0xE0079, 0xE007A, 0xE007B, 0xE007C, 0xE007D, 0xE007E, 0xE007F
+        ];
+
+        let additional_whitespace_chars: [char; 4] = [
+            ' ', '\n', '\r', '\t'
+        ];
+
+        let non_control_chars: [char; 5] = ['a', '5', '♥', '_', '越'];
+
+//        When & Then
+        for character in standard_control_chars_without_space_return_tab.iter() {
+            assert!(is_control(&char::from_u32(*character).unwrap()));
+        }
+
+        for character in extended_control_chars.iter() {
+            assert!(is_control(&char::from_u32(*character).unwrap()));
+        }
+
+        for character in additional_whitespace_chars.iter() {
+            assert!(!is_control(character));
+        }
+
+        for character in non_control_chars.iter() {
+            assert!(!is_control(character));
         }
     }
 }
