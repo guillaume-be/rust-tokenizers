@@ -2,6 +2,7 @@ use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, clean_text};
 use std::sync::Arc;
 use rayon::prelude::*;
+use itertools::Itertools;
 
 pub trait Tokenizer {
     fn tokenize(&self, text: &str) -> Vec<String>;
@@ -56,14 +57,11 @@ impl<T: Vocab + Sync + Send> Tokenizer for BaseTokenizer<T> {
             .map(|s| s.to_string())
             .collect();
 
-//        ToDo: the original code rebuilds the sentence with whitespace separators & then re-tokenizes
-        let tokenized_text: Vec<String> = tokenized_text
+        let tokenized_text: String = tokenized_text.iter().join(" ");
+        let tokenized_text: Vec<String> = whitespace_tokenize(&tokenized_text)
             .iter()
-            .map(|v| whitespace_tokenize(&v))
-            .flatten()
             .map(|s| s.to_string())
             .collect();
-
         tokenized_text
     }
 
