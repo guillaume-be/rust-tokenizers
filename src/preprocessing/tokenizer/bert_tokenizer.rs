@@ -20,25 +20,12 @@ impl<T: Vocab + Sync + Send> BertTokenizer<T> {
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
         BertTokenizer { vocab: vocab.clone(), base_tokenizer }
     }
-
-    pub fn convert_tokens_to_ids(&self, tokens: &Vec<String>) -> Vec<i64> {
-        tokens.iter().map(|v| self.vocab.token_to_id(v)).collect()
-    }
-
-    pub fn encode(&self, text: &str) -> Vec<i64> {
-        self.convert_tokens_to_ids(&self.tokenize(text))
-    }
-
-    pub fn encode_list(&self, text_list: Vec<&str>) -> Vec<Vec<i64>> {
-        text_list
-            .par_iter()
-            .map(|text| self.tokenize(text))
-            .map(|tokens| self.convert_tokens_to_ids(&tokens))
-            .collect()
-    }
 }
 
-impl<T: Vocab + Sync + Send> Tokenizer for BertTokenizer<T> {
+impl<T: Vocab + Sync + Send> Tokenizer<T> for BertTokenizer<T> {
+    fn vocab(&self) -> &T {
+        &self.vocab
+    }
     fn tokenize(&self, text: &str) -> Vec<String> {
         let tokenized_text: Vec<String> = self.base_tokenizer.tokenize(text);
         let tokenized_text: Vec<String> = tokenized_text
