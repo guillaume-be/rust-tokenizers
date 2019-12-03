@@ -54,6 +54,10 @@ pub trait Vocab {
     }
 
     fn token_to_id(&self, token: &str) -> i64;
+
+    fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Vec<i64> {
+        tokens.iter().map(|v| self.token_to_id(v)).collect()
+    }
 }
 
 
