@@ -8,10 +8,10 @@ use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 
 
-pub fn clean_text(text: &str) -> String {
+pub fn clean_text(text: &str, strict: bool) -> String {
     let mut output = String::new();
     for character in text.chars() {
-        if is_control(&character) || character == '\x00' || character == REPLACEMENT_CHARACTER {
+        if is_control(&character, strict) || character == '\x00' || character == REPLACEMENT_CHARACTER {
             continue;
         }
         if is_whitespace(&character) {
@@ -94,29 +94,35 @@ fn is_whitespace(character: &char) -> bool {
     WHITESPACE_CHARS.contains(&(*character as u32))
 }
 
-fn is_control(character: &char) -> bool {
-//    This is a custom method to check if a character is a control character. The BERT tokenizer is
-// taking any character whose unicode category starts with `C` as a control character, which includes
-// the traditional control `Cc` category, but also the format `Cc`, private use `Co` and surrogate `Cs`.
-// The unassigned unicode category `Cn` has been skipped in order to avoid unnecessary checks.
+///    This is a custom method to check if a character is a control character. The BERT tokenizer is
+/// taking any character whose unicode category starts with `C` as a control character, which includes
+/// the traditional control `Cc` category, but also the format `Cc`, private use `Co` and surrogate `Cs`.
+/// The unassigned unicode category `Cn` has been skipped in order to avoid unnecessary checks.
+///    A faster method may be called by setting strict to false and only check against the core control
+/// characters. To match the original BERT tokenization, this should remain true.
+fn is_control(character: &char, strict: bool) -> bool {
     if ADDITIONAL_WHITESPACE_CHARS.contains(character) {
         false
     } else {
-        let u32_char = *character as u32;
-        if (u32_char <= 0x001F) |
-            ((u32_char >= 0x0080) & (u32_char <= 0x009F)) |
-            ((u32_char >= 0xE0020) & (u32_char <= 0xE007F)) |
-            ((u32_char >= 0xE000) & (u32_char <= 0xF8FF)) |
-            ((u32_char >= 0xF0000) & (u32_char <= 0xFFFFD)) |
-            ((u32_char >= 0x100000) & (u32_char <= 0x10FFFD)) |
-            ((u32_char >= 0xD800) & (u32_char <= 0xDB7F)) |
-            ((u32_char >= 0xDB80) & (u32_char <= 0xDBFF)) |
-            ((u32_char >= 0xDC00) & (u32_char <= 0xDFFF)) |
-            CONTROL_CHARS.contains(&u32_char)
-        {
-            true
+        if strict {
+            let u32_char = *character as u32;
+            if (u32_char <= 0x001F) |
+                ((u32_char >= 0x0080) & (u32_char <= 0x009F)) |
+                ((u32_char >= 0xE0020) & (u32_char <= 0xE007F)) |
+                ((u32_char >= 0xE000) & (u32_char <= 0xF8FF)) |
+                ((u32_char >= 0xF0000) & (u32_char <= 0xFFFFD)) |
+                ((u32_char >= 0x100000) & (u32_char <= 0x10FFFD)) |
+                ((u32_char >= 0xD800) & (u32_char <= 0xDB7F)) |
+                ((u32_char >= 0xDB80) & (u32_char <= 0xDBFF)) |
+                ((u32_char >= 0xDC00) & (u32_char <= 0xDFFF)) |
+                CONTROL_CHARS.contains(&u32_char)
+            {
+                true
+            } else {
+                false
+            }
         } else {
-            false
+            character.is_control()
         }
     }
 }
@@ -281,7 +287,11 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(clean_text(*source_text), *expected_result);
+            assert_eq!(clean_text(*source_text, true), *expected_result);
+        }
+
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(clean_text(*source_text, false), *expected_result);
         }
     }
 
@@ -470,19 +480,31 @@ mod tests {
 
 //        When & Then
         for character in standard_control_chars_without_space_return_tab.iter() {
-            assert!(is_control(&char::from_u32(*character).unwrap()));
+            assert!(is_control(&char::from_u32(*character).unwrap(), true));
         }
 
         for character in extended_control_chars.iter() {
-            assert!(is_control(&char::from_u32(*character).unwrap()));
+            assert!(is_control(&char::from_u32(*character).unwrap(), true));
         }
 
         for character in additional_whitespace_chars.iter() {
-            assert!(!is_control(character));
+            assert!(!is_control(character, true));
         }
 
         for character in non_control_chars.iter() {
-            assert!(!is_control(character));
+            assert!(!is_control(character, true));
+        }
+
+        for character in standard_control_chars_without_space_return_tab.iter() {
+            assert!(is_control(&char::from_u32(*character).unwrap(), false));
+        }
+
+        for character in additional_whitespace_chars.iter() {
+            assert!(!is_control(character, false));
+        }
+
+        for character in non_control_chars.iter() {
+            assert!(!is_control(character, false));
         }
     }
 

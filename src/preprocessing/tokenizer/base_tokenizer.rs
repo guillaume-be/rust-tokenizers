@@ -30,7 +30,7 @@ impl<T: Vocab + Sync + Send> Tokenizer for BaseTokenizer<T> {
             let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
             let temp_text: Vec<String> = temp_text.
                 iter().
-                map(|v| clean_text(v)).
+                map(|v| clean_text(v, true)).
                 map(|v| tokenize_cjk_chars(&v)).
                 collect();
             temp_text
