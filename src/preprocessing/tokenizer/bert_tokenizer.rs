@@ -1,7 +1,6 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer};
 use std::sync::Arc;
-use rayon::prelude::*;
 use crate::preprocessing::tokenizer::tokenization_utils::tokenize_wordpiece;
 
 pub struct BertTokenizer<T: Vocab> {
@@ -36,13 +35,6 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BertTokenizer<T> {
             .collect();
         tokenized_text
     }
-
-    fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
-        text_list
-            .par_iter()
-            .map(|text| self.tokenize(text))
-            .collect()
-    }
 }
 
 
@@ -68,9 +60,9 @@ mod tests {
             ("华".to_owned(), 8),
             ("人]".to_owned(), 9),
             ("[PAD]".to_owned(), 10),
-            ("una".to_owned(), 10),
-            ("##ffa".to_owned(), 10),
-            ("##ble".to_owned(), 10)
+            ("una".to_owned(), 11),
+            ("##ffa".to_owned(), 12),
+            ("##ble".to_owned(), 13)
         ].iter().cloned().collect();
 
         let special_values: HashMap<String, i64> = [
@@ -112,5 +104,35 @@ mod tests {
         }
 
         assert_eq!(bert_tokenizer.tokenize_list(source_texts), expected_results);
+    }
+
+    #[test]
+    fn test_encode() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let bert_tokenizer: BertTokenizer<BertVocab> = BertTokenizer::from_existing_vocab(vocab);
+        let test_tuples = [
+            (
+                "hello[MASK] world!",
+                vec!(0, 6, 1, 3)
+            ),
+            (
+                "hello, unaffable world!",
+                vec!(0, 2, 11, 12, 13, 1, 3)
+            ),
+            (
+                "[UNK]中华人民共和国 [PAD] asdf",
+                vec!(2, 2, 8, 2, 2, 2, 2, 2, 10, 2)
+            )
+        ];
+        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(bert_tokenizer.encode(source_text),
+                       *expected_result);
+        }
+        assert_eq!(bert_tokenizer.encode_list(source_texts), expected_results);
     }
 }
