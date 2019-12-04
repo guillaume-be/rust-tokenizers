@@ -41,7 +41,7 @@ fn main() {
 //    for text in _text_list{
 //        bert_tokenizer.tokenize(text);
 //    }
-//    let _results = bert_tokenizer.encode_list(_text_list, 128);
+    let _results = bert_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
 //    for result in _text_list {
 //        bert_tokenizer.encode(&result);
 //    }

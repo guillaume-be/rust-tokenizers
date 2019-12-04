@@ -7,8 +7,8 @@ use unicode_normalization::char::{decompose_canonical, is_combining_mark};
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 use std::error::Error;
-use crate::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
 use std::cmp::min;
+use crate::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
 
 
 pub fn clean_text(text: &str, strict: bool) -> String {
@@ -235,44 +235,36 @@ pub(crate) fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i6
             Some(mut tokens_2) => {
                 match truncation_strategy {
                     TruncationStrategy::LongestFirst => {
-                        let mut overflow_tokens: Vec<i64> = Vec::with_capacity(num_tokens_to_remove + stride);
-                        for _ in 0..num_tokens_to_remove {
-                            if tokens_1.len() >= tokens_2.len() {
-                                overflow_tokens.push(tokens_1.pop().unwrap());
-                            } else {
-                                overflow_tokens.push(tokens_2.pop().unwrap());
+                        if (tokens_1.len() + tokens_2.len()) >= num_tokens_to_remove {
+                            let mut overflow_tokens: Vec<i64> = Vec::with_capacity(num_tokens_to_remove + stride);
+                            for _ in 0..num_tokens_to_remove {
+                                if tokens_1.len() >= tokens_2.len() {
+                                    overflow_tokens.push(tokens_1.pop().unwrap());
+                                } else {
+                                    overflow_tokens.push(tokens_2.pop().unwrap());
+                                }
                             }
-                        }
-                        let window_len = min(tokens_1.len(), stride);
-                        if window_len > 0 {
-                            let slice: &[i64] = &tokens_1[&tokens_1.len() - stride..];
-                            overflow_tokens.splice(0..0, slice.iter().cloned());
-                        }
-                        Ok((tokens_1, Some(tokens_2), overflow_tokens))
-                    }
-                    TruncationStrategy::OnlyFirst => {
-                        if tokens_1.len() > num_tokens_to_remove {
-                            let cutoff = tokens_1.len() - num_tokens_to_remove;
-                            let mut overflow_tokens = tokens_1.split_off(cutoff);
                             let window_len = min(tokens_1.len(), stride);
                             if window_len > 0 {
-                                let slice: &[i64] = &tokens_1[&tokens_1.len() - stride..];
+                                let slice: &[i64] = &tokens_1[&tokens_1.len() - window_len..];
                                 overflow_tokens.splice(0..0, slice.iter().cloned());
                             }
+                            Ok((tokens_1, Some(tokens_2), overflow_tokens))
+                        } else {
+                            Err("Combined sequence length too short for requested truncation amount".into())
+                        }
+                    }
+                    TruncationStrategy::OnlyFirst => {
+                        if tokens_1.len() >= num_tokens_to_remove {
+                            let overflow_tokens = truncate_with_overflow(&mut tokens_1, num_tokens_to_remove, stride);
                             Ok((tokens_1, Some(tokens_2), overflow_tokens))
                         } else {
                             Err("First sequence too short for first only truncation".into())
                         }
                     }
                     TruncationStrategy::OnlySecond => {
-                        if tokens_2.len() > num_tokens_to_remove {
-                            let cutoff = tokens_2.len() - num_tokens_to_remove;
-                            let mut overflow_tokens = tokens_2.split_off(cutoff);
-                            let window_len = min(tokens_2.len(), stride);
-                            if window_len > 0 {
-                                let slice: &[i64] = &tokens_2[&tokens_2.len() - stride..];
-                                overflow_tokens.splice(0..0, slice.iter().cloned());
-                            }
+                        if tokens_2.len() >= num_tokens_to_remove {
+                            let overflow_tokens = truncate_with_overflow(&mut tokens_2, num_tokens_to_remove, stride);
                             Ok((tokens_1, Some(tokens_2), overflow_tokens))
                         } else {
                             Err("First sequence too short for first only truncation".into())
@@ -282,22 +274,32 @@ pub(crate) fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i6
                 }
             }
             None => {
-                match truncation_strategy {
-                    TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
-                        let cutoff = tokens_1.len() - num_tokens_to_remove;
-                        let mut overflow_tokens = tokens_1.split_off(cutoff);
-                        let window_len = min(tokens_1.len(), stride);
-                        if window_len > 0 {
-                            let slice: &[i64] = &tokens_1[&tokens_1.len() - stride..];
-                            overflow_tokens.splice(0..0, slice.iter().cloned());
+                if tokens_1.len() >= num_tokens_to_remove {
+                    match truncation_strategy {
+                        TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
+                            let overflow_tokens = truncate_with_overflow(&mut tokens_1, num_tokens_to_remove, stride);
+                            Ok((tokens_1, None, overflow_tokens))
                         }
-                        Ok((tokens_1, None, overflow_tokens))
+                        TruncationStrategy::OnlySecond => Err("Invalid truncation strategy for single sentence truncation".into()),
+                        TruncationStrategy::DoNotTruncate => Err("Truncation needed but no truncation requested".into())
                     }
-                    _ => Err("Invalid truncation strategy for single sentence truncation".into())
+                } else {
+                    Err("First sequence too short for first only truncation".into())
                 }
             }
         }
     }
+}
+
+fn truncate_with_overflow(sequence: &mut Vec<i64>, num_tokens_to_remove: usize, stride: usize) -> Vec<i64> {
+    let cutoff = sequence.len() - num_tokens_to_remove;
+    let mut overflow_tokens = sequence.split_off(cutoff);
+    let window_len = min(sequence.len(), stride);
+    if window_len > 0 {
+        let slice: &[i64] = &sequence[&sequence.len() - window_len..];
+        overflow_tokens.splice(0..0, slice.iter().cloned());
+    }
+    overflow_tokens
 }
 
 
@@ -780,6 +782,83 @@ mod tests {
         for (source_text, expected_result) in test_tuples.iter() {
             assert_eq!(tokenize_wordpiece(String::from(*source_text), &vocab, 100),
                        expected_result.iter().map(|v| String::from(*v)).collect::<Vec<_>>());
+        }
+    }
+
+    #[test]
+    fn test_truncate_single_sentence() {
+//        Given
+        let test_token_ids: Vec<i64> = (0..15).collect();
+        let test_tuples: [((usize, &TruncationStrategy, usize), std::result::Result<(std::vec::Vec<i64>, std::option::Option<std::vec::Vec<i64>>, std::vec::Vec<i64>), Box<dyn Error>>);
+            12] = [
+//            Baseline
+            (
+                (5, &TruncationStrategy::LongestFirst, 0),
+                Ok(((0..10).collect::<Vec<i64>>(), None::<Vec<i64>>, (10..15).collect::<Vec<i64>>()))
+            ),
+//            With stride = 2
+            (
+                (5, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..10).collect::<Vec<i64>>(), None::<Vec<i64>>, (8..15).collect::<Vec<i64>>()))
+            ),
+//            Truncate entire sequence
+            (
+                (15, &TruncationStrategy::LongestFirst, 0),
+                Ok(((0..0).collect::<Vec<i64>>(), None::<Vec<i64>>, (0..15).collect::<Vec<i64>>()))
+            ),
+//            Truncate amount larger than sequence length
+            (
+                (20, &TruncationStrategy::LongestFirst, 0),
+                Err("First sequence too short for first only truncation".into())
+            ),
+//            Truncate entire sequence with stride = 2
+            (
+                (15, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..0).collect::<Vec<i64>>(), None::<Vec<i64>>, (0..15).collect::<Vec<i64>>()))
+            ),
+//            stride larger than remaining elements
+            (
+                (10, &TruncationStrategy::LongestFirst, 7),
+                Ok(((0..5).collect::<Vec<i64>>(), None::<Vec<i64>>, (0..15).collect::<Vec<i64>>()))
+            ),
+//            stride larger than all elements
+            (
+                (1, &TruncationStrategy::LongestFirst, 20),
+                Ok(((0..14).collect::<Vec<i64>>(), None::<Vec<i64>>, (0..15).collect::<Vec<i64>>()))
+            ),
+//            Truncate with OnlyFirst strategy
+            (
+                (10, &TruncationStrategy::OnlyFirst, 2),
+                Ok(((0..5).collect::<Vec<i64>>(), None::<Vec<i64>>, (3..15).collect::<Vec<i64>>()))
+            ),
+//            No truncation
+            (
+                (0, &TruncationStrategy::LongestFirst, 0),
+                Ok(((0..15).collect::<Vec<i64>>(), None::<Vec<i64>>, (15..15).collect::<Vec<i64>>()))
+            ),
+//            No truncation requested, none needed
+            (
+                (0, &TruncationStrategy::DoNotTruncate, 0),
+                Ok(((0..15).collect::<Vec<i64>>(), None::<Vec<i64>>, (15..15).collect::<Vec<i64>>()))
+            ),
+//            No truncation requested, but needed
+            (
+                (1, &TruncationStrategy::DoNotTruncate, 0),
+                Err("Truncation needed but no truncation requested".into())
+            ),
+//            Invalid truncation requested
+            (
+                (1, &TruncationStrategy::OnlySecond, 0),
+                Err("Invalid truncation strategy for single sentence truncation".into())
+            ),
+        ];
+
+        for (parameters, expected_outputs) in &test_tuples {
+            let test_results = truncate_sequences(test_token_ids.clone(), None, parameters.0, parameters.1, parameters.2);
+            match test_results {
+                Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
+                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+            }
         }
     }
 }
