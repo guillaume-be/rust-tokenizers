@@ -1,28 +1,29 @@
-use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer};
 use std::sync::Arc;
 use crate::preprocessing::tokenizer::tokenization_utils::tokenize_wordpiece;
+use crate::preprocessing::vocab::base_vocab::Vocab;
+use crate::BertVocab;
 
-pub struct BertTokenizer<T: Vocab> {
-    vocab: Arc<T>,
-    base_tokenizer: BaseTokenizer<T>,
+pub struct BertTokenizer {
+    vocab: Arc<BertVocab>,
+    base_tokenizer: BaseTokenizer<BertVocab>,
 }
 
-impl<T: Vocab + Sync + Send> BertTokenizer<T> {
-    pub fn from_file(path: &str) -> BertTokenizer<T> {
-        let vocab = Arc::new(T::from_file(path));
+impl BertTokenizer {
+    pub fn from_file(path: &str) -> BertTokenizer {
+        let vocab = Arc::new(BertVocab::from_file(path));
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
         BertTokenizer { vocab, base_tokenizer }
     }
 
-    pub fn from_existing_vocab(vocab: Arc<T>) -> BertTokenizer<T> {
+    pub fn from_existing_vocab(vocab: Arc<BertVocab>) -> BertTokenizer {
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
         BertTokenizer { vocab: vocab.clone(), base_tokenizer }
     }
 }
 
-impl<T: Vocab + Sync + Send> Tokenizer<T> for BertTokenizer<T> {
-    fn vocab(&self) -> &T {
+impl Tokenizer<BertVocab> for BertTokenizer {
+    fn vocab(&self) -> &BertVocab {
         &self.vocab
     }
     fn tokenize(&self, text: &str) -> Vec<String> {
@@ -34,6 +35,18 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BertTokenizer<T> {
             .map(|s| s.to_string())
             .collect();
         tokenized_text
+    }
+
+    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> Vec<i64> {
+        let mut output: Vec<i64> = vec!();
+        output.push(self.vocab.token_to_id(BertVocab::cls_value()));
+        output.extend(tokens_1);
+        output.push(self.vocab.token_to_id(BertVocab::sep_value()));
+        if let Some(add_tokens) = tokens_2 {
+            output.extend(add_tokens);
+            output.push(self.vocab.token_to_id(BertVocab::sep_value()));
+        }
+        output
     }
 }
 
@@ -80,7 +93,7 @@ mod tests {
     fn test_bert_tokenizer() {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let bert_tokenizer: BertTokenizer<BertVocab> = BertTokenizer::from_existing_vocab(vocab);
+        let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab);
         let test_tuples = [
             (
                 "Hello [MASK] world!",
@@ -110,7 +123,7 @@ mod tests {
     fn test_encode() {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let bert_tokenizer: BertTokenizer<BertVocab> = BertTokenizer::from_existing_vocab(vocab);
+        let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab);
         let test_tuples = [
             (
                 "hello[MASK] world!",
@@ -130,9 +143,9 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(bert_tokenizer.encode(source_text),
+            assert_eq!(bert_tokenizer.encode(source_text, None, 128),
                        *expected_result);
         }
-        assert_eq!(bert_tokenizer.encode_list(source_texts), expected_results);
+        assert_eq!(bert_tokenizer.encode_list(source_texts, 128), expected_results);
     }
 }

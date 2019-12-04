@@ -1,4 +1,5 @@
 pub mod preprocessing;
+
 pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab};
 pub use preprocessing::tokenizer::bert_tokenizer;
 use pyo3::prelude::*;
@@ -10,7 +11,7 @@ extern crate lazy_static;
 
 #[pyclass(module = "rust_transformers")]
 struct PyBertTokenizer {
-    tokenizer: BertTokenizer<BertVocab>,
+    tokenizer: BertTokenizer,
 }
 
 #[pymethods]
@@ -28,6 +29,14 @@ impl PyBertTokenizer {
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         Ok(self.tokenizer.tokenize_list(text_list))
+    }
+
+    fn encode(&self, text: &str, max_len: usize) -> PyResult<Vec<i64>> {
+        Ok(self.tokenizer.encode(&text, None, max_len))
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize) -> PyResult<Vec<Vec<i64>>> {
+        Ok(self.tokenizer.encode_list(text_list, max_len))
     }
 }
 

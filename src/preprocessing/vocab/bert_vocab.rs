@@ -9,10 +9,10 @@ pub struct BertVocab {
 }
 
 impl BertVocab {
-    fn pad_value() -> &'static str { "[PAD]" }
-    fn sep_value() -> &'static str { "[SEP]" }
-    fn cls_value() -> &'static str { "[CLS]" }
-    fn mask_value() -> &'static str { "[MASK]" }
+    pub(crate) fn pad_value() -> &'static str { "[PAD]" }
+    pub(crate) fn sep_value() -> &'static str { "[SEP]" }
+    pub(crate) fn cls_value() -> &'static str { "[CLS]" }
+    pub(crate) fn mask_value() -> &'static str { "[MASK]" }
 }
 
 impl Vocab for BertVocab {
