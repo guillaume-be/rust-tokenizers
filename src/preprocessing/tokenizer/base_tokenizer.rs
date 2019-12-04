@@ -28,7 +28,6 @@ pub trait Tokenizer<T: Vocab>
         tokens.iter().map(|v| self.vocab().token_to_id(v)).collect()
     }
 
-//    ToDo: Test encode for BERT
     fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<i64> {
         let token_ids_1 = self.convert_tokens_to_ids(&self.tokenize(text_1));
         let len_1 = token_ids_1.len();
@@ -164,9 +163,9 @@ mod tests {
             ("[CLS]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
-            ("[中]".to_owned(), 7),
+            ("中".to_owned(), 7),
             ("华".to_owned(), 8),
-            ("人]".to_owned(), 9),
+            ("人".to_owned(), 9),
             ("[PAD]".to_owned(), 10),
             ("una".to_owned(), 11),
             ("##ffa".to_owned(), 12),
@@ -266,10 +265,10 @@ mod tests {
     }
 
     #[test]
-    fn test_encode() {
+    fn test_encode_single_sentence() {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let bert_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab);
+        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (
@@ -282,7 +281,11 @@ mod tests {
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!(2, 2, 8, 2, 2, 2, 2, 2, 10, 2)
+                vec!(2, 7, 8, 9, 2, 2, 2, 2, 10, 2)
+            ),
+            (
+                "[UNK] a ! c ! e ! g ! i ! [PAD] a ! c ! e ! g ! i !",
+                vec!(2, 2, 3, 2, 3, 2, 3, 2, 3, 2)
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -290,9 +293,48 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(bert_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
+            assert_eq!(base_tokenizer.encode(source_text, None, 10, &truncation_strategy, 0),
                        *expected_result);
         }
-        assert_eq!(bert_tokenizer.encode_list(source_texts, 128, &truncation_strategy, 0), expected_results);
+        assert_eq!(base_tokenizer.encode_list(source_texts, 10, &truncation_strategy, 0), expected_results);
+    }
+
+    #[test]
+    fn test_encode_sentence_pair() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab);
+        let truncation_strategy = TruncationStrategy::LongestFirst;
+        let test_tuples = [
+//            No truncation required
+            (
+                ("hello[MASK] world!", "This is the second sentence"),
+                vec!(0, 6, 1, 3, 2, 2, 2, 2, 2)
+            ),
+//            Truncation of sentence 2 (longest)
+            (
+                ("hello[MASK] world!", "!This is the second sentence!!!"),
+                vec!(0, 6, 1, 3, 3, 2, 2, 2, 2, 2)
+            ),
+//            Truncation of sentence 1 (longest)
+            (
+                ("[UNK] hello  hello  hello  hello  hello  hello  hello  hello  hello  hello  hello", "!!!"),
+                vec!(2, 0, 0, 0, 0, 0, 0, 3, 3, 3)
+            ),
+//            Truncation of both sentences (longest)
+            (
+                ("[UNK] hello  hello  hello  hello  hello", "!!!!!!!!"),
+                vec!(2, 0, 0, 0, 0, 3, 3, 3, 3, 3)
+            )
+        ];
+        let source_texts: Vec<(&str, &str)> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(base_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0),
+                       *expected_result);
+        }
+        assert_eq!(base_tokenizer.encode_pair_list(source_texts, 10, &truncation_strategy, 0), expected_results);
     }
 }

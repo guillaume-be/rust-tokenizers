@@ -70,9 +70,9 @@ mod tests {
             ("[CLS]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
-            ("[中]".to_owned(), 7),
+            ("中".to_owned(), 7),
             ("华".to_owned(), 8),
-            ("人]".to_owned(), 9),
+            ("人".to_owned(), 9),
             ("[PAD]".to_owned(), 10),
             ("una".to_owned(), 11),
             ("##ffa".to_owned(), 12),
@@ -106,7 +106,7 @@ mod tests {
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!("[UNK]", "[UNK]", "华", "[UNK]", "[UNK]", "[UNK]", "[UNK]", "[UNK]", "[PAD]", "[UNK]")
+                vec!("[UNK]", "中", "华", "人", "[UNK]", "[UNK]", "[UNK]", "[UNK]", "[PAD]", "[UNK]")
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -137,7 +137,7 @@ mod tests {
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!(4, 2, 2, 8, 2, 2, 2, 2, 2, 10, 2, 5)
+                vec!(4, 2, 7, 8, 9, 2, 2, 2, 2, 10, 2, 5)
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -149,5 +149,44 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(bert_tokenizer.encode_list(source_texts, 128, &truncation_strategy, 0), expected_results);
+    }
+
+    #[test]
+    fn test_encode_sentence_pair() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab);
+        let truncation_strategy = TruncationStrategy::LongestFirst;
+        let test_tuples = [
+//            No truncation required
+            (
+                ("hello world", "This is the second sentence"),
+                vec!(4, 0, 1, 5, 2, 2, 2, 2, 2, 5)
+            ),
+//            Truncation of sentence 2 (longest)
+            (
+                ("hello world", "!This is the second sentence!!!"),
+                vec!(4, 0, 1, 5, 3, 2, 2, 2, 2, 5)
+            ),
+//            Truncation of sentence 1 (longest)
+            (
+                ("[UNK] hello  hello  hello  hello  hello  hello  hello  hello  hello  hello  hello", "!!!"),
+                vec!(4, 2, 0, 0, 0, 5, 3, 3, 3, 5)
+            ),
+//            Truncation of both sentences (longest)
+            (
+                ("[UNK] hello  hello  hello  hello  hello", "!!!!!!!!"),
+                vec!(4, 2, 0, 0, 5, 3, 3, 3, 3, 5)
+            )
+        ];
+        let source_texts: Vec<(&str, &str)> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(bert_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0),
+                       *expected_result);
+        }
+        assert_eq!(bert_tokenizer.encode_pair_list(source_texts, 10, &truncation_strategy, 0), expected_results);
     }
 }
