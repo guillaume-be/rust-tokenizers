@@ -59,6 +59,7 @@ mod tests {
     use super::*;
     use crate::BertVocab;
     use std::collections::HashMap;
+    use crate::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -124,6 +125,7 @@ mod tests {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab);
+        let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (
                 "hello[MASK] world!",
@@ -143,9 +145,9 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(bert_tokenizer.encode(source_text, None, 128),
+            assert_eq!(bert_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
                        *expected_result);
         }
-        assert_eq!(bert_tokenizer.encode_list(source_texts, 128), expected_results);
+        assert_eq!(bert_tokenizer.encode_list(source_texts, 128, &truncation_strategy, 0), expected_results);
     }
 }

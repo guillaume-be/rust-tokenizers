@@ -4,7 +4,7 @@ use std::process;
 use rust_transformers::preprocessing::adapters::Example;
 use rust_transformers::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 use std::time::Instant;
-use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
+use rust_transformers::preprocessing::tokenizer::base_tokenizer::{Tokenizer, TruncationStrategy};
 use std::sync::Arc;
 
 fn main() {
@@ -28,7 +28,9 @@ fn main() {
 
     let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(bert_vocab.clone());
     let tokenized_text = bert_tokenizer.tokenize(&_test_sentence.sentence_1);
-    let encoded_text = bert_tokenizer.encode(&_test_sentence.sentence_1, None, 10);
+    let encoded_text = bert_tokenizer.encode(&_test_sentence.sentence_1, None, 128, &TruncationStrategy::LongestFirst, 0);
+    println!("{:?}", encoded_text);
+    let encoded_text = bert_tokenizer.encode(&_test_sentence.sentence_1, None, 10, &TruncationStrategy::LongestFirst, 1);
     println!("{:?}", tokenized_text);
     println!("{:?}", encoded_text);
 
@@ -39,7 +41,7 @@ fn main() {
 //    for text in _text_list{
 //        bert_tokenizer.tokenize(text);
 //    }
-    let _results = bert_tokenizer.encode_list(_text_list, 128);
+//    let _results = bert_tokenizer.encode_list(_text_list, 128);
 //    for result in _text_list {
 //        bert_tokenizer.encode(&result);
 //    }

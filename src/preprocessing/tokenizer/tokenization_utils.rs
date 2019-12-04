@@ -6,6 +6,9 @@ use unicode_normalization::is_nfd;
 use unicode_normalization::char::{decompose_canonical, is_combining_mark};
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
+use std::error::Error;
+use crate::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
+use std::cmp::min;
 
 
 pub fn clean_text(text: &str, strict: bool) -> String {
@@ -221,6 +224,82 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
     }
     tokenized_text
 }
+
+pub(crate) fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
+                                 num_tokens_to_remove: usize, truncation_strategy: &TruncationStrategy, stride: usize)
+                                 -> Result<(Vec<i64>, Option<Vec<i64>>, Vec<i64>), Box<dyn Error>> {
+    if num_tokens_to_remove == 0 {
+        Ok((tokens_1, tokens_2, Vec::new()))
+    } else {
+        match tokens_2 {
+            Some(mut tokens_2) => {
+                match truncation_strategy {
+                    TruncationStrategy::LongestFirst => {
+                        let mut overflow_tokens: Vec<i64> = Vec::with_capacity(num_tokens_to_remove + stride);
+                        for _ in 0..num_tokens_to_remove {
+                            if tokens_1.len() >= tokens_2.len() {
+                                overflow_tokens.push(tokens_1.pop().unwrap());
+                            } else {
+                                overflow_tokens.push(tokens_2.pop().unwrap());
+                            }
+                        }
+                        let window_len = min(tokens_1.len(), stride);
+                        if window_len > 0 {
+                            let slice: &[i64] = &tokens_1[&tokens_1.len() - stride..];
+                            overflow_tokens.splice(0..0, slice.iter().cloned());
+                        }
+                        Ok((tokens_1, Some(tokens_2), overflow_tokens))
+                    }
+                    TruncationStrategy::OnlyFirst => {
+                        if tokens_1.len() > num_tokens_to_remove {
+                            let cutoff = tokens_1.len() - num_tokens_to_remove;
+                            let mut overflow_tokens = tokens_1.split_off(cutoff);
+                            let window_len = min(tokens_1.len(), stride);
+                            if window_len > 0 {
+                                let slice: &[i64] = &tokens_1[&tokens_1.len() - stride..];
+                                overflow_tokens.splice(0..0, slice.iter().cloned());
+                            }
+                            Ok((tokens_1, Some(tokens_2), overflow_tokens))
+                        } else {
+                            Err("First sequence too short for first only truncation".into())
+                        }
+                    }
+                    TruncationStrategy::OnlySecond => {
+                        if tokens_2.len() > num_tokens_to_remove {
+                            let cutoff = tokens_2.len() - num_tokens_to_remove;
+                            let mut overflow_tokens = tokens_2.split_off(cutoff);
+                            let window_len = min(tokens_2.len(), stride);
+                            if window_len > 0 {
+                                let slice: &[i64] = &tokens_2[&tokens_2.len() - stride..];
+                                overflow_tokens.splice(0..0, slice.iter().cloned());
+                            }
+                            Ok((tokens_1, Some(tokens_2), overflow_tokens))
+                        } else {
+                            Err("First sequence too short for first only truncation".into())
+                        }
+                    }
+                    TruncationStrategy::DoNotTruncate => Err("Truncation needed but no truncation requested".into())
+                }
+            }
+            None => {
+                match truncation_strategy {
+                    TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
+                        let cutoff = tokens_1.len() - num_tokens_to_remove;
+                        let mut overflow_tokens = tokens_1.split_off(cutoff);
+                        let window_len = min(tokens_1.len(), stride);
+                        if window_len > 0 {
+                            let slice: &[i64] = &tokens_1[&tokens_1.len() - stride..];
+                            overflow_tokens.splice(0..0, slice.iter().cloned());
+                        }
+                        Ok((tokens_1, None, overflow_tokens))
+                    }
+                    _ => Err("Invalid truncation strategy for single sentence truncation".into())
+                }
+            }
+        }
+    }
+}
+
 
 //==============================
 // Unit tests
