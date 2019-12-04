@@ -28,6 +28,7 @@ pub trait Tokenizer<T: Vocab>
         tokens.iter().map(|v| self.vocab().token_to_id(v)).collect()
     }
 
+//    ToDo: Test encode for BERT
     fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<i64> {
         let token_ids_1 = self.convert_tokens_to_ids(&self.tokenize(text_1));
         let len_1 = token_ids_1.len();
@@ -134,8 +135,14 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
         tokenized_text
     }
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> Vec<i64> {
-        panic!("Not implemented, cannot combine {:?} and {:?}", tokens_1, tokens_2);
+    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> Vec<i64> {
+        match tokens_2 {
+            Some(tokens) => {
+                tokens_1.extend(tokens);
+                tokens_1
+            }
+            None => tokens_1
+        }
     }
 }
 
@@ -256,5 +263,36 @@ mod tests {
             assert_eq!(base_tokenizer.convert_tokens_to_ids(source_text.iter().map(|v| String::from(*v)).collect::<Vec<_>>().as_ref()),
                        *expected_result);
         }
+    }
+
+    #[test]
+    fn test_encode() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let bert_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab);
+        let truncation_strategy = TruncationStrategy::LongestFirst;
+        let test_tuples = [
+            (
+                "hello[MASK] world!",
+                vec!(0, 6, 1, 3)
+            ),
+            (
+                "hello, unaffable world!",
+                vec!(0, 2, 2, 1, 3)
+            ),
+            (
+                "[UNK]中华人民共和国 [PAD] asdf",
+                vec!(2, 2, 8, 2, 2, 2, 2, 2, 10, 2)
+            )
+        ];
+        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(bert_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
+                       *expected_result);
+        }
+        assert_eq!(bert_tokenizer.encode_list(source_texts, 128, &truncation_strategy, 0), expected_results);
     }
 }
