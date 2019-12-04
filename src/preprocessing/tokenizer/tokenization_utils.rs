@@ -239,9 +239,9 @@ pub(crate) fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i6
                             let mut overflow_tokens: Vec<i64> = Vec::with_capacity(num_tokens_to_remove + stride);
                             for _ in 0..num_tokens_to_remove {
                                 if tokens_1.len() >= tokens_2.len() {
-                                    overflow_tokens.push(tokens_1.pop().unwrap());
+                                    overflow_tokens.insert(0, tokens_1.pop().unwrap());
                                 } else {
-                                    overflow_tokens.push(tokens_2.pop().unwrap());
+                                    tokens_2.pop();
                                 }
                             }
                             let window_len = min(tokens_1.len(), stride);
@@ -267,7 +267,7 @@ pub(crate) fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i6
                             let overflow_tokens = truncate_with_overflow(&mut tokens_2, num_tokens_to_remove, stride);
                             Ok((tokens_1, Some(tokens_2), overflow_tokens))
                         } else {
-                            Err("First sequence too short for first only truncation".into())
+                            Err("Second sequence too short for second only truncation".into())
                         }
                     }
                     TruncationStrategy::DoNotTruncate => Err("Truncation needed but no truncation requested".into())
@@ -861,4 +861,159 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_truncate_sentence_pair_longest_first() {
+//        Given
+        let test_token_ids: Vec<i64> = (0..15).collect();
+        let test_pair_token_ids: Vec<i64> = (42..51).collect();
+        let test_tuples: [((usize, &TruncationStrategy, usize), std::result::Result<(std::vec::Vec<i64>, std::option::Option<std::vec::Vec<i64>>, std::vec::Vec<i64>), Box<dyn Error>>);
+            10] = [
+//            Baseline
+            (
+                (5, &TruncationStrategy::LongestFirst, 0),
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (10..15).collect::<Vec<i64>>()))
+            ),
+//            With stride = 2
+            (
+                (5, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (8..15).collect::<Vec<i64>>()))
+            ),
+//            Maximum value for only sentence 1 to be affected
+            (
+                (7, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..8).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (6..15).collect::<Vec<i64>>()))
+            ),
+//            Both sentences affected
+            (
+                (10, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..7).collect::<Vec<i64>>(), Some((42..49).collect::<Vec<i64>>()), (5..15).collect::<Vec<i64>>()))
+            ),
+//            Truncate entire sentence 1
+            (
+                (15 + 8, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..0).collect::<Vec<i64>>(), Some((42..43).collect::<Vec<i64>>()), (0..15).collect::<Vec<i64>>()))
+            ),
+//            Truncate both sentences entirely
+            (
+                (15 + 9, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..0).collect::<Vec<i64>>(), Some((42..42).collect::<Vec<i64>>()), (0..15).collect::<Vec<i64>>()))
+            ),
+//            Request truncation amount greater than combined length
+            (
+                (15 + 9 + 1, &TruncationStrategy::LongestFirst, 2),
+                Err("Combined sequence length too short for requested truncation amount".into())
+            ),
+//            No truncation
+            (
+                (0, &TruncationStrategy::LongestFirst, 2),
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (15..15).collect::<Vec<i64>>()))
+            ),
+//            No truncation requested, none needed
+            (
+                (0, &TruncationStrategy::DoNotTruncate, 0),
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (15..15).collect::<Vec<i64>>()))
+            ),
+//            No truncation requested, but needed
+            (
+                (1, &TruncationStrategy::DoNotTruncate, 0),
+                Err("Truncation needed but no truncation requested".into())
+            ),
+        ];
+
+        for (parameters, expected_outputs) in &test_tuples {
+            let test_results = truncate_sequences(test_token_ids.clone(), Some(test_pair_token_ids.clone()), parameters.0, parameters.1, parameters.2);
+            match test_results {
+                Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
+                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+            }
+        }
+    }
+
+    #[test]
+    fn test_truncate_sentence_pair_first_only() {
+//        Given
+        let test_token_ids: Vec<i64> = (0..15).collect();
+        let test_pair_token_ids: Vec<i64> = (42..51).collect();
+        let test_tuples: [((usize, &TruncationStrategy, usize), std::result::Result<(std::vec::Vec<i64>, std::option::Option<std::vec::Vec<i64>>, std::vec::Vec<i64>), Box<dyn Error>>);
+            5] = [
+//            Baseline
+            (
+                (5, &TruncationStrategy::OnlyFirst, 0),
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (10..15).collect::<Vec<i64>>()))
+            ),
+//            With stride = 2
+            (
+                (5, &TruncationStrategy::OnlyFirst, 2),
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (8..15).collect::<Vec<i64>>()))
+            ),
+//            Truncate entire sentence 1
+            (
+                (15, &TruncationStrategy::OnlyFirst, 2),
+                Ok(((0..0).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (0..15).collect::<Vec<i64>>()))
+            ),
+//            Request truncation amount greater than sentence 1
+            (
+                (16, &TruncationStrategy::OnlyFirst, 2),
+                Err("First sequence too short for first only truncation".into())
+            ),
+//            No truncation
+            (
+                (0, &TruncationStrategy::OnlyFirst, 2),
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (15..15).collect::<Vec<i64>>()))
+            ),
+        ];
+
+        for (parameters, expected_outputs) in &test_tuples {
+            let test_results = truncate_sequences(test_token_ids.clone(), Some(test_pair_token_ids.clone()), parameters.0, parameters.1, parameters.2);
+            match test_results {
+                Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
+                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+            }
+        }
+    }
+
+    #[test]
+    fn test_truncate_sentence_pair_second_only() {
+//        Given
+        let test_token_ids: Vec<i64> = (0..15).collect();
+        let test_pair_token_ids: Vec<i64> = (42..51).collect();
+        let test_tuples: [((usize, &TruncationStrategy, usize), std::result::Result<(std::vec::Vec<i64>, std::option::Option<std::vec::Vec<i64>>, std::vec::Vec<i64>), Box<dyn Error>>);
+            5] = [
+//            Baseline
+            (
+                (5, &TruncationStrategy::OnlySecond, 0),
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..46).collect::<Vec<i64>>()), (46..51).collect::<Vec<i64>>()))
+            ),
+//            With stride = 2
+            (
+                (5, &TruncationStrategy::OnlySecond, 2),
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..46).collect::<Vec<i64>>()), (44..51).collect::<Vec<i64>>()))
+            ),
+//            Truncate entire sentence 2
+            (
+                (9, &TruncationStrategy::OnlySecond, 2),
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..42).collect::<Vec<i64>>()), (42..51).collect::<Vec<i64>>()))
+            ),
+//            Request truncation amount greater than sentence 1
+            (
+                (10, &TruncationStrategy::OnlySecond, 2),
+                Err("Second sequence too short for second only truncation".into())
+            ),
+//            No truncation
+            (
+                (0, &TruncationStrategy::OnlySecond, 2),
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), (42..42).collect::<Vec<i64>>()))
+            ),
+        ];
+
+        for (parameters, expected_outputs) in &test_tuples {
+            let test_results = truncate_sequences(test_token_ids.clone(), Some(test_pair_token_ids.clone()), parameters.0, parameters.1, parameters.2);
+            match test_results {
+                Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
+                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+            }
+        }
+    }
+
 }

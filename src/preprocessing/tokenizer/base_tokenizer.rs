@@ -257,35 +257,4 @@ mod tests {
                        *expected_result);
         }
     }
-
-    #[test]
-    fn test_encode() {
-//        Given
-        let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab);
-        let truncation_strategy = TruncationStrategy::LongestFirst;
-        let test_tuples = [
-            (
-                "hello[MASK] world!",
-                vec!(0, 6, 1, 3)
-            ),
-            (
-                "hello, unaffable world!",
-                vec!(0, 2, 2, 1, 3)
-            ),
-            (
-                "[UNK]中华人民共和国 [PAD] asdf",
-                vec!(2, 2, 8, 2, 2, 2, 2, 2, 10, 2)
-            )
-        ];
-        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
-
-//        When & Then
-        for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
-                       *expected_result);
-        }
-        assert_eq!(base_tokenizer.encode_list(source_texts, 128, &truncation_strategy, 0), expected_results);
-    }
 }

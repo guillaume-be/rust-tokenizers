@@ -129,15 +129,15 @@ mod tests {
         let test_tuples = [
             (
                 "hello[MASK] world!",
-                vec!(0, 6, 1, 3)
+                vec!(4, 0, 6, 1, 3, 5)
             ),
             (
                 "hello, unaffable world!",
-                vec!(0, 2, 11, 12, 13, 1, 3)
+                vec!(4, 0, 2, 11, 12, 13, 1, 3, 5)
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!(2, 2, 8, 2, 2, 2, 2, 2, 10, 2)
+                vec!(4, 2, 2, 8, 2, 2, 2, 2, 2, 10, 2, 5)
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
