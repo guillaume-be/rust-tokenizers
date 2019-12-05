@@ -4,7 +4,7 @@ pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab};
 pub use preprocessing::tokenizer::bert_tokenizer;
 use pyo3::prelude::*;
 use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, TruncationStrategy};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, TruncationStrategy, TokenizedInput};
 use pyo3::exceptions;
 
 #[macro_use]
@@ -32,7 +32,7 @@ impl PyBertTokenizer {
         Ok(self.tokenizer.tokenize_list(text_list))
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<i64>> {
+    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
         let truncation_strategy = match truncation_strategy {
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
             _ => Err("Invalid truncation strategy provided")
@@ -43,7 +43,7 @@ impl PyBertTokenizer {
         }
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<Vec<i64>>> {
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
         let truncation_strategy = match truncation_strategy {
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
             _ => Err("Invalid truncation strategy provided")

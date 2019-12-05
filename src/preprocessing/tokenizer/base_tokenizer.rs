@@ -3,12 +3,23 @@ use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_token
 use std::sync::Arc;
 use rayon::prelude::*;
 use itertools::Itertools;
+use pyo3::prelude::*;
 
 pub enum TruncationStrategy {
     LongestFirst,
     OnlyFirst,
     OnlySecond,
     DoNotTruncate,
+}
+
+#[pyclass]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub struct TokenizedInput {
+    pub token_ids: Vec<i64>,
+    pub segment_ids: Vec<i8>,
+    pub special_tokens_mask: Vec<i8>,
+    pub overflowing_tokens: Vec<i64>,
+    pub num_truncated_tokens: usize,
 }
 
 pub trait Tokenizer<T: Vocab>
@@ -28,7 +39,7 @@ pub trait Tokenizer<T: Vocab>
         tokens.iter().map(|v| self.vocab().token_to_id(v)).collect()
     }
 
-    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<i64> {
+    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> TokenizedInput {
         let token_ids_1 = self.convert_tokens_to_ids(&self.tokenize(text_1));
         let len_1 = token_ids_1.len();
         let (token_ids_2, len_2, pair) = {
@@ -40,28 +51,31 @@ pub trait Tokenizer<T: Vocab>
                 (None, 0, None)
             }
         };
-        let total_len = len_1 + len_2 + self.build_input_with_special_tokens(vec!(), pair).len();
-        let num_tokens_to_remove = if total_len > max_len { total_len - max_len } else { 0 };
+        let (additional_tokens, _, _) = self.build_input_with_special_tokens(vec!(), pair);
+        let total_len = len_1 + len_2 + additional_tokens.len();
+        let num_truncated_tokens = if total_len > max_len { total_len - max_len } else { 0 };
         let (token_ids_1,
             token_ids_2,
-            _overflow_tokens) = truncate_sequences(token_ids_1,
-                                                   token_ids_2,
-                                                   num_tokens_to_remove,
-                                                   truncation_strategy,
-                                                   stride).unwrap();
+            overflowing_tokens) = truncate_sequences(token_ids_1,
+                                                     token_ids_2,
+                                                     num_truncated_tokens,
+                                                     truncation_strategy,
+                                                     stride).unwrap();
 
-        self.build_input_with_special_tokens(token_ids_1,
-                                             token_ids_2)
+        let (token_ids, segment_ids, special_tokens_mask) = self.build_input_with_special_tokens(token_ids_1,
+                                                                                                 token_ids_2);
+
+        TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens }
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<Vec<i64>> {
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
         text_list
             .par_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<Vec<i64>> {
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
         text_list
             .par_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
@@ -69,7 +83,7 @@ pub trait Tokenizer<T: Vocab>
     }
 
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> Vec<i64>;
+    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>);
 }
 
 
@@ -134,14 +148,20 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
         tokenized_text
     }
 
-    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> Vec<i64> {
-        match tokens_2 {
+    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>) {
+        let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
+        let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
+
+        let output = match tokens_2 {
             Some(tokens) => {
+                token_segment_ids.extend(vec![1; tokens.len()]);
+                special_tokens_mask.extend(vec![0; tokens.len()]);
                 tokens_1.extend(tokens);
                 tokens_1
             }
             None => tokens_1
-        }
+        };
+        (output, token_segment_ids, special_tokens_mask)
     }
 }
 
@@ -273,23 +293,23 @@ mod tests {
         let test_tuples = [
             (
                 "hello[MASK] world!",
-                vec!(0, 6, 1, 3)
+                TokenizedInput { token_ids: vec!(0, 6, 1, 3), segment_ids: vec!(0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 "hello, unaffable world!",
-                vec!(0, 2, 2, 1, 3)
+                TokenizedInput { token_ids: vec!(0, 2, 2, 1, 3), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!(2, 7, 8, 9, 2, 2, 2, 2, 10, 2)
+                TokenizedInput { token_ids: vec!(2, 7, 8, 9, 2, 2, 2, 2, 10, 2), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 "[UNK] a ! c ! e ! g ! i ! [PAD] a ! c ! e ! g ! i !",
-                vec!(2, 2, 3, 2, 3, 2, 3, 2, 3, 2)
+                TokenizedInput { token_ids: vec!(2, 2, 3, 2, 3, 2, 3, 2, 3, 2), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(3, 10, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3), num_truncated_tokens: 12 }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
@@ -309,26 +329,26 @@ mod tests {
 //            No truncation required
             (
                 ("hello[MASK] world!", "This is the second sentence"),
-                vec!(0, 6, 1, 3, 2, 2, 2, 2, 2)
+                TokenizedInput { token_ids: vec!(0, 6, 1, 3, 2, 2, 2, 2, 2), segment_ids: vec!(0, 0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
 //            Truncation of sentence 2 (longest)
             (
                 ("hello[MASK] world!", "!This is the second sentence!!!"),
-                vec!(0, 6, 1, 3, 3, 2, 2, 2, 2, 2)
+                TokenizedInput { token_ids: vec!(0, 6, 1, 3, 3, 2, 2, 2, 2, 2), segment_ids: vec!(0, 0, 0, 0, 1, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 3 }
             ),
 //            Truncation of sentence 1 (longest)
             (
                 ("[UNK] hello  hello  hello  hello  hello  hello  hello  hello  hello  hello  hello", "!!!"),
-                vec!(2, 0, 0, 0, 0, 0, 0, 3, 3, 3)
+                TokenizedInput { token_ids: vec!(2, 0, 0, 0, 0, 0, 0, 3, 3, 3), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(0, 0, 0, 0, 0), num_truncated_tokens: 5 }
             ),
 //            Truncation of both sentences (longest)
             (
                 ("[UNK] hello  hello  hello  hello  hello", "!!!!!!!!"),
-                vec!(2, 0, 0, 0, 0, 3, 3, 3, 3, 3)
+                TokenizedInput { token_ids: vec!(2, 0, 0, 0, 0, 3, 3, 3, 3, 3), segment_ids: vec!(0, 0, 0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(0), num_truncated_tokens: 4 }
             )
         ];
         let source_texts: Vec<(&str, &str)> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {

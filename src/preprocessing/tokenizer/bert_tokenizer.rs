@@ -37,16 +37,25 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         tokenized_text
     }
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> Vec<i64> {
+    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>) {
         let mut output: Vec<i64> = vec!();
+        let mut token_segment_ids: Vec<i8> = vec!();
+        let mut special_tokens_mask: Vec<i8> = vec!();
+        special_tokens_mask.push(1);
+        special_tokens_mask.extend(vec![0; tokens_1.len()]);
+        special_tokens_mask.push(1);
+        token_segment_ids.extend(vec![0; tokens_1.len() + 2]);
         output.push(self.vocab.token_to_id(BertVocab::cls_value()));
         output.extend(tokens_1);
         output.push(self.vocab.token_to_id(BertVocab::sep_value()));
         if let Some(add_tokens) = tokens_2 {
+            special_tokens_mask.extend(vec![0; add_tokens.len()]);
+            special_tokens_mask.push(1);
+            token_segment_ids.extend(vec![1; add_tokens.len() + 1]);
             output.extend(add_tokens);
             output.push(self.vocab.token_to_id(BertVocab::sep_value()));
         }
-        output
+        (output, token_segment_ids, special_tokens_mask)
     }
 }
 
@@ -59,7 +68,7 @@ mod tests {
     use super::*;
     use crate::BertVocab;
     use std::collections::HashMap;
-    use crate::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
+    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -129,19 +138,19 @@ mod tests {
         let test_tuples = [
             (
                 "hello[MASK] world!",
-                vec!(4, 0, 6, 1, 3, 5)
-            ),
+                TokenizedInput { token_ids: vec!(4, 0, 6, 1, 3, 5), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+             ),
             (
                 "hello, unaffable world!",
-                vec!(4, 0, 2, 11, 12, 13, 1, 3, 5)
+                TokenizedInput { token_ids: vec!(4, 0, 2, 11, 12, 13, 1, 3, 5), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 0, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!(4, 2, 7, 8, 9, 2, 2, 2, 2, 10, 2, 5)
+                TokenizedInput { token_ids: vec!(4, 2, 7, 8, 9, 2, 2, 2, 2, 10, 2, 5), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
@@ -161,26 +170,26 @@ mod tests {
 //            No truncation required
             (
                 ("hello world", "This is the second sentence"),
-                vec!(4, 0, 1, 5, 2, 2, 2, 2, 2, 5)
+                TokenizedInput { token_ids: vec!(4, 0, 1, 5, 2, 2, 2, 2, 2, 5), segment_ids: vec!(0, 0, 0, 0, 1, 1, 1, 1, 1, 1), special_tokens_mask: vec!(1, 0, 0, 1, 0, 0, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
 //            Truncation of sentence 2 (longest)
             (
                 ("hello world", "!This is the second sentence!!!"),
-                vec!(4, 0, 1, 5, 3, 2, 2, 2, 2, 5)
+                TokenizedInput { token_ids: vec!(4, 0, 1, 5, 3, 2, 2, 2, 2, 5), segment_ids: vec!(0, 0, 0, 0, 1, 1, 1, 1, 1, 1), special_tokens_mask: vec!(1, 0, 0, 1, 0, 0, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 4 }
             ),
 //            Truncation of sentence 1 (longest)
             (
                 ("[UNK] hello  hello  hello  hello  hello  hello  hello  hello  hello  hello  hello", "!!!"),
-                vec!(4, 2, 0, 0, 0, 5, 3, 3, 3, 5)
+                TokenizedInput { token_ids: vec!(4, 2, 0, 0, 0, 5, 3, 3, 3, 5), segment_ids: vec!(0, 0, 0, 0, 0, 0, 1, 1, 1, 1), special_tokens_mask: vec!(1, 0, 0, 0, 0, 1, 0, 0, 0, 1), overflowing_tokens: vec!(0, 0, 0, 0, 0, 0, 0, 0), num_truncated_tokens: 8 }
             ),
 //            Truncation of both sentences (longest)
             (
                 ("[UNK] hello  hello  hello  hello  hello", "!!!!!!!!"),
-                vec!(4, 2, 0, 0, 5, 3, 3, 3, 3, 5)
+                TokenizedInput { token_ids: vec!(4, 2, 0, 0, 5, 3, 3, 3, 3, 5), segment_ids: vec!(0, 0, 0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(1, 0, 0, 0, 1, 0, 0, 0, 0, 1), overflowing_tokens: vec!(0, 0, 0), num_truncated_tokens: 7 }
             )
         ];
         let source_texts: Vec<(&str, &str)> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
