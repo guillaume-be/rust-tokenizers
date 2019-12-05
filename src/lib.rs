@@ -33,9 +33,13 @@ impl PyBertTokenizer {
     }
 
     fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        println!("{}",truncation_strategy );
         let truncation_strategy = match truncation_strategy {
+            "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
-            _ => Err("Invalid truncation strategy provided")
+            "only_second" => Ok(TruncationStrategy::OnlySecond),
+            "do_not_truncate" => Ok(TruncationStrategy::DoNotTruncate),
+            _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
             Ok(truncation_strategy) => Ok(self.tokenizer.encode(&text, None, max_len, &truncation_strategy, stride)),
@@ -45,8 +49,11 @@ impl PyBertTokenizer {
 
     fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
         let truncation_strategy = match truncation_strategy {
+            "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
-            _ => Err("Invalid truncation strategy provided")
+            "only_second" => Ok(TruncationStrategy::OnlySecond),
+            "do_not_truncate" => Ok(TruncationStrategy::DoNotTruncate),
+            _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
             Ok(truncation_strategy) => Ok(self.tokenizer.encode_list(text_list, max_len, &truncation_strategy, stride)),
