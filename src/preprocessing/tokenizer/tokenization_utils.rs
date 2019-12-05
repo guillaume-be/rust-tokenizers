@@ -1,9 +1,8 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::BertVocab;
 use crate::preprocessing::tokenizer::constants::{WHITESPACE_CHARS, ADDITIONAL_WHITESPACE_CHARS,
-                                                 PUNCTUATION_CHARS, CONTROL_CHARS};
-use unicode_normalization::is_nfd;
-use unicode_normalization::char::{decompose_canonical, is_combining_mark};
+                                                 PUNCTUATION_CHARS, CONTROL_CHARS, ACCENT_MARKERS};
+use unicode_normalization::char::decompose_canonical;
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 use std::error::Error;
@@ -147,15 +146,13 @@ pub fn whitespace_tokenize(text: &str) -> Vec<&str> {
 }
 
 pub fn strip_accents(text: String) -> String {
-    if !is_nfd(&text) {
-        let mut decomposed_string: String = String::with_capacity(text.capacity());
-        for character in text.chars() {
-            decompose_canonical(character, |c| if !is_combining_mark(c) { decomposed_string.push(c) });
-        }
-        decomposed_string
-    } else {
-        text
+    let mut decomposed_string: String = String::with_capacity(text.capacity());
+    for character in text.chars() {
+        decompose_canonical(character, |c| if !ACCENT_MARKERS.contains(&(c as u32)) {
+            decomposed_string.push(c)
+        });
     }
+    decomposed_string
 }
 
 pub fn split_on_punct(text: String, vocab: &impl Vocab) -> Vec<String> {
@@ -201,7 +198,8 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
         let mut end;
         while start < max_end {
             end = max_end;
-            pos_end = char_indices.len() - 1;
+            pos_end = char_indices.len();
+            let mut is_bad: bool = true;
             while start < end {
                 let mut substr = token[start..end].to_owned();
                 if start > 0 {
@@ -209,15 +207,16 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
                 }
                 if vocab.values().contains_key(&substr) {
                     tokenized_text.push(substr);
+                    is_bad = false;
                     break;
                 }
-                if pos_end == start {
-                    let mut tokenized_text: Vec<String> = Vec::new();
-                    tokenized_text.push(BertVocab::unknown_value().to_owned());
-                    return tokenized_text;
-                }
                 pos_end = pos_end - 1;
-                end = char_indices[pos_end + 1];
+                end = char_indices[pos_end];
+            }
+            if is_bad {
+                let mut tokenized_text: Vec<String> = Vec::new();
+                tokenized_text.push(BertVocab::unknown_value().to_owned());
+                return tokenized_text;
             }
             start = end;
         }

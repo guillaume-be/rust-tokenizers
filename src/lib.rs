@@ -46,6 +46,20 @@ impl PyBertTokenizer {
         }
     }
 
+    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        let truncation_strategy = match truncation_strategy {
+            "longest_first" => Ok(TruncationStrategy::LongestFirst),
+            "only_first" => Ok(TruncationStrategy::OnlyFirst),
+            "only_second" => Ok(TruncationStrategy::OnlySecond),
+            "do_not_truncate" => Ok(TruncationStrategy::DoNotTruncate),
+            _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
+        };
+        match truncation_strategy {
+            Ok(truncation_strategy) => Ok(self.tokenizer.encode(&text_a, Some(&text_b), max_len, &truncation_strategy, stride)),
+            Err(e) => Err(exceptions::ValueError::py_err(e))
+        }
+    }
+
     fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
@@ -56,6 +70,20 @@ impl PyBertTokenizer {
         };
         match truncation_strategy {
             Ok(truncation_strategy) => Ok(self.tokenizer.encode_list(text_list, max_len, &truncation_strategy, stride)),
+            Err(e) => Err(exceptions::ValueError::py_err(e))
+        }
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
+        let truncation_strategy = match truncation_strategy {
+            "longest_first" => Ok(TruncationStrategy::LongestFirst),
+            "only_first" => Ok(TruncationStrategy::OnlyFirst),
+            "only_second" => Ok(TruncationStrategy::OnlySecond),
+            "do_not_truncate" => Ok(TruncationStrategy::DoNotTruncate),
+            _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
+        };
+        match truncation_strategy {
+            Ok(truncation_strategy) => Ok(self.tokenizer.encode_pair_list(text_list, max_len, &truncation_strategy, stride)),
             Err(e) => Err(exceptions::ValueError::py_err(e))
         }
     }
