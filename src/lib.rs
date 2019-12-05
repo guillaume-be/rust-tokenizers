@@ -33,7 +33,6 @@ impl PyBertTokenizer {
     }
 
     fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
-        println!("{}",truncation_strategy );
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
