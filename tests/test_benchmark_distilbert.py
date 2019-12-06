@@ -2,12 +2,11 @@ import tempfile
 from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_bert import BertTokenizer
 from transformers.tokenization_distilbert import DistilBertTokenizer
 from rust_transformers import PyBertTokenizer
-from transformers.modeling_bert import BertForSequenceClassification
 from transformers.modeling_distilbert import DistilBertForSequenceClassification
 import torch
+
 
 class TestBenchmarkDistilBert:
     def setup_class(self):
