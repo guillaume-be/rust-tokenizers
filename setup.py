@@ -1,7 +1,20 @@
 import os
 from setuptools import setup
+from setuptools.command.test import test as TestCommand
 from setuptools.command.sdist import sdist as SdistCommand
-from setuptools_rust import RustExtension
+import sys
+
+try:
+    from setuptools_rust import RustExtension
+except ImportError:
+    import subprocess
+
+    errno = subprocess.call([sys.executable, "-m", "pip", "install", "setuptools-rust"])
+    if errno:
+        print("Please install setuptools-rust package")
+        raise SystemExit(errno)
+    else:
+        from setuptools_rust import RustExtension
 
 
 class CargoModifiedSdist(SdistCommand):
@@ -38,8 +51,20 @@ class CargoModifiedSdist(SdistCommand):
             toml.dump(cargo_toml, f)
 
 
+class PyTest(TestCommand):
+    user_options = []
+
+    def run(self):
+        self.run_command("test_rust")
+
+        import subprocess
+
+        subprocess.check_call(["pytest", "tests"])
+
+
 setup_requires = ["setuptools-rust>=0.10.1", "wheel"]
-install_requires = []
+install_requires = ["torch>=1.1.0", "transformers==2.2.1"]
+test_requires = install_requires + ["pytest", "pytest-benchmark"]
 
 setup(
     name="rust_transformers",
@@ -48,7 +73,8 @@ setup(
     rust_extensions=[RustExtension("rust_transformers.rust_transformers", "Cargo.toml", debug=False)],
     install_requires=install_requires,
     setup_requires=setup_requires,
+    test_requires=test_requires,
     include_package_data=True,
     zip_safe=False,
-    cmdclass={"sdist": CargoModifiedSdist},
+    cmdclass={"test": PyTest, "sdist": CargoModifiedSdist},
 )
