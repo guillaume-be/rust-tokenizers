@@ -116,7 +116,7 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     }
 
     pub fn from_existing_vocab(vocab: Arc<T>) -> BaseTokenizer<T> {
-        BaseTokenizer { vocab: vocab.clone() }
+        BaseTokenizer { vocab }
     }
 }
 
