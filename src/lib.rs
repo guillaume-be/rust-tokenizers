@@ -13,7 +13,7 @@
 
 pub mod preprocessing;
 
-pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab};
+pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab, ctrl_vocab::CtrlVocab};
 pub use preprocessing::tokenizer::bert_tokenizer;
 use pyo3::prelude::*;
 use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;

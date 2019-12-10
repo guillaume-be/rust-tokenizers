@@ -11,5 +11,6 @@
 
 pub mod base_tokenizer;
 pub mod bert_tokenizer;
+pub mod ctrl_tokenizer;
 mod tokenization_utils;
 mod constants;
