@@ -16,6 +16,7 @@ use crate::CtrlVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use crate::preprocessing::vocab::ctrl_vocab::BpePairVocab;
+use regex::Regex;
 
 
 pub struct CtrlTokenizer {
@@ -41,14 +42,10 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> Vec<String> {
-        let tokenized_text: Vec<String> = vec!(text.to_owned());
+        let mut tokenized_text: Vec<String> = vec!();
+        for word in Regex::new(r"\S+\n?").unwrap().find_iter(text.as_ref()) {
+            tokenized_text.push(word.as_str().to_owned());
+        };
         tokenized_text
-    }
-
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>) {
-        let output: Vec<i64> = vec!();
-        let token_segment_ids: Vec<i8> = vec!();
-        let special_tokens_mask: Vec<i8> = vec!();
-        (output, token_segment_ids, special_tokens_mask)
     }
 }

@@ -18,6 +18,7 @@ use rust_transformers::preprocessing::adapters::Example;
 use std::sync::Arc;
 use rust_transformers::preprocessing::vocab::ctrl_vocab::BpePairVocab;
 use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
+use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 
 fn main() {
     let vocab_path = "E:/Coding/rust-transformers/resources/vocab/ctrl-vocab.json";
@@ -28,6 +29,8 @@ fn main() {
     let _test_sentence = Example::new_from_string("[MASK]Reprise �au tout début des années [SEP]1960[SEP] par le commissariat à l'énergie atomique (CEA), cette structure reste, au xxie siècle, l'un des principaux employeurs de main d'œuvre de la commune.");
 //    println!("{:?}", _bpe_ranks.pair_to_id("r", "o"));
     let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), _bpe_ranks.clone());
-//    let tokenized_text = bert_tokenizer.tokenize(&_test_sentence.sentence_1);
+    let tokenized_text = ctrl_tokenizer.tokenize(&_test_sentence.sentence_1);
+
+    println!("{:?}", tokenized_text.len())
 
 }
