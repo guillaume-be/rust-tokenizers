@@ -31,7 +31,7 @@ impl BertTokenizer {
 
     pub fn from_existing_vocab(vocab: Arc<BertVocab>) -> BertTokenizer {
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
-        BertTokenizer { vocab: vocab.clone(), base_tokenizer }
+        BertTokenizer { vocab, base_tokenizer }
     }
 }
 

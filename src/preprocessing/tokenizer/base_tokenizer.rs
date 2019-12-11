@@ -101,7 +101,21 @@ pub trait Tokenizer<T: Vocab>
     }
 
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>);
+    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>) {
+        let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
+        let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
+
+        let output = match tokens_2 {
+            Some(tokens) => {
+                token_segment_ids.extend(vec![1; tokens.len()]);
+                special_tokens_mask.extend(vec![0; tokens.len()]);
+                tokens_1.extend(tokens);
+                tokens_1
+            }
+            None => tokens_1
+        };
+        (output, token_segment_ids, special_tokens_mask)
+    }
 }
 
 
@@ -116,7 +130,7 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     }
 
     pub fn from_existing_vocab(vocab: Arc<T>) -> BaseTokenizer<T> {
-        BaseTokenizer { vocab: vocab.clone() }
+        BaseTokenizer { vocab }
     }
 }
 
@@ -164,22 +178,6 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
             .collect();
 
         tokenized_text
-    }
-
-    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>) {
-        let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
-        let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
-
-        let output = match tokens_2 {
-            Some(tokens) => {
-                token_segment_ids.extend(vec![1; tokens.len()]);
-                special_tokens_mask.extend(vec![0; tokens.len()]);
-                tokens_1.extend(tokens);
-                tokens_1
-            }
-            None => tokens_1
-        };
-        (output, token_segment_ids, special_tokens_mask)
     }
 }
 
