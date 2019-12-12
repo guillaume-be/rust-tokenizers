@@ -32,7 +32,7 @@ fn main() {
     let tokenized_text = ctrl_tokenizer.tokenize(&_test_sentence.sentence_1);
 
     println!("{:?}", tokenized_text.len());
-    println!("{:?}", bpe("he", &_bpe_ranks));
+    println!("{:?}", bpe("hello", &_bpe_ranks));
 
 
 }

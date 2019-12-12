@@ -18,6 +18,7 @@ use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePair};
 use regex::Regex;
 use std::collections::HashSet;
+use std::ops::Index;
 
 
 pub struct CtrlTokenizer {
@@ -51,32 +52,72 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
     }
 }
 
-pub fn get_pairs(token: Vec<String>) -> HashSet<BpePair> {
-    let mut output: HashSet<BpePair> = HashSet::new();
+pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
     let mut token = token.iter();
     if let Some(mut byte_1) = token.next() {
         if let Some(mut byte_2) = token.next() {
+            let mut output: HashSet<BpePair> = HashSet::new();
             output.insert(BpePair { byte_1: String::from(byte_1), byte_2: String::from(byte_2) });
-            loop {
-                if let Some(byte) = token.next() {
-                    byte_1 = byte_2;
-                    byte_2 = byte;
-                    output.insert(BpePair { byte_1: String::from(byte_1), byte_2: String::from(byte_2) });
-                } else {
-                    break;
-                }
+            while let Some(byte) = token.next() {
+                byte_1 = byte_2;
+                byte_2 = byte;
+                output.insert(BpePair { byte_1: String::from(byte_1), byte_2: String::from(byte_2) });
             }
-            output
+            Some(output)
         } else {
-            output
+            None
         }
     } else {
-        output
+        None
     }
 }
 
-pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> HashSet<BpePair> {
-    let word = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
+pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> String {
+    let mut word = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
 
-    get_pairs(word)
+    if !word.is_empty() {
+        word.last_mut().unwrap().push_str("</w>");
+    };
+
+    if let Some(initial_pairs) = get_pairs(&word) {
+        let mut pairs = initial_pairs;
+        loop {
+            let bigram = pairs.iter().min_by_key(|pair|
+                match bpe_ranks.byte_pair_to_id(pair) {
+                    Some(rank) => *rank,
+                    None => i64::max_value()
+                }).unwrap();
+            if bpe_ranks.byte_pair_to_id(bigram).is_none() { break; }
+            let mut new_word: Vec<String> = vec!();
+            let mut i = 0;
+
+            while i < word.len() {
+                let j = if let Some(index) = &word[i..].iter().position(|r| *r == bigram.byte_1) {
+                    index + i
+                } else {
+                    new_word.extend_from_slice(&word[i..]);
+                    break;
+                };
+                new_word.extend_from_slice(&word[i..j]);
+                i = j;
+                if (word[i] == bigram.byte_1) & (i < word.len() - 1) & (word[i + 1] == bigram.byte_2) {
+                    let mut combined_bytes = bigram.byte_1.clone();
+                    combined_bytes.push_str(bigram.byte_2.as_str());
+                    new_word.push(combined_bytes);
+                    i += 2;
+                } else {
+                    new_word.push(bigram.byte_1.clone());
+                    i += 1;
+                }
+            }
+            word = new_word.clone();
+            if word.len() == 1 {
+                break;
+            }
+            pairs = get_pairs(&word).unwrap();
+        }
+    };
+    let word = word.join("@@ ");
+    let word = (&word[..word.len() - 4]).to_owned();
+    word
 }
