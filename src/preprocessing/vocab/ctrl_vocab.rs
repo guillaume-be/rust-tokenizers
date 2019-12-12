@@ -58,8 +58,8 @@ impl Vocab for CtrlVocab {
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
 pub struct BpePair {
-    byte_1: String,
-    byte_2: String,
+    pub byte_1: String,
+    pub byte_2: String,
 }
 
 pub struct BpePairVocab {

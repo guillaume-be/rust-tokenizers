@@ -17,7 +17,7 @@ use rust_transformers::preprocessing::adapters::Example;
 //use rust_transformers::preprocessing::tokenizer::base_tokenizer::{Tokenizer, TruncationStrategy};
 use std::sync::Arc;
 use rust_transformers::preprocessing::vocab::ctrl_vocab::BpePairVocab;
-use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
+use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::{CtrlTokenizer, bpe};
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 
 fn main() {
@@ -31,6 +31,8 @@ fn main() {
     let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), _bpe_ranks.clone());
     let tokenized_text = ctrl_tokenizer.tokenize(&_test_sentence.sentence_1);
 
-    println!("{:?}", tokenized_text.len())
+    println!("{:?}", tokenized_text.len());
+    println!("{:?}", bpe("he", &_bpe_ranks));
+
 
 }
