@@ -105,7 +105,7 @@ fn is_cjk_char(character: &char) -> bool {
 }
 
 
-fn is_whitespace(character: &char) -> bool {
+pub fn is_whitespace(character: &char) -> bool {
     WHITESPACE_CHARS.contains(&(*character as u32))
 }
 

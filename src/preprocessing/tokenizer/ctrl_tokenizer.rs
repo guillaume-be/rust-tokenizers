@@ -16,8 +16,8 @@ use crate::CtrlVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePair};
-use regex::Regex;
 use std::collections::HashSet;
+use regex::Regex;
 
 
 pub struct CtrlTokenizer {
@@ -52,22 +52,17 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
 }
 
 pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
-    let mut token = token.iter();
-    if let Some(mut byte_1) = token.next() {
-        if let Some(mut byte_2) = token.next() {
-            let mut output: HashSet<BpePair> = HashSet::new();
-            output.insert(BpePair { byte_1: String::from(byte_1), byte_2: String::from(byte_2) });
-            while let Some(byte) = token.next() {
-                byte_1 = byte_2;
-                byte_2 = byte;
-                output.insert(BpePair { byte_1: String::from(byte_1), byte_2: String::from(byte_2) });
+    match token.len() {
+        0 | 1 => None,
+        _ => {
+            let mut output: HashSet<BpePair> = HashSet::with_capacity(token.len());
+            for idx in 0..token.len() - 1 {
+                if let [byte_1, byte_2] = &token[idx..idx + 2] {
+                    output.insert(BpePair { byte_1: byte_1.to_owned(), byte_2: byte_2.to_owned() });
+                }
             }
             Some(output)
-        } else {
-            None
         }
-    } else {
-        None
     }
 }
 
