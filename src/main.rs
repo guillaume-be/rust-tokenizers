@@ -20,6 +20,7 @@ use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use std::process;
 use std::time::Instant;
+use std::rc::Rc;
 
 fn main() {
     let _data = match rust_transformers::preprocessing::adapters::read_sst2(
@@ -36,19 +37,19 @@ fn main() {
 
     let vocab_path = "E:/Coding/rust-transformers/resources/vocab/ctrl-vocab.json";
     let bpe_path = "E:/Coding/rust-transformers/resources/vocab/ctrl-merges.txt";
-    let ctrl_vocab = Arc::new(rust_transformers::CtrlVocab::from_file(vocab_path));
-    let _bpe_ranks = Arc::new(BpePairVocab::from_file(bpe_path));
+    let ctrl_vocab = Rc::new(rust_transformers::CtrlVocab::from_file(vocab_path));
+    let _bpe_ranks = Rc::new(BpePairVocab::from_file(bpe_path));
 
 //    let _test_sentence = Example::new_from_string("[MASK]Reprise �au tout début des années [SEP]1960[SEP] par le commissariat à l'énergie atomique (CEA), cette structure reste, au xxie siècle, l'un des principaux employeurs de main d'œuvre de la commune.");
 //    println!("{:?}", _bpe_ranks.pair_to_id("r", "o"));
-    let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), _bpe_ranks.clone());
+    let mut ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), _bpe_ranks.clone());
 //    let tokenized_text = ctrl_tokenizer.tokenize(&_test_sentence.sentence_1);
     let _text_list: Vec<&str> = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
 
 //    let _results = ctrl_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
     for text in _text_list{
-        ctrl_tokenizer.encode(text, None,128, &TruncationStrategy::LongestFirst, 0);
+        ctrl_tokenizer.tokenize(text);
     }
 //    println!("{:?}", tokenized_text.len());
 //    println!("{:?}", bpe("hello", &_bpe_ranks));
