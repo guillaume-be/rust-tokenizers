@@ -41,7 +41,7 @@ pub struct TokenizedInput {
 }
 
 pub trait Tokenizer<T: Vocab>
-    where Self: std::marker::Sync {
+    where Self: std::marker::Sync+Send {
     fn vocab(&self) -> &T;
 
     fn tokenize(&self, text: &str) -> Vec<String>;

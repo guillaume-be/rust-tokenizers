@@ -46,7 +46,10 @@ fn main() {
     let _text_list: Vec<&str> = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
 
-    let _results = ctrl_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
+//    let _results = ctrl_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
+    for text in _text_list{
+        ctrl_tokenizer.encode(text, None,128, &TruncationStrategy::LongestFirst, 0);
+    }
 //    println!("{:?}", tokenized_text.len());
 //    println!("{:?}", bpe("hello", &_bpe_ranks));
 //    println!("{:?}", group_common_pairs("hello".chars().map(|v| v.to_string()).collect::<Vec<String>>(), &_bpe_ranks));

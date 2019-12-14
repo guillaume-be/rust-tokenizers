@@ -11,29 +11,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use crate::CtrlVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePair};
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use crate::preprocessing::tokenizer::tokenization_utils::is_whitespace;
 
 
 pub struct CtrlTokenizer {
     vocab: Arc<CtrlVocab>,
     bpe_ranks: Arc<BpePairVocab>,
+    cache: Arc<RwLock<HashMap<String, Vec<String>>>>,
 }
 
 impl CtrlTokenizer {
     pub fn from_file(vocab_path: &str, merges_path: &str) -> CtrlTokenizer {
         let vocab = Arc::new(CtrlVocab::from_file(vocab_path));
         let bpe_ranks = Arc::new(BpePairVocab::from_file(merges_path));
-        CtrlTokenizer { vocab, bpe_ranks }
+        let cache = Arc::new(RwLock::new(HashMap::new()));
+        CtrlTokenizer { vocab, bpe_ranks, cache }
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Arc<CtrlVocab>, merges: Arc<BpePairVocab>) -> CtrlTokenizer {
-        CtrlTokenizer { vocab, bpe_ranks: merges }
+        let cache = Arc::new(RwLock::new(HashMap::new()));
+        CtrlTokenizer { vocab, bpe_ranks: merges, cache }
     }
 }
 
@@ -45,7 +48,18 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
     fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = vec!();
         for word in text.trim().split(|v| is_whitespace(&v)) {
-            tokenized_text.extend(bpe(word, &self.bpe_ranks));
+            match self.cache.read().unwrap().get(word) {
+                Some(value) => {
+                    tokenized_text.extend(value.clone())
+                },
+                None => ()
+            }
+            let bpe_output = bpe(word, &self.bpe_ranks);
+            match self.cache.try_write(){
+                Ok(mut value) => {value.insert(word.to_owned(), bpe_output.clone());},
+                Err(_) => ()
+            };
+            tokenized_text.extend(bpe_output);
         };
         tokenized_text
     }
