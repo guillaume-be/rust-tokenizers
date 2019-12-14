@@ -49,14 +49,14 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
     fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = vec!();
         for word in text.trim().split(|v| is_whitespace(&v)) {
-            let found: bool = match self.cache.borrow().get(word) {
+            let cached: bool = match self.cache.borrow().get(word) {
                 Some(value) => {
                     tokenized_text.extend(value.clone());
                     true
                 }
                 None => false
             };
-            if !found {
+            if !cached {
                 let bpe_output = bpe(word, &self.bpe_ranks);
                 self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
                 tokenized_text.extend(bpe_output);

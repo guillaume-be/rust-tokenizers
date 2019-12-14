@@ -93,43 +93,11 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
     }
 }
 
-trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab> {
-    fn tokenizer(&self) -> &T;
-
-    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        Ok(self.tokenizer().tokenize(&text))
-    }
+trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
+    where Self: PyTokenizer<T, U> {
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        Ok(self.tokenizer().tokenize_list(text_list))
-    }
-
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
-        let truncation_strategy = match truncation_strategy {
-            "longest_first" => Ok(TruncationStrategy::LongestFirst),
-            "only_first" => Ok(TruncationStrategy::OnlyFirst),
-            "only_second" => Ok(TruncationStrategy::OnlySecond),
-            "do_not_truncate" => Ok(TruncationStrategy::DoNotTruncate),
-            _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
-        };
-        match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer().encode(&text, None, max_len, &truncation_strategy, stride)),
-            Err(e) => Err(exceptions::ValueError::py_err(e))
-        }
-    }
-
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
-        let truncation_strategy = match truncation_strategy {
-            "longest_first" => Ok(TruncationStrategy::LongestFirst),
-            "only_first" => Ok(TruncationStrategy::OnlyFirst),
-            "only_second" => Ok(TruncationStrategy::OnlySecond),
-            "do_not_truncate" => Ok(TruncationStrategy::DoNotTruncate),
-            _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
-        };
-        match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer().encode(&text_a, Some(&text_b), max_len, &truncation_strategy, stride)),
-            Err(e) => Err(exceptions::ValueError::py_err(e))
-        }
+        Ok(MultiThreadedTokenizer::tokenize_list(self.tokenizer(), text_list))
     }
 
     fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
@@ -141,7 +109,7 @@ trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab> {
             _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer().encode_list(text_list, max_len, &truncation_strategy, stride)),
+            Ok(truncation_strategy) => Ok(MultiThreadedTokenizer::encode_list(self.tokenizer(), text_list, max_len, &truncation_strategy, stride)),
             Err(e) => Err(exceptions::ValueError::py_err(e))
         }
     }
@@ -155,7 +123,7 @@ trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab> {
             _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer().encode_pair_list(text_list, max_len, &truncation_strategy, stride)),
+            Ok(truncation_strategy) => Ok(MultiThreadedTokenizer::encode_pair_list(self.tokenizer(), text_list, max_len, &truncation_strategy, stride)),
             Err(e) => Err(exceptions::ValueError::py_err(e))
         }
     }
@@ -166,11 +134,13 @@ struct PyBertTokenizer {
     tokenizer: BertTokenizer,
 }
 
-impl PyMultiThreadTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {
+impl PyTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {
     fn tokenizer(&self) -> &BertTokenizer {
         &self.tokenizer
     }
 }
+
+impl PyMultiThreadTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {}
 
 #[pymethods]
 impl PyBertTokenizer {
@@ -182,7 +152,7 @@ impl PyBertTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::tokenize(&self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
@@ -190,11 +160,11 @@ impl PyBertTokenizer {
     }
 
     fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
-        <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
     }
 
     fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
-        <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
     }
 
     fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
