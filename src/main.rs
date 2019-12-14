@@ -16,7 +16,7 @@ use rust_transformers::preprocessing::vocab::base_vocab::Vocab;
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
 use std::sync::Arc;
 use rust_transformers::preprocessing::vocab::ctrl_vocab::BpePairVocab;
-use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::{CtrlTokenizer, group_common_pairs};
+use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use std::process;
 use std::time::Instant;
