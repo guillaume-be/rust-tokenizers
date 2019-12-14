@@ -16,7 +16,7 @@ use rust_transformers::preprocessing::vocab::base_vocab::Vocab;
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
 use std::sync::Arc;
 use rust_transformers::preprocessing::vocab::ctrl_vocab::BpePairVocab;
-use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
+use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::{CtrlTokenizer, group_common_pairs};
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use std::process;
 use std::time::Instant;
@@ -49,7 +49,7 @@ fn main() {
     let _results = ctrl_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
 //    println!("{:?}", tokenized_text.len());
 //    println!("{:?}", bpe("hello", &_bpe_ranks));
-//    println!("{:?}", get_pairs(&"hello".chars().map(|v| v.to_string()).collect::<Vec<String>>()));
+//    println!("{:?}", group_common_pairs("hello".chars().map(|v| v.to_string()).collect::<Vec<String>>(), &_bpe_ranks));
 //    println!("{:?}", ctrl_tokenizer.tokenize("hello"));
     println!("Elapsed time: {:.2?}", _before.elapsed());
 }

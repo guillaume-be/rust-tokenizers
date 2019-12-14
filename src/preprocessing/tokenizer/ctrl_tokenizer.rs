@@ -66,6 +66,49 @@ pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
     }
 }
 
+pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec<String>, bool) {
+    let mut end_loop: bool = false;
+    if let Some(pairs) = get_pairs(&tokens) {
+        let bigram = pairs.iter().min_by_key(|pair|
+            match bpe_ranks.byte_pair_to_id(pair) {
+                Some(rank) => *rank,
+                None => i64::max_value()
+            }).unwrap();
+        if bpe_ranks.byte_pair_to_id(bigram).is_none() {
+            return (tokens, true);
+        }
+
+        let mut temp_sub_tokens: Vec<String> = vec!();
+        let mut i = 0;
+
+        while i < tokens.len() {
+            let j = if let Some(index) = &tokens[i..].iter().position(|r| *r == bigram.byte_1) {
+                index + i
+            } else {
+                temp_sub_tokens.extend_from_slice(&tokens[i..]);
+                break;
+            };
+            temp_sub_tokens.extend_from_slice(&tokens[i..j]);
+            i = j;
+            if (tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) & (tokens[i + 1] == bigram.byte_2) {
+                let mut combined_bytes = bigram.byte_1.clone();
+                combined_bytes.push_str(bigram.byte_2.as_str());
+                temp_sub_tokens.push(combined_bytes);
+                i += 2;
+            } else {
+                temp_sub_tokens.push(bigram.byte_1.clone());
+                i += 1;
+            }
+        }
+        if temp_sub_tokens.len() == 1 {
+            end_loop = true;
+        }
+        return (temp_sub_tokens, end_loop);
+    } else {
+        return (tokens, true);
+    }
+}
+
 pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
     let mut sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
 
@@ -73,46 +116,21 @@ pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
         sub_tokens.last_mut().unwrap().push_str("</w>");
     };
 
-    if let Some(initial_pairs) = get_pairs(&sub_tokens) {
-        let mut pairs = initial_pairs;
-        loop {
-            let bigram = pairs.iter().min_by_key(|pair|
-                match bpe_ranks.byte_pair_to_id(pair) {
-                    Some(rank) => *rank,
-                    None => i64::max_value()
-                }).unwrap();
-            if bpe_ranks.byte_pair_to_id(bigram).is_none() { break; }
-            let mut temp_sub_tokens: Vec<String> = vec!();
-            let mut i = 0;
-
-            while i < sub_tokens.len() {
-                let j = if let Some(index) = &sub_tokens[i..].iter().position(|r| *r == bigram.byte_1) {
-                    index + i
-                } else {
-                    temp_sub_tokens.extend_from_slice(&sub_tokens[i..]);
-                    break;
-                };
-                temp_sub_tokens.extend_from_slice(&sub_tokens[i..j]);
-                i = j;
-                if (sub_tokens[i] == bigram.byte_1) & (i < sub_tokens.len() - 1) & (sub_tokens[i + 1] == bigram.byte_2) {
-                    let mut combined_bytes = bigram.byte_1.clone();
-                    combined_bytes.push_str(bigram.byte_2.as_str());
-                    temp_sub_tokens.push(combined_bytes);
-                    i += 2;
-                } else {
-                    temp_sub_tokens.push(bigram.byte_1.clone());
-                    i += 1;
-                }
+    let (mut output, mut end_loop) = (sub_tokens.clone(), false);
+    loop {
+        output = match group_common_pairs(output, &bpe_ranks) {
+            (value, true) => {
+                end_loop = true;
+                value
             }
-            sub_tokens = temp_sub_tokens.clone();
-            if sub_tokens.len() == 1 {
-                break;
-            }
-            pairs = get_pairs(&sub_tokens).unwrap();
+            (value, false) => value,
+        };
+        if end_loop {
+            break;
         }
-    };
+    }
 
-    let word = sub_tokens.join("@@ ");
+    let word = output.join("@@ ");
     if !word.is_empty() {
         (&word[..word.len() - 4]).split(' ').map(|v| v.to_owned()).collect()
     } else {
