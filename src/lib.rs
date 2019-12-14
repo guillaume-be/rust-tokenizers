@@ -19,30 +19,20 @@ use pyo3::prelude::*;
 use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, TruncationStrategy, TokenizedInput};
 use pyo3::exceptions;
+use crate::preprocessing::vocab::base_vocab::Vocab;
 
 #[macro_use]
 extern crate lazy_static;
 
-#[pyclass(module = "rust_transformers")]
-struct PyBertTokenizer {
-    tokenizer: BertTokenizer,
-}
-
-#[pymethods]
-impl PyBertTokenizer {
-    #[new]
-    fn new(obj: &PyRawObject, path: String) {
-        obj.init(PyBertTokenizer {
-            tokenizer: BertTokenizer::from_file(&path),
-        });
-    }
+trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
+    fn tokenizer(&self) -> &T;
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        Ok(self.tokenizer.tokenize(&text))
+        Ok(self.tokenizer().tokenize(&text))
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        Ok(self.tokenizer.tokenize_list(text_list))
+        Ok(self.tokenizer().tokenize_list(text_list))
     }
 
     fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
@@ -54,7 +44,7 @@ impl PyBertTokenizer {
             _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer.encode(&text, None, max_len, &truncation_strategy, stride)),
+            Ok(truncation_strategy) => Ok(self.tokenizer().encode(&text, None, max_len, &truncation_strategy, stride)),
             Err(e) => Err(exceptions::ValueError::py_err(e))
         }
     }
@@ -68,7 +58,7 @@ impl PyBertTokenizer {
             _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer.encode(&text_a, Some(&text_b), max_len, &truncation_strategy, stride)),
+            Ok(truncation_strategy) => Ok(self.tokenizer().encode(&text_a, Some(&text_b), max_len, &truncation_strategy, stride)),
             Err(e) => Err(exceptions::ValueError::py_err(e))
         }
     }
@@ -82,7 +72,7 @@ impl PyBertTokenizer {
             _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer.encode_list(text_list, max_len, &truncation_strategy, stride)),
+            Ok(truncation_strategy) => Ok(self.tokenizer().encode_list(text_list, max_len, &truncation_strategy, stride)),
             Err(e) => Err(exceptions::ValueError::py_err(e))
         }
     }
@@ -96,9 +86,54 @@ impl PyBertTokenizer {
             _ => Err("Invalid truncation strategy provided. Must be one of `longest_first`, `only_first`, `only_second` or `do_not_truncate`")
         };
         match truncation_strategy {
-            Ok(truncation_strategy) => Ok(self.tokenizer.encode_pair_list(text_list, max_len, &truncation_strategy, stride)),
+            Ok(truncation_strategy) => Ok(self.tokenizer().encode_pair_list(text_list, max_len, &truncation_strategy, stride)),
             Err(e) => Err(exceptions::ValueError::py_err(e))
         }
+    }
+}
+
+#[pyclass(module = "rust_transformers")]
+struct PyBertTokenizer {
+    tokenizer: BertTokenizer,
+}
+
+impl PyTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {
+    fn tokenizer(&self) -> &BertTokenizer {
+        &self.tokenizer
+    }
+}
+
+#[pymethods]
+impl PyBertTokenizer {
+    #[new]
+    fn new(obj: &PyRawObject, path: String) {
+        obj.init(PyBertTokenizer {
+            tokenizer: BertTokenizer::from_file(&path),
+        });
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::tokenize_list(&self, text_list)
+    }
+
+    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
     }
 }
 

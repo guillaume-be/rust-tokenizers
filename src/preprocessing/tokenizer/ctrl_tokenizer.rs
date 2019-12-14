@@ -18,7 +18,6 @@ use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePair};
 use regex::Regex;
 use std::collections::HashSet;
-use std::ops::Index;
 
 
 pub struct CtrlTokenizer {
@@ -46,7 +45,7 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
     fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = vec!();
         for word in Regex::new(r"\S+\n?").unwrap().find_iter(text.as_ref()) {
-            tokenized_text.push(word.as_str().to_owned());
+            tokenized_text.extend(bpe(word.as_str(), &self.bpe_ranks));
         };
         tokenized_text
     }
@@ -72,14 +71,14 @@ pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
     }
 }
 
-pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> String {
-    let mut word = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
+pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
+    let mut sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
 
-    if !word.is_empty() {
-        word.last_mut().unwrap().push_str("</w>");
+    if !sub_tokens.is_empty() {
+        sub_tokens.last_mut().unwrap().push_str("</w>");
     };
 
-    if let Some(initial_pairs) = get_pairs(&word) {
+    if let Some(initial_pairs) = get_pairs(&sub_tokens) {
         let mut pairs = initial_pairs;
         loop {
             let bigram = pairs.iter().min_by_key(|pair|
@@ -88,36 +87,40 @@ pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> String {
                     None => i64::max_value()
                 }).unwrap();
             if bpe_ranks.byte_pair_to_id(bigram).is_none() { break; }
-            let mut new_word: Vec<String> = vec!();
+            let mut temp_sub_tokens: Vec<String> = vec!();
             let mut i = 0;
 
-            while i < word.len() {
-                let j = if let Some(index) = &word[i..].iter().position(|r| *r == bigram.byte_1) {
+            while i < sub_tokens.len() {
+                let j = if let Some(index) = &sub_tokens[i..].iter().position(|r| *r == bigram.byte_1) {
                     index + i
                 } else {
-                    new_word.extend_from_slice(&word[i..]);
+                    temp_sub_tokens.extend_from_slice(&sub_tokens[i..]);
                     break;
                 };
-                new_word.extend_from_slice(&word[i..j]);
+                temp_sub_tokens.extend_from_slice(&sub_tokens[i..j]);
                 i = j;
-                if (word[i] == bigram.byte_1) & (i < word.len() - 1) & (word[i + 1] == bigram.byte_2) {
+                if (sub_tokens[i] == bigram.byte_1) & (i < sub_tokens.len() - 1) & (sub_tokens[i + 1] == bigram.byte_2) {
                     let mut combined_bytes = bigram.byte_1.clone();
                     combined_bytes.push_str(bigram.byte_2.as_str());
-                    new_word.push(combined_bytes);
+                    temp_sub_tokens.push(combined_bytes);
                     i += 2;
                 } else {
-                    new_word.push(bigram.byte_1.clone());
+                    temp_sub_tokens.push(bigram.byte_1.clone());
                     i += 1;
                 }
             }
-            word = new_word.clone();
-            if word.len() == 1 {
+            sub_tokens = temp_sub_tokens.clone();
+            if sub_tokens.len() == 1 {
                 break;
             }
-            pairs = get_pairs(&word).unwrap();
+            pairs = get_pairs(&sub_tokens).unwrap();
         }
     };
-    let word = word.join("@@ ");
-    let word = (&word[..word.len() - 4]).to_owned();
-    word
+
+    let word = sub_tokens.join("@@ ");
+    if !word.is_empty() {
+        (&word[..word.len() - 4]).split(' ').map(|v| v.to_owned()).collect()
+    } else {
+        vec!(word)
+    }
 }

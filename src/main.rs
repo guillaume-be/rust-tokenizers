@@ -12,12 +12,11 @@
 use rust_transformers;
 use rust_transformers::preprocessing::vocab::base_vocab::Vocab;
 use rust_transformers::preprocessing::adapters::Example;
-//use rust_transformers::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 
-//use rust_transformers::preprocessing::tokenizer::base_tokenizer::{Tokenizer, TruncationStrategy};
+use rust_transformers::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy};
 use std::sync::Arc;
 use rust_transformers::preprocessing::vocab::ctrl_vocab::BpePairVocab;
-use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::{CtrlTokenizer, bpe};
+use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 
 fn main() {
@@ -32,7 +31,7 @@ fn main() {
     let tokenized_text = ctrl_tokenizer.tokenize(&_test_sentence.sentence_1);
 
     println!("{:?}", tokenized_text.len());
-    println!("{:?}", bpe("hello", &_bpe_ranks));
-
-
+//    println!("{:?}", bpe("hello", &_bpe_ranks));
+    println!("{:?}", ctrl_tokenizer.tokenize("hello"));
+    println!("{:?}", ctrl_tokenizer.encode(&_test_sentence.sentence_1, None, 128, &TruncationStrategy::LongestFirst, 0))
 }
