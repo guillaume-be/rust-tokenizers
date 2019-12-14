@@ -11,13 +11,9 @@
 
 use rust_transformers;
 use rust_transformers::preprocessing::vocab::base_vocab::Vocab;
-//use rust_transformers::preprocessing::adapters::Example;
-
-use rust_transformers::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
-use std::sync::Arc;
+use rust_transformers::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, Tokenizer};
 use rust_transformers::preprocessing::vocab::ctrl_vocab::BpePairVocab;
 use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
-use rust_transformers::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use std::process;
 use std::time::Instant;
 use std::rc::Rc;
@@ -42,15 +38,15 @@ fn main() {
 
 //    let _test_sentence = Example::new_from_string("[MASK]Reprise �au tout début des années [SEP]1960[SEP] par le commissariat à l'énergie atomique (CEA), cette structure reste, au xxie siècle, l'un des principaux employeurs de main d'œuvre de la commune.");
 //    println!("{:?}", _bpe_ranks.pair_to_id("r", "o"));
-    let mut ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), _bpe_ranks.clone());
+    let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), _bpe_ranks.clone());
 //    let tokenized_text = ctrl_tokenizer.tokenize(&_test_sentence.sentence_1);
     let _text_list: Vec<&str> = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
 
-//    let _results = ctrl_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
-    for text in _text_list{
-        ctrl_tokenizer.tokenize(text);
-    }
+    let _results = ctrl_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
+//    for text in _text_list{
+//        ctrl_tokenizer.tokenize(text);
+//    }
 //    println!("{:?}", tokenized_text.len());
 //    println!("{:?}", bpe("hello", &_bpe_ranks));
 //    println!("{:?}", group_common_pairs("hello".chars().map(|v| v.to_string()).collect::<Vec<String>>(), &_bpe_ranks));

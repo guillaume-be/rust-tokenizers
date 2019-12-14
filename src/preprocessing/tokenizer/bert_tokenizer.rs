@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer};
+use crate::preprocessing::tokenizer::base_tokenizer::{MultiThreadedTokenizer, BaseTokenizer};
 use std::sync::Arc;
 use crate::preprocessing::tokenizer::tokenization_utils::tokenize_wordpiece;
 use crate::preprocessing::vocab::base_vocab::Vocab;
@@ -35,7 +35,7 @@ impl BertTokenizer {
     }
 }
 
-impl Tokenizer<BertVocab> for BertTokenizer {
+impl MultiThreadedTokenizer<BertVocab> for BertTokenizer {
     fn vocab(&self) -> &BertVocab {
         &self.vocab
     }

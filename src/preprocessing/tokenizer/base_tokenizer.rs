@@ -40,7 +40,84 @@ pub struct TokenizedInput {
     pub num_truncated_tokens: usize,
 }
 
-pub trait Tokenizer<T: Vocab>
+pub trait Tokenizer<T: Vocab> {
+    fn vocab(&self) -> &T;
+
+    fn tokenize(&self, text: &str) -> Vec<String>;
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
+        text_list.
+            iter().
+            map(|text| self.tokenize(text)).
+            collect()
+    }
+
+    fn convert_tokens_to_ids(&self, tokens: &Vec<String>) -> Vec<i64> {
+        tokens.iter().map(|v| self.vocab().token_to_id(v)).collect()
+    }
+
+    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> TokenizedInput {
+        let token_ids_1 = self.convert_tokens_to_ids(&self.tokenize(text_1));
+        let len_1 = token_ids_1.len();
+        let (token_ids_2, len_2, pair) = {
+            if let Some(text) = text_2 {
+                let token_ids_2: Vec<i64> = self.convert_tokens_to_ids(&self.tokenize(text));
+                let len_2 = token_ids_2.len();
+                (Some(token_ids_2), len_2, Some(vec!()))
+            } else {
+                (None, 0, None)
+            }
+        };
+        let (additional_tokens, _, _) = self.build_input_with_special_tokens(vec!(), pair);
+        let total_len = len_1 + len_2 + additional_tokens.len();
+        let num_truncated_tokens = if total_len > max_len { total_len - max_len } else { 0 };
+        let (token_ids_1,
+            token_ids_2,
+            overflowing_tokens) = truncate_sequences(token_ids_1,
+                                                     token_ids_2,
+                                                     num_truncated_tokens,
+                                                     truncation_strategy,
+                                                     stride).unwrap();
+
+        let (token_ids, segment_ids, special_tokens_mask) = self.build_input_with_special_tokens(token_ids_1,
+                                                                                                 token_ids_2);
+
+        TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens }
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+        text_list
+            .iter()
+            .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
+            .collect()
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+        text_list
+            .iter()
+            .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
+            .collect()
+    }
+
+
+    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>) {
+        let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
+        let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
+
+        let output = match tokens_2 {
+            Some(tokens) => {
+                token_segment_ids.extend(vec![1; tokens.len()]);
+                special_tokens_mask.extend(vec![0; tokens.len()]);
+                tokens_1.extend(tokens);
+                tokens_1
+            }
+            None => tokens_1
+        };
+        (output, token_segment_ids, special_tokens_mask)
+    }
+}
+
+pub trait MultiThreadedTokenizer<T: Vocab>
     where Self: std::marker::Sync+Send {
     fn vocab(&self) -> &T;
 
@@ -134,7 +211,7 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     }
 }
 
-impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
+impl<T: Vocab + Sync + Send> MultiThreadedTokenizer<T> for BaseTokenizer<T> {
     fn vocab(&self) -> &T {
         &self.vocab
     }

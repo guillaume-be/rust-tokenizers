@@ -84,11 +84,11 @@ impl BpePairVocab {
     }
 
     pub fn pair_to_id(&self, byte_1: &str, byte_2: &str) -> Option<&i64> {
-        self.byte_pair_to_id(&BpePair { byte_1: byte_1.to_string(), byte_2: byte_2.to_string()})
+        self.byte_pair_to_id(&BpePair { byte_1: byte_1.to_string(), byte_2: byte_2.to_string() })
     }
 
     pub fn byte_pair_to_id(&self, byte_pair: &BpePair) -> Option<&i64> {
-       self.values.get(byte_pair)
+        self.values.get(byte_pair)
     }
 }
 

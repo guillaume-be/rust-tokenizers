@@ -18,51 +18,53 @@ use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePair};
 use std::collections::{HashSet, HashMap};
 use crate::preprocessing::tokenizer::tokenization_utils::is_whitespace;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 
 pub struct CtrlTokenizer {
     vocab: Rc<CtrlVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: HashMap<String, Vec<String>>,
+    cache: RefCell<HashMap<String, Vec<String>>>,
 }
 
 impl CtrlTokenizer {
     pub fn from_file(vocab_path: &str, merges_path: &str) -> CtrlTokenizer {
         let vocab = Rc::new(CtrlVocab::from_file(vocab_path));
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
-        let cache = HashMap::new();
+        let cache = RefCell::new(HashMap::new());
         CtrlTokenizer { vocab, bpe_ranks, cache }
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Rc<CtrlVocab>, merges: Rc<BpePairVocab>) -> CtrlTokenizer {
-        let cache = HashMap::new();
+        let cache = RefCell::new(HashMap::new());
         CtrlTokenizer { vocab, bpe_ranks: merges, cache }
     }
+}
 
+impl Tokenizer<CtrlVocab> for CtrlTokenizer {
     fn vocab(&self) -> &CtrlVocab {
         &self.vocab
     }
 
-    pub fn tokenize(&mut self, text: &str) -> Vec<String> {
+    fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = vec!();
         for word in text.trim().split(|v| is_whitespace(&v)) {
-            match self.cache.get(word) {
-                Some(value) => tokenized_text.extend(value.clone()),
-                None => {
-                    let bpe_output = bpe(word, &self.bpe_ranks);
-                    self.cache.insert(word.to_owned(), bpe_output.clone());
-                    tokenized_text.extend(bpe_output);
+            let found: bool = match self.cache.borrow().get(word) {
+                Some(value) => {
+                    tokenized_text.extend(value.clone());
+                    true
                 }
+                None => false
+            };
+            if !found {
+                let bpe_output = bpe(word, &self.bpe_ranks);
+                self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
+                tokenized_text.extend(bpe_output);
             }
-
         };
         tokenized_text
     }
 }
-
-//impl Tokenizer<CtrlVocab> for CtrlTokenizer {
-//
-//}
 
 pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
     match token.len() {
