@@ -40,15 +40,14 @@ pub struct TokenizedInput {
     pub num_truncated_tokens: usize,
 }
 
-pub trait Tokenizer<T: Vocab>
-    where Self: std::marker::Sync {
+pub trait Tokenizer<T: Vocab> {
     fn vocab(&self) -> &T;
 
     fn tokenize(&self, text: &str) -> Vec<String>;
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
         text_list.
-            par_iter().
+            iter().
             map(|text| self.tokenize(text)).
             collect()
     }
@@ -88,14 +87,14 @@ pub trait Tokenizer<T: Vocab>
 
     fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
         text_list
-            .par_iter()
+            .iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
     fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
         text_list
-            .par_iter()
+            .iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
             .collect()
     }
@@ -115,6 +114,31 @@ pub trait Tokenizer<T: Vocab>
             None => tokens_1
         };
         (output, token_segment_ids, special_tokens_mask)
+    }
+}
+
+pub trait MultiThreadedTokenizer<T: Vocab>
+    where Self: std::marker::Sync + Send + Tokenizer<T> {
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
+        text_list.
+            par_iter().
+            map(|text| self.tokenize(text)).
+            collect()
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+        text_list
+            .par_iter()
+            .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
+            .collect()
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+        text_list
+            .par_iter()
+            .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
+            .collect()
     }
 }
 
@@ -180,6 +204,8 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
         tokenized_text
     }
 }
+
+impl<T: Vocab + Sync + Send> MultiThreadedTokenizer<T> for BaseTokenizer<T> {}
 
 //==============================
 // Unit tests
