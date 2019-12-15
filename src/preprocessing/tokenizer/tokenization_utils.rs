@@ -22,7 +22,7 @@ use std::error::Error;
 use std::cmp::min;
 use crate::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
 use std::collections::HashSet;
-use crate::preprocessing::vocab::ctrl_vocab::{BpePair, BpePairVocab};
+use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePairRef};
 
 
 pub fn clean_text(text: &str, strict: bool) -> String {
@@ -316,14 +316,14 @@ fn truncate_with_overflow(sequence: &mut Vec<i64>, num_tokens_to_remove: usize, 
     overflow_tokens
 }
 
-pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
+pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePairRef>> {
     match token.len() {
         0 | 1 => None,
         _ => {
-            let mut output: HashSet<BpePair> = HashSet::with_capacity(token.len());
+            let mut output: HashSet<BpePairRef> = HashSet::with_capacity(token.len());
             for idx in 0..token.len() - 1 {
                 if let [byte_1, byte_2] = &token[idx..idx + 2] {
-                    output.insert(BpePair { byte_1: byte_1.clone(), byte_2: byte_2.clone() });
+                    output.insert(BpePairRef { byte_1: byte_1, byte_2: byte_2 });
                 }
             }
             Some(output)
@@ -346,7 +346,7 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
         let mut i = 0;
 
         while i < tokens.len() {
-            let j = if let Some(index) = &tokens[i..].iter().position(|r| r == &bigram.byte_1) {
+            let j = if let Some(index) = &tokens[i..].iter().position(|r| r == bigram.byte_1) {
                 index + i
             } else {
                 temp_sub_tokens.extend_from_slice(&tokens[i..]);
@@ -354,7 +354,7 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
             };
             temp_sub_tokens.extend_from_slice(&tokens[i..j]);
             i = j;
-            if (tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) & (tokens[i + 1] == bigram.byte_2) {
+            if (&tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) & (&tokens[i + 1] == bigram.byte_2) {
                 let mut combined_bytes = String::with_capacity(bigram.byte_1.len() + bigram.byte_2.len());
                 combined_bytes.push_str(bigram.byte_1.as_str());
                 combined_bytes.push_str(bigram.byte_2.as_str());

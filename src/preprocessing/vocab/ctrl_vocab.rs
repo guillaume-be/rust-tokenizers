@@ -13,9 +13,10 @@
 
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use std::process;
+use std::{process, ptr};
 use std::fs::File;
 use std::io::{BufReader, BufRead};
+use std::mem::ManuallyDrop;
 
 pub struct CtrlVocab {
     pub values: HashMap<String, i64>,
@@ -57,13 +58,13 @@ impl Vocab for CtrlVocab {
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
-pub struct BpePair {
-    pub byte_1: String,
-    pub byte_2: String,
+pub struct BpePairRef<'a> {
+    pub byte_1: &'a String,
+    pub byte_2: &'a String,
 }
 
 pub struct BpePairVocab {
-    pub values: HashMap<BpePair, i64>
+    pub values: HashMap<(String, String), i64>
 }
 
 impl BpePairVocab {
@@ -75,7 +76,7 @@ impl BpePairVocab {
         for line in br.lines().skip(1) {
             let tuple: Vec<String> = line.unwrap().trim().split(' ').map(|v| v.to_owned()).collect();
             if tuple.len() > 1 {
-                data.insert(BpePair { byte_1: tuple[0].clone(), byte_2: tuple[1].clone() }, index);
+                data.insert((tuple[0].clone(), tuple[1].clone()), index);
                 index += 1;
             }
         };
@@ -83,12 +84,15 @@ impl BpePairVocab {
         BpePairVocab { values: data }
     }
 
-    pub fn pair_to_id(&self, byte_1: &str, byte_2: &str) -> Option<&i64> {
-        self.byte_pair_to_id(&BpePair { byte_1: byte_1.to_string(), byte_2: byte_2.to_string() })
-    }
-
-    pub fn byte_pair_to_id(&self, byte_pair: &BpePair) -> Option<&i64> {
-        self.values.get(byte_pair)
+    pub fn byte_pair_to_id(&self, byte_pair: &BpePairRef) -> Option<&i64> {
+        unsafe {
+            let byte_1 = byte_pair.byte_1;
+            let byte_2 = byte_pair.byte_2;
+            let k = (ptr::read(byte_1), ptr::read(byte_2));
+            let k = ManuallyDrop::new(k);
+            let v = self.values.get(&k);
+            v
+        }
     }
 }
 
