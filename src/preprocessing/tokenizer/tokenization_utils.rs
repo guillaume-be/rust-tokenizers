@@ -1168,4 +1168,56 @@ mod tests {
             assert_eq!(get_pairs(&input), *expected_output);
         }
     }
+
+    fn generate_bpe_pair_vocab() -> BpePairVocab {
+        let values: HashMap<(String, String), i64> = [
+            (("e".to_owned(), "l".to_owned()), 0),
+            (("e".to_owned(), "o".to_owned()), 1),
+            (("h".to_owned(), "e".to_owned()), 2),
+            (("el".to_owned(), "l".to_owned()), 3),
+            (("o".to_owned(), "l".to_owned()), 4),
+            (("l".to_owned(), "l".to_owned()), 5),
+        ].iter().cloned().collect();
+
+        BpePairVocab { values }
+    }
+
+    #[test]
+    fn test_group_common_pairs() {
+//        Given
+        let bpe_pairs = generate_bpe_pair_vocab();
+
+        let test_tuples = [
+            (
+                vec!("h".to_owned(), "e".to_owned(), "l".to_owned(), "l".to_owned(), "o".to_owned()),
+                (vec!("h".to_owned(), "el".to_owned(), "l".to_owned(), "o".to_owned()), false)
+            ),
+            (
+                vec!("h".to_owned(), "el".to_owned(), "l".to_owned(), "o".to_owned()),
+                (vec!("h".to_owned(), "ell".to_owned(), "o".to_owned()), false)
+            ),
+            (
+                vec!("h".to_owned(), "ell".to_owned(), "o".to_owned()),
+                (vec!("h".to_owned(), "ell".to_owned(), "o".to_owned()), true)
+            ),
+            (
+                vec!("h".to_owned()),
+                (vec!("h".to_owned()), true)
+            ),
+            (
+                vec!("h".to_owned(), "ello".to_owned()),
+                (vec!("h".to_owned(), "ello".to_owned()), true)
+            ),
+            (
+                vec!("h".to_owned(), "ello".to_owned()),
+                (vec!("h".to_owned(), "ello".to_owned()), true)
+            )
+        ]
+            ;
+
+//        When & Then
+        for (input, expected_output) in &test_tuples {
+            assert_eq!(group_common_pairs(input.clone(), &bpe_pairs), *expected_output);
+        }
+    }
 }
