@@ -404,6 +404,7 @@ pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
 mod tests {
     use super::*;
     use std::collections::HashMap;
+    use std::iter::FromIterator;
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -1107,6 +1108,64 @@ mod tests {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
                 Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
             }
+        }
+    }
+
+    #[test]
+    fn test_get_pair() {
+//        Given
+        let h = String::from("h");
+        let e = String::from("e");
+        let l = String::from("l");
+        let o = String::from("o");
+        let space = String::from(" ");
+
+        let test_tuples = [
+            (
+                vec!(h.clone(), e.clone(), l.clone(), l.clone(), o.clone()),
+                Some(HashSet::from_iter([
+                    BpePairRef { byte_1: &h, byte_2: &e },
+                    BpePairRef { byte_1: &e, byte_2: &l },
+                    BpePairRef { byte_1: &l, byte_2: &l },
+                    BpePairRef { byte_1: &l, byte_2: &o },
+                ].iter().cloned()))
+            ),
+            (
+                vec!(h.clone(), e.clone(), l.clone(), l.clone(), l.clone(), l.clone(), o.clone()),
+                Some(HashSet::from_iter([
+                    BpePairRef { byte_1: &h, byte_2: &e },
+                    BpePairRef { byte_1: &e, byte_2: &l },
+                    BpePairRef { byte_1: &l, byte_2: &l },
+                    BpePairRef { byte_1: &l, byte_2: &o },
+                ].iter().cloned()))
+            ),
+            (
+                vec!(h.clone(), e.clone()),
+                Some(HashSet::from_iter([
+                    BpePairRef { byte_1: &h, byte_2: &e },
+                ].iter().cloned()))
+            ),
+            (
+                vec!(h.clone(), space.clone(), e.clone()),
+                Some(HashSet::from_iter([
+                    BpePairRef { byte_1: &h, byte_2: &space },
+                    BpePairRef { byte_1: &space, byte_2: &e },
+                ].iter().cloned()))
+            ),
+            (
+                vec!(h.clone()),
+                None
+            ),
+            (
+                vec!(),
+                None
+            )
+        ]
+            ;
+
+//        When & Then
+        for (input, expected_output) in &test_tuples {
+            assert_eq!(get_pairs(&input), *expected_output);
         }
     }
 }
