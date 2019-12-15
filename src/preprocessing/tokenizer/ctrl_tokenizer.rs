@@ -47,7 +47,7 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> Vec<String> {
-        let mut tokenized_text: Vec<String> = vec!();
+        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
         for word in text.trim().split(|v| is_whitespace(&v)) {
             let cached: bool = match self.cache.borrow().get(word) {
                 Some(value) => {

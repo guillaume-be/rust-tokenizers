@@ -332,22 +332,21 @@ pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
 }
 
 pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec<String>, bool) {
-    let mut end_loop: bool = false;
     if let Some(pairs) = get_pairs(&tokens) {
         let bigram = pairs.iter().min_by_key(|pair|
             match bpe_ranks.byte_pair_to_id(pair) {
-                Some(rank) => *rank,
+                Some(&rank) => rank,
                 None => i64::max_value()
             }).unwrap();
         if bpe_ranks.byte_pair_to_id(bigram).is_none() {
             return (tokens, true);
         }
 
-        let mut temp_sub_tokens: Vec<String> = vec!();
+        let mut temp_sub_tokens: Vec<String> = Vec::with_capacity(tokens.len());
         let mut i = 0;
 
         while i < tokens.len() {
-            let j = if let Some(index) = &tokens[i..].iter().position(|r| *r == bigram.byte_1) {
+            let j = if let Some(index) = &tokens[i..].iter().position(|r| r == &bigram.byte_1) {
                 index + i
             } else {
                 temp_sub_tokens.extend_from_slice(&tokens[i..]);
@@ -356,7 +355,8 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
             temp_sub_tokens.extend_from_slice(&tokens[i..j]);
             i = j;
             if (tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) & (tokens[i + 1] == bigram.byte_2) {
-                let mut combined_bytes = bigram.byte_1.clone();
+                let mut combined_bytes = String::with_capacity(bigram.byte_1.len() + bigram.byte_2.len());
+                combined_bytes.push_str(bigram.byte_1.as_str());
                 combined_bytes.push_str(bigram.byte_2.as_str());
                 temp_sub_tokens.push(combined_bytes);
                 i += 2;
@@ -366,9 +366,9 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
             }
         }
         if temp_sub_tokens.len() == 1 {
-            end_loop = true;
+            return (temp_sub_tokens, true);
         }
-        return (temp_sub_tokens, end_loop);
+        return (temp_sub_tokens, false);
     } else {
         return (tokens, true);
     }
@@ -381,21 +381,15 @@ pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
         sub_tokens.last_mut().unwrap().push_str("</w>");
     };
 
-    let (mut output, mut end_loop) = (sub_tokens.clone(), false);
+    let mut output = (sub_tokens, false);
     loop {
-        output = match group_common_pairs(output, &bpe_ranks) {
-            (value, true) => {
-                end_loop = true;
-                value
-            }
-            (value, false) => value,
-        };
-        if end_loop {
+        output = group_common_pairs(output.0, &bpe_ranks);
+        if output.1 {
             break;
         }
     }
 
-    let word = output.join("@@ ");
+    let word = output.0.join("@@ ");
     if !word.is_empty() {
         (&word[..word.len() - 4]).split(' ').map(|v| v.to_owned()).collect()
     } else {
