@@ -14,9 +14,9 @@
 use crate::CtrlVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
-use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePair};
-use std::collections::{HashSet, HashMap};
-use crate::preprocessing::tokenizer::tokenization_utils::is_whitespace;
+use crate::preprocessing::vocab::ctrl_vocab::BpePairVocab;
+use std::collections::HashMap;
+use crate::preprocessing::tokenizer::tokenization_utils::{is_whitespace, bpe};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -63,92 +63,5 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
             }
         };
         tokenized_text
-    }
-}
-
-pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePair>> {
-    match token.len() {
-        0 | 1 => None,
-        _ => {
-            let mut output: HashSet<BpePair> = HashSet::with_capacity(token.len());
-            for idx in 0..token.len() - 1 {
-                if let [byte_1, byte_2] = &token[idx..idx + 2] {
-                    output.insert(BpePair { byte_1: byte_1.clone(), byte_2: byte_2.clone() });
-                }
-            }
-            Some(output)
-        }
-    }
-}
-
-pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec<String>, bool) {
-    let mut end_loop: bool = false;
-    if let Some(pairs) = get_pairs(&tokens) {
-        let bigram = pairs.iter().min_by_key(|pair|
-            match bpe_ranks.byte_pair_to_id(pair) {
-                Some(rank) => *rank,
-                None => i64::max_value()
-            }).unwrap();
-        if bpe_ranks.byte_pair_to_id(bigram).is_none() {
-            return (tokens, true);
-        }
-
-        let mut temp_sub_tokens: Vec<String> = vec!();
-        let mut i = 0;
-
-        while i < tokens.len() {
-            let j = if let Some(index) = &tokens[i..].iter().position(|r| *r == bigram.byte_1) {
-                index + i
-            } else {
-                temp_sub_tokens.extend_from_slice(&tokens[i..]);
-                break;
-            };
-            temp_sub_tokens.extend_from_slice(&tokens[i..j]);
-            i = j;
-            if (tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) & (tokens[i + 1] == bigram.byte_2) {
-                let mut combined_bytes = bigram.byte_1.clone();
-                combined_bytes.push_str(bigram.byte_2.as_str());
-                temp_sub_tokens.push(combined_bytes);
-                i += 2;
-            } else {
-                temp_sub_tokens.push(bigram.byte_1.clone());
-                i += 1;
-            }
-        }
-        if temp_sub_tokens.len() == 1 {
-            end_loop = true;
-        }
-        return (temp_sub_tokens, end_loop);
-    } else {
-        return (tokens, true);
-    }
-}
-
-pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
-    let mut sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
-
-    if !sub_tokens.is_empty() {
-        sub_tokens.last_mut().unwrap().push_str("</w>");
-    };
-
-    let (mut output, mut end_loop) = (sub_tokens.clone(), false);
-    loop {
-        output = match group_common_pairs(output, &bpe_ranks) {
-            (value, true) => {
-                end_loop = true;
-                value
-            }
-            (value, false) => value,
-        };
-        if end_loop {
-            break;
-        }
-    }
-
-    let word = output.join("@@ ");
-    if !word.is_empty() {
-        (&word[..word.len() - 4]).split(' ').map(|v| v.to_owned()).collect()
-    } else {
-        vec!(word)
     }
 }
