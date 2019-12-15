@@ -1220,4 +1220,43 @@ mod tests {
             assert_eq!(group_common_pairs(input.clone(), &bpe_pairs), *expected_output);
         }
     }
+
+    #[test]
+    fn test_bpe() {
+//        Given
+        let bpe_pairs = generate_bpe_pair_vocab();
+
+        let test_tuples = [
+            (
+                "hello",
+                vec!("h@@".to_owned(), "ell@@".to_owned(), "o".to_owned())
+            ),
+            (
+                "hellllo",
+                vec!("h@@".to_owned(), "ell@@".to_owned(), "ll@@".to_owned(), "o".to_owned())
+            ),
+            (
+                "helo",
+                vec!("h@@".to_owned(), "el@@".to_owned(), "o".to_owned())
+            ),
+            (
+                "42",
+                vec!("4@@".to_owned(), "2".to_owned())
+            ),
+            (
+                "1",
+                vec!("1".to_owned())
+            ),
+            (
+                "",
+                vec!("".to_owned())
+            ),
+        ]
+            ;
+
+//        When & Then
+        for (input, expected_output) in &test_tuples {
+            assert_eq!(bpe(input.clone(), &bpe_pairs), *expected_output);
+        }
+    }
 }
