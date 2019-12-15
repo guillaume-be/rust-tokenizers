@@ -119,7 +119,6 @@ pub trait Tokenizer<T: Vocab> {
 
 pub trait MultiThreadedTokenizer<T: Vocab>
     where Self: std::marker::Sync + Send + Tokenizer<T> {
-
     fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
         text_list.
             par_iter().
@@ -296,7 +295,8 @@ mod tests {
             assert_eq!(base_tokenizer.tokenize(*source_text), *expected_result);
         }
 
-        assert_eq!(base_tokenizer.tokenize_list(source_texts), expected_results);
+        assert_eq!(Tokenizer::tokenize_list(&base_tokenizer, source_texts.clone()), expected_results);
+        assert_eq!(MultiThreadedTokenizer::tokenize_list(&base_tokenizer, source_texts.clone()), expected_results);
     }
 
     #[test]
@@ -358,7 +358,8 @@ mod tests {
             assert_eq!(base_tokenizer.encode(source_text, None, 10, &truncation_strategy, 0),
                        *expected_result);
         }
-        assert_eq!(base_tokenizer.encode_list(source_texts, 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
     }
 
     #[test]
@@ -397,6 +398,7 @@ mod tests {
             assert_eq!(base_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0),
                        *expected_result);
         }
-        assert_eq!(base_tokenizer.encode_pair_list(source_texts, 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
     }
 }

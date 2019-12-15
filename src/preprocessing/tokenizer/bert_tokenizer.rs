@@ -141,7 +141,8 @@ mod tests {
             assert_eq!(bert_tokenizer.tokenize(*source_text), *expected_result);
         }
 
-        assert_eq!(bert_tokenizer.tokenize_list(source_texts), expected_results);
+        assert_eq!(Tokenizer::tokenize_list(&bert_tokenizer, source_texts.clone()), expected_results);
+        assert_eq!(MultiThreadedTokenizer::tokenize_list(&bert_tokenizer, source_texts.clone()), expected_results);
     }
 
     #[test]
@@ -172,7 +173,8 @@ mod tests {
             assert_eq!(bert_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
                        *expected_result);
         }
-        assert_eq!(bert_tokenizer.encode_list(source_texts, 128, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_list(&bert_tokenizer, source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_list(&bert_tokenizer, source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
     }
 
     #[test]
@@ -211,6 +213,7 @@ mod tests {
             assert_eq!(bert_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0),
                        *expected_result);
         }
-        assert_eq!(bert_tokenizer.encode_pair_list(source_texts, 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
     }
 }
