@@ -323,7 +323,7 @@ pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePairRef>> {
             let mut output: HashSet<BpePairRef> = HashSet::with_capacity(token.len());
             for idx in 0..token.len() - 1 {
                 if let [byte_1, byte_2] = &token[idx..idx + 2] {
-                    output.insert(BpePairRef { byte_1: byte_1, byte_2: byte_2 });
+                    output.insert(BpePairRef { byte_1, byte_2 });
                 }
             }
             Some(output)
