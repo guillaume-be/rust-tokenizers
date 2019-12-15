@@ -1160,8 +1160,7 @@ mod tests {
                 vec!(),
                 None
             )
-        ]
-            ;
+        ];
 
 //        When & Then
         for (input, expected_output) in &test_tuples {
@@ -1212,8 +1211,7 @@ mod tests {
                 vec!("h".to_owned(), "ello".to_owned()),
                 (vec!("h".to_owned(), "ello".to_owned()), true)
             )
-        ]
-            ;
+        ];
 
 //        When & Then
         for (input, expected_output) in &test_tuples {
@@ -1251,8 +1249,7 @@ mod tests {
                 "",
                 vec!("".to_owned())
             ),
-        ]
-            ;
+        ];
 
 //        When & Then
         for (input, expected_output) in &test_tuples {

@@ -96,3 +96,177 @@ impl BpePairVocab {
     }
 }
 
+//==============================
+// Unit tests
+//==============================
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io;
+    use std::io::Write;
+
+    #[test]
+    fn test_create_vocab() {
+//        Given
+        let values: HashMap<String, i64> = HashMap::new();
+        let special_values: HashMap<String, i64> = HashMap::new();
+        let unknown_value = CtrlVocab::unknown_value();
+
+//        When
+        let ctrl_vocab = CtrlVocab {
+            values,
+            unknown_value,
+            special_values,
+        };
+
+//        Then
+        assert_eq!(ctrl_vocab.unknown_value, "<unk>");
+        assert_eq!(ctrl_vocab.unknown_value, CtrlVocab::unknown_value());
+        assert_eq!(ctrl_vocab.values, *ctrl_vocab.values());
+        assert_eq!(ctrl_vocab.special_values, *ctrl_vocab.special_values());
+    }
+
+    #[test]
+    fn test_create_object_from_file() -> Result<(), io::Error> {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new()?;
+        write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n}}")?;
+        let path = vocab_file.into_temp_path();
+        let target_values: HashMap<String, i64> = [
+            ("hello".to_owned(), 1),
+            ("world".to_owned(), 0),
+            ("<unk>".to_owned(), 2),
+            ("!".to_owned(), 3),
+        ].iter().cloned().collect();
+
+        let special_values: HashMap<String, i64> = [
+            ("<unk>".to_owned(), 2)
+        ].iter().cloned().collect();
+
+//        When
+        let ctrl_vocab = CtrlVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        Then
+        assert_eq!(ctrl_vocab.unknown_value, "<unk>");
+        assert_eq!(ctrl_vocab.values, target_values);
+        assert_eq!(ctrl_vocab.special_values, special_values);
+        drop(path);
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_create_object_from_file_without_unknown_token() {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new().unwrap();
+        write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"!\": 3\n}}").unwrap();
+        let path = vocab_file.into_temp_path();
+
+//        When & Then
+        let _ctrl_vocab = CtrlVocab::from_file(path.to_path_buf().to_str().unwrap());
+    }
+
+    #[test]
+    fn test_encode_tokens() -> Result<(), io::Error> {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new()?;
+        write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n}}")?;
+        let path = vocab_file.into_temp_path();
+        let ctrl_vocab = CtrlVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        When & Then
+        assert_eq!(ctrl_vocab.token_to_id("hello"), 1);
+        assert_eq!(ctrl_vocab.token_to_id("world"), 0);
+        assert_eq!(ctrl_vocab.token_to_id("!"), 3);
+        assert_eq!(ctrl_vocab.token_to_id("<unk>>"), 2);
+        assert_eq!(ctrl_vocab.token_to_id("oov_value"), 2);
+
+        drop(path);
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_pair_vocab() {
+//        Given
+        let values: HashMap<(String, String), i64> = HashMap::new();
+
+//        When
+        let pair_vocab = BpePairVocab {
+            values: values.clone(),
+        };
+
+//        Then
+        assert_eq!(pair_vocab.values, values);
+    }
+
+    #[test]
+    fn test_create_pair_vocab_from_file() -> Result<(), io::Error> {
+//        Given
+        let mut merges_file = tempfile::NamedTempFile::new()?;
+        write!(merges_file, "#version: 0.1\n t h\na n\ni n\nth e</w>")?;
+        let path = merges_file.into_temp_path();
+        let target_values: HashMap<(String, String), i64> = [
+            (("t".to_owned(), "h".to_owned()), 0),
+            (("a".to_owned(), "n".to_owned()), 1),
+            (("i".to_owned(), "n".to_owned()), 2),
+            (("th".to_owned(), "e</w>".to_owned()), 3),
+        ].iter().cloned().collect();
+
+//        When
+        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        Then
+        assert_eq!(pair_vocab.values, target_values);
+        drop(path);
+        Ok(())
+    }
+
+    #[test]
+    fn test_encode_byte_pairs() -> Result<(), io::Error> {
+//        Given
+        let mut merges_file = tempfile::NamedTempFile::new()?;
+        write!(merges_file, "#version: 0.1\n t h\na n\ni n\nth e</w>")?;
+        let path = merges_file.into_temp_path();
+        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        Given
+        let t = String::from("t");
+        let h = String::from("h");
+        let a = String::from("a");
+        let i = String::from("i");
+        let n = String::from("n");
+        let th = String::from("th");
+        let e_eow = String::from("e</w>");
+
+        let test_tuples = [
+            (
+                (t.clone(), h.clone()),
+                Some(&(0 as i64))
+            ),
+            (
+                (a.clone(), n.clone()),
+                Some(&(1 as i64))
+            ),
+            (
+                (i.clone(), n.clone()),
+                Some(&(2 as i64))
+            ),
+            (
+                (th.clone(), e_eow.clone()),
+                Some(&(3 as i64))
+            ),
+            (
+                (a.clone(), e_eow.clone()),
+                None
+            )
+        ];
+
+//        When & Then
+        for (input, expected_output) in &test_tuples {
+            assert_eq!(pair_vocab.byte_pair_to_id(&BpePairRef {byte_1: &input.0, byte_2: &input.1}), *expected_output);
+        }
+
+        drop(path);
+        Ok(())
+    }
+}
