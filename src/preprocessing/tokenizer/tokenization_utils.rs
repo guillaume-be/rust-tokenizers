@@ -22,7 +22,7 @@ use std::error::Error;
 use std::cmp::min;
 use crate::preprocessing::tokenizer::base_tokenizer::TruncationStrategy;
 use std::collections::HashSet;
-use crate::preprocessing::vocab::ctrl_vocab::{BpePairVocab, BpePairRef};
+use crate::preprocessing::vocab::bpe_vocab::{BpePairRef, BpePairVocab};
 
 
 pub fn clean_text(text: &str, strict: bool) -> String {
@@ -374,7 +374,7 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
     }
 }
 
-pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
+pub fn ctrl_bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
     let mut sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
 
     if !sub_tokens.is_empty() {
@@ -395,6 +395,20 @@ pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
     } else {
         vec!(word)
     }
+}
+
+pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
+    let sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
+
+    let mut output = (sub_tokens, false);
+    loop {
+        output = group_common_pairs(output.0, &bpe_ranks);
+        if output.1 {
+            break;
+        }
+    }
+
+    output.0
 }
 
 //==============================
@@ -1253,7 +1267,7 @@ mod tests {
 
 //        When & Then
         for (input, expected_output) in &test_tuples {
-            assert_eq!(bpe(input.clone(), &bpe_pairs), *expected_output);
+            assert_eq!(ctrl_bpe(input.clone(), &bpe_pairs), *expected_output);
         }
     }
 }

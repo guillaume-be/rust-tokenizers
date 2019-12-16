@@ -14,11 +14,11 @@
 use crate::CtrlVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
-use crate::preprocessing::vocab::ctrl_vocab::BpePairVocab;
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{is_whitespace, bpe};
+use crate::preprocessing::tokenizer::tokenization_utils::{is_whitespace, ctrl_bpe};
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 
 
 pub struct CtrlTokenizer {
@@ -57,7 +57,7 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
                 None => false
             };
             if !cached {
-                let bpe_output = bpe(word, &self.bpe_ranks);
+                let bpe_output = ctrl_bpe(word, &self.bpe_ranks);
                 self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
                 tokenized_text.extend(bpe_output);
             }
