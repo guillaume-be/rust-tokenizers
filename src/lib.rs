@@ -21,6 +21,7 @@ use crate::preprocessing::tokenizer::base_tokenizer::{MultiThreadedTokenizer, Tr
 use pyo3::exceptions;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
+use crate::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
 
 #[macro_use]
 extern crate lazy_static;
@@ -95,7 +96,6 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
 
 trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
     where Self: PyTokenizer<T, U> {
-
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         Ok(MultiThreadedTokenizer::tokenize_list(self.tokenizer(), text_list))
     }
@@ -222,9 +222,56 @@ impl PyCtrlTokenizer {
 }
 
 
+#[pyclass(module = "rust_transformers")]
+struct PyGpt2Tokenizer {
+    tokenizer: Gpt2Tokenizer,
+}
+
+impl PyTokenizer<Gpt2Tokenizer, Gpt2Vocab> for PyGpt2Tokenizer {
+    fn tokenizer(&self) -> &Gpt2Tokenizer {
+        &self.tokenizer
+    }
+}
+
+#[pymethods]
+impl PyGpt2Tokenizer {
+    #[new]
+    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String) {
+        obj.init(PyGpt2Tokenizer {
+            tokenizer: Gpt2Tokenizer::from_file(&vocab_path, &merges_path),
+        });
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::tokenize_list(&self, text_list)
+    }
+
+    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+}
+
+
 #[pymodule]
 fn rust_transformers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
     m.add_class::<PyCtrlTokenizer>()?;
+    m.add_class::<PyGpt2Tokenizer>()?;
     Ok(())
 }

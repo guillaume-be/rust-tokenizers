@@ -15,16 +15,18 @@ use crate::CtrlVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{is_whitespace, ctrl_bpe, split_on_special_tokens};
+use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
+use regex::Regex;
 
 
 pub struct CtrlTokenizer {
     vocab: Rc<CtrlVocab>,
     bpe_ranks: Rc<BpePairVocab>,
     cache: RefCell<HashMap<String, Vec<String>>>,
+    regex_pattern: Regex,
 }
 
 impl CtrlTokenizer {
@@ -32,12 +34,14 @@ impl CtrlTokenizer {
         let vocab = Rc::new(CtrlVocab::from_file(vocab_path));
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
         let cache = RefCell::new(HashMap::new());
-        CtrlTokenizer { vocab, bpe_ranks, cache }
+        let regex_pattern = Regex::new(r"\S+\n?").unwrap();
+        CtrlTokenizer { vocab, bpe_ranks, cache, regex_pattern }
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Rc<CtrlVocab>, merges: Rc<BpePairVocab>) -> CtrlTokenizer {
         let cache = RefCell::new(HashMap::new());
-        CtrlTokenizer { vocab, bpe_ranks: merges, cache }
+        let regex_pattern = Regex::new(r"\S+\n?").unwrap();
+        CtrlTokenizer { vocab, bpe_ranks: merges, cache, regex_pattern }
     }
 }
 
@@ -51,9 +55,8 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
         let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
         for text in temp_text {
             if !self.vocab.special_values.contains_key(text) {
-//                ToDo: try adding back regex
-                for word in text.trim().split(|v| is_whitespace(&v)) {
-                    let cached: bool = match self.cache.borrow().get(word) {
+                for word in self.regex_pattern.find_iter(text.as_ref()) {
+                    let cached: bool = match self.cache.borrow().get(word.as_str()) {
                         Some(value) => {
                             tokenized_text.extend(value.clone());
                             true
@@ -61,8 +64,8 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
                         None => false
                     };
                     if !cached {
-                        let bpe_output = ctrl_bpe(word, &self.bpe_ranks);
-                        self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
+                        let bpe_output = ctrl_bpe(word.as_str(), &self.bpe_ranks);
+                        self.cache.borrow_mut().insert(word.as_str().to_owned(), bpe_output.clone());
                         tokenized_text.extend(bpe_output);
                     }
                 };

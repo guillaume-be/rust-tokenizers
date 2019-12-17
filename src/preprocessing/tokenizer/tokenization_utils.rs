@@ -341,7 +341,6 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
         if bpe_ranks.byte_pair_to_id(bigram).is_none() {
             return (tokens, true);
         }
-
         let mut temp_sub_tokens: Vec<String> = Vec::with_capacity(tokens.len());
         let mut i = 0;
 
@@ -354,12 +353,17 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
             };
             temp_sub_tokens.extend_from_slice(&tokens[i..j]);
             i = j;
-            if (&tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) & (&tokens[i + 1] == bigram.byte_2) {
-                let mut combined_bytes = String::with_capacity(bigram.byte_1.len() + bigram.byte_2.len());
-                combined_bytes.push_str(bigram.byte_1.as_str());
-                combined_bytes.push_str(bigram.byte_2.as_str());
-                temp_sub_tokens.push(combined_bytes);
-                i += 2;
+            if (&tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) {
+                if &tokens[i + 1] == bigram.byte_2 {
+                    let mut combined_bytes = String::with_capacity(bigram.byte_1.len() + bigram.byte_2.len());
+                    combined_bytes.push_str(bigram.byte_1.as_str());
+                    combined_bytes.push_str(bigram.byte_2.as_str());
+                    temp_sub_tokens.push(combined_bytes);
+                    i += 2;
+                } else {
+                    temp_sub_tokens.push(bigram.byte_1.clone());
+                    i += 1;
+                }
             } else {
                 temp_sub_tokens.push(bigram.byte_1.clone());
                 i += 1;
