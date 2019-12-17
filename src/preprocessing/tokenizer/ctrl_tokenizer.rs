@@ -15,7 +15,7 @@ use crate::CtrlVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{is_whitespace, ctrl_bpe};
+use crate::preprocessing::tokenizer::tokenization_utils::{is_whitespace, ctrl_bpe, split_on_special_tokens};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -48,20 +48,28 @@ impl Tokenizer<CtrlVocab> for CtrlTokenizer {
 
     fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
-        for word in text.trim().split(|v| is_whitespace(&v)) {
-            let cached: bool = match self.cache.borrow().get(word) {
-                Some(value) => {
-                    tokenized_text.extend(value.clone());
-                    true
-                }
-                None => false
-            };
-            if !cached {
-                let bpe_output = ctrl_bpe(word, &self.bpe_ranks);
-                self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
-                tokenized_text.extend(bpe_output);
+        let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
+        for text in temp_text {
+            if !self.vocab.special_values.contains_key(text) {
+//                ToDo: try adding back regex
+                for word in text.trim().split(|v| is_whitespace(&v)) {
+                    let cached: bool = match self.cache.borrow().get(word) {
+                        Some(value) => {
+                            tokenized_text.extend(value.clone());
+                            true
+                        }
+                        None => false
+                    };
+                    if !cached {
+                        let bpe_output = ctrl_bpe(word, &self.bpe_ranks);
+                        self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
+                        tokenized_text.extend(bpe_output);
+                    }
+                };
+            } else {
+                tokenized_text.push(text.to_owned());
             }
-        };
+        }
         tokenized_text
     }
 }
@@ -128,11 +136,11 @@ mod tests {
             ),
             (
                 " ",
-                vec!("")
+                vec!("<unk>")
             ),
             (
                 " \n ",
-                vec!("")
+                vec!("<unk>")
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

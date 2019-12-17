@@ -222,7 +222,7 @@ pub static ref ACCENT_MARKERS: HashSet<u32> = {vec ! [
 ].into_iter().collect()
 };
 
-pub static ref BYTES_TO_UNICODE: HashMap<u32, char> = {vec ! [
+pub static ref BYTES_TO_UNICODE: HashMap<u8, char> = {vec ! [
     (33, '!'),
     (34, '"'),
     (35, '#'),

@@ -47,11 +47,10 @@ fn main() {
 //    for text in _text_list{
 //        ctrl_tokenizer.tokenize(text);
 //    }
-//    println!("{:?}", tokenized_text.len());
-//    println!("{:?}", bpe("hello", &_bpe_ranks));
+
 //    println!("{:?}", group_common_pairs("hello".chars().map(|v| v.to_string()).collect::<Vec<String>>(), &_bpe_ranks));
 //    println!("{:?}", pattern.find_iter("it's a great night for going out"));
-    println!("{:?}", gpt2_tokenizer.tokenize("it's a great night for going out"));
-    println!("{:?}", gpt2_tokenizer.encode("it's a great night for going out", None,128, &TruncationStrategy::LongestFirst, 0));
+    println!("{:?}", gpt2_tokenizer.tokenize(" ‰    ‰"));
+    println!("{:?}", gpt2_tokenizer.encode("asd asadfg ", None,128, &TruncationStrategy::LongestFirst, 0));
     println!("Elapsed time: {:.2?}", _before.elapsed());
 }
