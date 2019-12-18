@@ -12,11 +12,13 @@
 use rust_transformers;
 use rust_transformers::preprocessing::vocab::base_vocab::Vocab;
 use rust_transformers::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, Tokenizer};
-use rust_transformers::preprocessing::vocab::ctrl_vocab::BpePairVocab;
-use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
 use std::process;
 use std::time::Instant;
 use std::rc::Rc;
+use rust_transformers::preprocessing::vocab::bpe_vocab::BpePairVocab;
+use rust_transformers::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
+use rust_transformers::preprocessing::adapters::Example;
+use rust_transformers::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
 
 fn main() {
     let _data = match rust_transformers::preprocessing::adapters::read_sst2(
@@ -31,25 +33,33 @@ fn main() {
         }
     };
 
-    let vocab_path = "E:/Coding/rust-transformers/resources/vocab/ctrl-vocab.json";
-    let bpe_path = "E:/Coding/rust-transformers/resources/vocab/ctrl-merges.txt";
-    let ctrl_vocab = Rc::new(rust_transformers::CtrlVocab::from_file(vocab_path));
+    let vocab_path = "E:/Coding/rust-transformers/resources/vocab/gpt2-vocab.json";
+    let bpe_path = "E:/Coding/rust-transformers/resources/vocab/gpt2-merges.txt";
+    let ctrlvocab_path = "E:/Coding/rust-transformers/resources/vocab/ctrl-vocab.json";
+    let ctrlbpe_path = "E:/Coding/rust-transformers/resources/vocab/ctrl-merges.txt";
+    let gpt2_vocab = Rc::new(rust_transformers::Gpt2Vocab::from_file(vocab_path));
     let _bpe_ranks = Rc::new(BpePairVocab::from_file(bpe_path));
+    let ctrl_vocab = Rc::new(rust_transformers::CtrlVocab::from_file(ctrlvocab_path));
+    let ctrl_bpe_ranks = Rc::new(BpePairVocab::from_file(ctrlbpe_path));
 
-//    let _test_sentence = Example::new_from_string("[MASK]Reprise �au tout début des années [SEP]1960[SEP] par le commissariat à l'énergie atomique (CEA), cette structure reste, au xxie siècle, l'un des principaux employeurs de main d'œuvre de la commune.");
+    let _test_sentence = Example::new_from_string(" eprise");
 //    println!("{:?}", _bpe_ranks.pair_to_id("r", "o"));
-    let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), _bpe_ranks.clone());
-//    let tokenized_text = ctrl_tokenizer.tokenize(&_test_sentence.sentence_1);
+    let gpt2_tokenizer: Gpt2Tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(gpt2_vocab.clone(), _bpe_ranks.clone());
+    let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(ctrl_vocab.clone(), ctrl_bpe_ranks.clone());
+//    let tokenized_text = gpt2_tokenizer.tokenize(&_test_sentence.sentence_1);
     let _text_list: Vec<&str> = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
 
-    let _results = ctrl_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
+//    let _results = gpt2_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
 //    for text in _text_list{
-//        ctrl_tokenizer.tokenize(text);
+//        gpt2_tokenizer.tokenize(text);
 //    }
-//    println!("{:?}", tokenized_text.len());
-//    println!("{:?}", bpe("hello", &_bpe_ranks));
-//    println!("{:?}", group_common_pairs("hello".chars().map(|v| v.to_string()).collect::<Vec<String>>(), &_bpe_ranks));
-//    println!("{:?}", ctrl_tokenizer.tokenize("hello"));
+    println!("{:?}",gpt2_tokenizer.encode("the earth", None, 128, &TruncationStrategy::LongestFirst, 0));
+    for text in _text_list{
+        ctrl_tokenizer.tokenize(text);
+    }
+//    println!("{:?}", gpt2_tokenizer.tokenize(&_test_sentence.sentence_1));
+//    println!("{:?}", ctrl_tokenizer.tokenize(&_test_sentence.sentence_1));
+//    println!("{:?}", gpt2_tokenizer.encode(&_test_sentence.sentence_1, None,128, &TruncationStrategy::LongestFirst, 0));
     println!("Elapsed time: {:.2?}", _before.elapsed());
 }
