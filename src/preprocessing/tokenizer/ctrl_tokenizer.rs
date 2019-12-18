@@ -97,7 +97,7 @@ mod tests {
         ].iter().cloned().collect();
 
         let special_values: HashMap<String, i64> = [
-            ("<unk>".to_owned(), 7),
+            ("<unk>".to_owned(), 6),
         ].iter().cloned().collect();
 
         CtrlVocab { values, unknown_value: "<unk>", special_values }
@@ -135,7 +135,7 @@ mod tests {
             ),
             (
                 "",
-                vec!("")
+                vec!()
             ),
             (
                 " ",
@@ -175,7 +175,7 @@ mod tests {
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

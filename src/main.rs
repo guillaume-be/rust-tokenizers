@@ -54,6 +54,7 @@ fn main() {
 //    for text in _text_list{
 //        gpt2_tokenizer.tokenize(text);
 //    }
+    println!("{:?}",gpt2_tokenizer.encode("the earth", None, 128, &TruncationStrategy::LongestFirst, 0));
     for text in _text_list{
         ctrl_tokenizer.tokenize(text);
     }
