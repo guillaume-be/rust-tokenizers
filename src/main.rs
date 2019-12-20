@@ -44,15 +44,8 @@ fn main() {
     let _text_list: Vec<&str> = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
 
-//    let _results = roberta_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
-//    for text in _text_list{
-//        roberta_tokenizer.tokenize(text);
-//    }
-      println!("{:?}", roberta_tokenizer.tokenize("✿"));
+    let _results = roberta_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
 //    println!("{:?}",gpt2_tokenizer.encode("the earth", None, 128, &TruncationStrategy::LongestFirst, 0));
-//    for text in _text_list{
-//        ctrl_tokenizer.tokenize(text);
-//    }
 //    println!("{:?}", roberta_tokenizer.tokenize(&_test_sentence.sentence_1));
 //    println!("{:?}", gpt2_tokenizer.encode(&_test_sentence.sentence_1, None,128, &TruncationStrategy::LongestFirst, 0));
     println!("Elapsed time: {:.2?}", _before.elapsed());
