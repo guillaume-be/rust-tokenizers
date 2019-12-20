@@ -23,6 +23,7 @@ use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
 use crate::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
 use crate::preprocessing::tokenizer::roberta_tokenizer::RobertaTokenizer;
+use crate::preprocessing::tokenizer::openai_gpt_tokenizer::OpenAiGptTokenizer;
 
 #[macro_use]
 extern crate lazy_static;
@@ -313,11 +314,57 @@ impl PyRobertaTokenizer {
     }
 }
 
+#[pyclass(module = "rust_transformers")]
+struct PyOpenAiGptTokenizer {
+    tokenizer: OpenAiGptTokenizer,
+}
+
+impl PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab> for PyOpenAiGptTokenizer {
+    fn tokenizer(&self) -> &OpenAiGptTokenizer {
+        &self.tokenizer
+    }
+}
+
+#[pymethods]
+impl PyOpenAiGptTokenizer {
+    #[new]
+    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String) {
+        obj.init(PyOpenAiGptTokenizer {
+            tokenizer: OpenAiGptTokenizer::from_file(&vocab_path, &merges_path),
+        });
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::tokenize_list(&self, text_list)
+    }
+
+    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<TokenizedInput> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<TokenizedInput>> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+}
+
 #[pymodule]
 fn rust_transformers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
     m.add_class::<PyCtrlTokenizer>()?;
     m.add_class::<PyGpt2Tokenizer>()?;
     m.add_class::<PyRobertaTokenizer>()?;
+    m.add_class::<PyOpenAiGptTokenizer>()?;
     Ok(())
 }

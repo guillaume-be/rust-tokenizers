@@ -401,6 +401,23 @@ pub fn ctrl_bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
     }
 }
 
+pub fn openai_gpt_bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
+    let mut sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
+
+    if !sub_tokens.is_empty() {
+        sub_tokens.last_mut().unwrap().push_str("</w>");
+    };
+
+    let mut output = (sub_tokens, false);
+    loop {
+        output = group_common_pairs(output.0, &bpe_ranks);
+        if output.1 {
+            break;
+        }
+    }
+    output.0
+}
+
 pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> Vec<String> {
     let sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
 
