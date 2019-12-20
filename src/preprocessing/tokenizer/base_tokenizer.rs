@@ -12,7 +12,7 @@
 // limitations under the License.
 
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, clean_text, truncate_sequences};
+use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, clean_text, truncate_sequences};
 use std::sync::Arc;
 use rayon::prelude::*;
 use itertools::Itertools;
@@ -163,22 +163,8 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
     }
 
     fn tokenize(&self, text: &str) -> Vec<String> {
-        let tokenized_text: Vec<String> = {
-            let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
-            let temp_text: Vec<String> = temp_text.
-                iter().
-                map(|v| clean_text(v, true)).
-                map(|v| tokenize_cjk_chars(&v)).
-                collect();
-            temp_text
-        };
-
-        let mut tokenized_text: Vec<String> = tokenized_text
-            .iter()
-            .map(|v| whitespace_tokenize(&v))
-            .flatten()
-            .map(|s| s.to_string())
-            .collect();
+        let tokenized_text: String = tokenize_cjk_chars(&clean_text(text, true));
+        let mut tokenized_text: Vec<String> = whitespace_tokenize(&tokenized_text).iter().map(|s| s.to_string()).collect();
 
         for string in tokenized_text.iter_mut() {
             if !self.vocab.as_ref().special_values().contains_key(string) {
@@ -255,8 +241,8 @@ mod tests {
                 vec!("sentence", "with", "[MASK]", "token", ".")
             ),
             (
-                "[CLS]Sentence with [MASK] token.",
-                vec!("[CLS]", "sentence", "with", "[MASK]", "token", ".")
+                "Sentence with [MASK] token.",
+                vec!("sentence", "with", "[MASK]", "token", ".")
             ),
             (
                 "[CLS]",
@@ -271,8 +257,8 @@ mod tests {
                 vec!("[CLS]", "[PAD]")
             ),
             (
-                "asdf[CLS]",
-                vec!("asdf", "[CLS]")
+                "asdf",
+                vec!("asdf")
             ),
             (
                 "",
@@ -334,8 +320,8 @@ mod tests {
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (
-                "hello[MASK] world!",
-                TokenizedInput { token_ids: vec!(0, 6, 1, 3), segment_ids: vec!(0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                "hello world!",
+                TokenizedInput { token_ids: vec!(0, 1, 3), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 "hello, unaffable world!",
@@ -371,13 +357,13 @@ mod tests {
         let test_tuples = [
 //            No truncation required
             (
-                ("hello[MASK] world!", "This is the second sentence"),
-                TokenizedInput { token_ids: vec!(0, 6, 1, 3, 2, 2, 2, 2, 2), segment_ids: vec!(0, 0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                ("hello world!", "This is the second sentence"),
+                TokenizedInput { token_ids: vec!(0, 1, 3, 2, 2, 2, 2, 2), segment_ids: vec!(0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
 //            Truncation of sentence 2 (longest)
             (
-                ("hello[MASK] world!", "!This is the second sentence!!!"),
-                TokenizedInput { token_ids: vec!(0, 6, 1, 3, 3, 2, 2, 2, 2, 2), segment_ids: vec!(0, 0, 0, 0, 1, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 3 }
+                ("hello world!", "!This is the second sentence!!!"),
+                TokenizedInput { token_ids: vec!(0, 1, 3, 3, 2, 2, 2, 2, 2, 3), segment_ids: vec!(0, 0, 0, 1, 1, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 2 }
             ),
 //            Truncation of sentence 1 (longest)
             (

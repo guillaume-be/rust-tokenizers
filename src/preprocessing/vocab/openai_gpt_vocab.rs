@@ -17,13 +17,13 @@ use std::process;
 use std::fs::File;
 use std::io::BufReader;
 
-pub struct CtrlVocab {
+pub struct OpenAiGptVocab {
     pub values: HashMap<String, i64>,
     pub unknown_value: &'static str,
     pub special_values: HashMap<String, i64>,
 }
 
-impl Vocab for CtrlVocab {
+impl Vocab for OpenAiGptVocab {
     fn unknown_value() -> &'static str { "<unk>" }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -34,15 +34,15 @@ impl Vocab for CtrlVocab {
         &self.special_values
     }
 
-    fn from_file(path: &str) -> CtrlVocab {
+    fn from_file(path: &str) -> OpenAiGptVocab {
         let f = File::open(path).expect("Could not open vocabulary file.");
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = serde_json::from_reader(br).expect("could not parse vocabulary");
         let mut special_values = HashMap::new();
-        let unknown_value = CtrlVocab::unknown_value();
-        CtrlVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        let unknown_value = OpenAiGptVocab::unknown_value();
+        OpenAiGptVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
 
-        CtrlVocab { values, unknown_value, special_values }
+        OpenAiGptVocab { values, unknown_value, special_values }
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
@@ -71,20 +71,20 @@ mod tests {
 //        Given
         let values: HashMap<String, i64> = HashMap::new();
         let special_values: HashMap<String, i64> = HashMap::new();
-        let unknown_value = CtrlVocab::unknown_value();
+        let unknown_value = OpenAiGptVocab::unknown_value();
 
 //        When
-        let ctrl_vocab = CtrlVocab {
+        let openai_gpt_vocab = OpenAiGptVocab {
             values,
             unknown_value,
             special_values,
         };
 
 //        Then
-        assert_eq!(ctrl_vocab.unknown_value, "<unk>");
-        assert_eq!(ctrl_vocab.unknown_value, CtrlVocab::unknown_value());
-        assert_eq!(ctrl_vocab.values, *ctrl_vocab.values());
-        assert_eq!(ctrl_vocab.special_values, *ctrl_vocab.special_values());
+        assert_eq!(openai_gpt_vocab.unknown_value, "<unk>");
+        assert_eq!(openai_gpt_vocab.unknown_value, OpenAiGptVocab::unknown_value());
+        assert_eq!(openai_gpt_vocab.values, *openai_gpt_vocab.values());
+        assert_eq!(openai_gpt_vocab.special_values, *openai_gpt_vocab.special_values());
     }
 
     #[test]
@@ -105,12 +105,12 @@ mod tests {
         ].iter().cloned().collect();
 
 //        When
-        let ctrl_vocab = CtrlVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap());
 
 //        Then
-        assert_eq!(ctrl_vocab.unknown_value, "<unk>");
-        assert_eq!(ctrl_vocab.values, target_values);
-        assert_eq!(ctrl_vocab.special_values, special_values);
+        assert_eq!(openai_gpt_vocab.unknown_value, "<unk>");
+        assert_eq!(openai_gpt_vocab.values, target_values);
+        assert_eq!(openai_gpt_vocab.special_values, special_values);
         drop(path);
         Ok(())
     }
@@ -124,7 +124,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
 //        When & Then
-        let _ctrl_vocab = CtrlVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let _ctrl_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap());
     }
 
     #[test]
@@ -133,14 +133,14 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n}}")?;
         let path = vocab_file.into_temp_path();
-        let ctrl_vocab = CtrlVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap());
 
 //        When & Then
-        assert_eq!(ctrl_vocab.token_to_id("hello"), 1);
-        assert_eq!(ctrl_vocab.token_to_id("world"), 0);
-        assert_eq!(ctrl_vocab.token_to_id("!"), 3);
-        assert_eq!(ctrl_vocab.token_to_id("<unk>"), 2);
-        assert_eq!(ctrl_vocab.token_to_id("oov_value"), 2);
+        assert_eq!(openai_gpt_vocab.token_to_id("hello"), 1);
+        assert_eq!(openai_gpt_vocab.token_to_id("world"), 0);
+        assert_eq!(openai_gpt_vocab.token_to_id("!"), 3);
+        assert_eq!(openai_gpt_vocab.token_to_id("<unk>"), 2);
+        assert_eq!(openai_gpt_vocab.token_to_id("oov_value"), 2);
 
         drop(path);
         Ok(())
