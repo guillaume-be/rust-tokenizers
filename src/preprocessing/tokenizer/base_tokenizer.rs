@@ -48,7 +48,7 @@ pub trait Tokenizer<T: Vocab> {
     fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
         text_list.
             iter().
-            map(|text| self.tokenize(text)).
+            map(|&text| self.tokenize(text)).
             collect()
     }
 
