@@ -1,3 +1,3 @@
-from .rust_transformers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer
+from .rust_transformers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer
 
 __all__ = ["PyBertTokenizer"]

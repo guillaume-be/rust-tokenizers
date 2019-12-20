@@ -74,17 +74,17 @@ mod tests {
         let unknown_value = Gpt2Vocab::unknown_value();
 
 //        When
-        let ctrl_vocab = Gpt2Vocab {
+        let gpt2_vocab = Gpt2Vocab {
             values,
             unknown_value,
             special_values,
         };
 
 //        Then
-        assert_eq!(ctrl_vocab.unknown_value, "<|endoftext|>");
-        assert_eq!(ctrl_vocab.unknown_value, Gpt2Vocab::unknown_value());
-        assert_eq!(ctrl_vocab.values, *ctrl_vocab.values());
-        assert_eq!(ctrl_vocab.special_values, *ctrl_vocab.special_values());
+        assert_eq!(gpt2_vocab.unknown_value, "<|endoftext|>");
+        assert_eq!(gpt2_vocab.unknown_value, Gpt2Vocab::unknown_value());
+        assert_eq!(gpt2_vocab.values, *gpt2_vocab.values());
+        assert_eq!(gpt2_vocab.special_values, *gpt2_vocab.special_values());
     }
 
     #[test]
@@ -105,12 +105,12 @@ mod tests {
         ].iter().cloned().collect();
 
 //        When
-        let ctrl_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap());
+        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap());
 
 //        Then
-        assert_eq!(ctrl_vocab.unknown_value, "<|endoftext|>");
-        assert_eq!(ctrl_vocab.values, target_values);
-        assert_eq!(ctrl_vocab.special_values, special_values);
+        assert_eq!(gpt2_vocab.unknown_value, "<|endoftext|>");
+        assert_eq!(gpt2_vocab.values, target_values);
+        assert_eq!(gpt2_vocab.special_values, special_values);
         drop(path);
         Ok(())
     }
@@ -133,14 +133,14 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<|endoftext|>\": 2,\n \"!\": 3\n}}")?;
         let path = vocab_file.into_temp_path();
-        let ctrl_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap());
+        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap());
 
 //        When & Then
-        assert_eq!(ctrl_vocab.token_to_id("hello"), 1);
-        assert_eq!(ctrl_vocab.token_to_id("world"), 0);
-        assert_eq!(ctrl_vocab.token_to_id("!"), 3);
-        assert_eq!(ctrl_vocab.token_to_id("<|endoftext|>"), 2);
-        assert_eq!(ctrl_vocab.token_to_id("oov_value"), 2);
+        assert_eq!(gpt2_vocab.token_to_id("hello"), 1);
+        assert_eq!(gpt2_vocab.token_to_id("world"), 0);
+        assert_eq!(gpt2_vocab.token_to_id("!"), 3);
+        assert_eq!(gpt2_vocab.token_to_id("<|endoftext|>"), 2);
+        assert_eq!(gpt2_vocab.token_to_id("oov_value"), 2);
 
         drop(path);
         Ok(())
