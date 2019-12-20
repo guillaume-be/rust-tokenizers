@@ -45,9 +45,10 @@ fn main() {
     let _before = Instant::now();
 
 //    let _results = roberta_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
-    for text in _text_list{
-        roberta_tokenizer.tokenize(text);
-    }
+//    for text in _text_list{
+//        roberta_tokenizer.tokenize(text);
+//    }
+      println!("{:?}", roberta_tokenizer.tokenize("✿"));
 //    println!("{:?}",gpt2_tokenizer.encode("the earth", None, 128, &TruncationStrategy::LongestFirst, 0));
 //    for text in _text_list{
 //        ctrl_tokenizer.tokenize(text);
