@@ -80,112 +80,112 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     }
 }
 
-//#[cfg(test)]
-//mod tests {
-//    use super::*;
-//    use crate::Gpt2Vocab;
-//    use std::collections::HashMap;
-//    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
-//
-//    fn generate_test_vocab() -> Gpt2Vocab {
-//        let values: HashMap<String, i64> = [
-//            ("t".to_owned(), 0),
-//            ("h".to_owned(), 1),
-//            ("a@@".to_owned(), 2),
-//            ("n".to_owned(), 3),
-//            ("the".to_owned(), 4),
-//            ("Ġ".to_owned(), 5),
-//            ("<|endoftext|>".to_owned(), 6),
-//            ("o@@".to_owned(), 7)
-//        ].iter().cloned().collect();
-//
-//        let special_values: HashMap<String, i64> = [
-//            ("<|endoftext|>".to_owned(), 6),
-//        ].iter().cloned().collect();
-//
-//        Gpt2Vocab { values, unknown_value: "<|endoftext|>", special_values }
-//    }
-//
-//    fn generate_test_merges() -> BpePairVocab {
-//        let values: HashMap<(String, String), i64> = [
-//            (("Ġ".to_owned(), "t".to_owned()), 0),
-//            (("Ġ".to_owned(), "n".to_owned()), 1),
-//            (("e".to_owned(), "e".to_owned()), 2),
-//            (("Ġt".to_owned(), "he".to_owned()), 3),
-//            (("h".to_owned(), "e".to_owned()), 4),
-//            (("t".to_owned(), "h".to_owned()), 5),
-//            (("t".to_owned(), "he".to_owned()), 6),
-//        ].iter().cloned().collect();
-//
-//
-//        BpePairVocab { values }
-//    }
-//
-//    #[test]
-//    fn test_ctrl_tokenizer() {
-////        Given
-//        let vocab = Rc::new(generate_test_vocab());
-//        let merges = Rc::new(generate_test_merges());
-//        let gpt2_tokenizer: Gpt2Tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges);
-//        let test_tuples = [
-//            (
-//                "the earth",
-//                vec!("the", "Ġ", "e", "a", "r", "th")
-//            ),
-//            (
-//                "",
-//                vec!()
-//            ),
-//            (
-//                " ",
-//                vec!("<|endoftext|>")
-//            ),
-//            (
-//                " \n ",
-//                vec!("<|endoftext|>")
-//            ),
-//        ];
-//        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
-//        let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
-//
-////        When & Then
-//        for (source_text, expected_result) in test_tuples.iter() {
-//            assert_eq!(gpt2_tokenizer.tokenize(*source_text), *expected_result);
-//        }
-//
-//        assert_eq!(gpt2_tokenizer.tokenize_list(source_texts.clone()), expected_results);
-//    }
-//
-//
-//    #[test]
-//    fn test_encode() {
-////        Given
-//        let vocab = Rc::new(generate_test_vocab());
-//        let merges = Rc::new(generate_test_merges());
-//        let gpt2_tokenizer: Gpt2Tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges);
-//        let truncation_strategy = TruncationStrategy::LongestFirst;
-//        let test_tuples = [
-//            (
-//                "the earth",
-//                TokenizedInput { token_ids: vec!(4, 5, 6, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
-//            ),
-//            (
-//                " ",
-//                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
-//            ),
-//            (
-//                "",
-//                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
-//            )
-//        ];
-//        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
-//        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
-//
-////        When & Then
-//        for (source_text, expected_result) in test_tuples.iter() {
-//            assert_eq!(gpt2_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
-//                       *expected_result);
-//        }
-//        assert_eq!(gpt2_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
-//    }
-//}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::OpenAiGptVocab;
+    use std::collections::HashMap;
+    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+
+    fn generate_test_vocab() -> OpenAiGptVocab {
+        let values: HashMap<String, i64> = [
+            ("t".to_owned(), 0),
+            ("h".to_owned(), 1),
+            ("a</w>".to_owned(), 2),
+            ("n".to_owned(), 3),
+            ("the".to_owned(), 4),
+            ("Ġ".to_owned(), 5),
+            ("<unk>".to_owned(), 6),
+            ("o</w>".to_owned(), 7)
+        ].iter().cloned().collect();
+
+        let special_values: HashMap<String, i64> = [
+            ("<unk>".to_owned(), 6),
+        ].iter().cloned().collect();
+
+        OpenAiGptVocab { values, unknown_value: "<unk>", special_values }
+    }
+
+    fn generate_test_merges() -> BpePairVocab {
+        let values: HashMap<(String, String), i64> = [
+            (("4".to_owned(), "t".to_owned()), 0),
+            (("2".to_owned(), "n".to_owned()), 1),
+            (("r".to_owned(), "th</w>".to_owned()), 2),
+            (("t".to_owned(), "he</w>".to_owned()), 3),
+            (("h".to_owned(), "e".to_owned()), 4),
+            (("t".to_owned(), "h</w>".to_owned()), 5),
+            (("t".to_owned(), "h".to_owned()), 6),
+        ].iter().cloned().collect();
+
+
+        BpePairVocab { values }
+    }
+
+    #[test]
+    fn test_openai_gpt_tokenizer() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let test_tuples = [
+            (
+                "the earth",
+                vec!("th", "e</w>", "e", "a", "rth</w>")
+            ),
+            (
+                "",
+                vec!()
+            ),
+            (
+                " ",
+                vec!("<unk>")
+            ),
+            (
+                " \n ",
+                vec!("<unk>")
+            ),
+        ];
+        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(openai_gpt_tokenizer.tokenize(*source_text), *expected_result);
+        }
+
+        assert_eq!(openai_gpt_tokenizer.tokenize_list(source_texts.clone()), expected_results);
+    }
+
+
+    #[test]
+    fn test_encode() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let truncation_strategy = TruncationStrategy::LongestFirst;
+        let test_tuples = [
+            (
+                "the earth",
+                TokenizedInput { token_ids: vec!(6, 6, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+            ),
+            (
+                " ",
+                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+            ),
+            (
+                "",
+                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+            )
+        ];
+        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(openai_gpt_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
+                       *expected_result);
+        }
+        assert_eq!(openai_gpt_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+    }
+}
