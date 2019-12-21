@@ -20,7 +20,9 @@ from transformers.tokenization_distilbert import DistilBertTokenizer
 from transformers.tokenization_ctrl import CTRLTokenizer
 from transformers.tokenization_gpt2 import GPT2Tokenizer
 from transformers.tokenization_roberta import RobertaTokenizer
-from rust_transformers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer
+from transformers.tokenization_openai import OpenAIGPTTokenizer
+from rust_transformers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer, \
+    PyOpenAiGptTokenizer
 import os
 
 
@@ -148,6 +150,34 @@ class TestTokenizationSST2:
         self.rust_tokenizer = PyRobertaTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['roberta-base']),
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base'])
+        )
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
+                                                                   add_special_tokens=True,
+                                                                   return_overflowing_tokens=True,
+                                                                   return_special_tokens_mask=True,
+                                                                   max_length=128))
+
+        # When
+        output_rust = self.rust_tokenizer.encode_list([example.text_a for example in self.examples],
+                                                      max_len=128,
+                                                      truncation_strategy='longest_first',
+                                                      stride=0)
+
+        # Then
+        for rust, baseline in zip(output_rust, output_baseline):
+            assert (rust.token_ids == baseline['input_ids'])
+            assert (rust.segment_ids == baseline['token_type_ids'])
+            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
+
+    def test_tokenization_openai_gpt(self):
+        # Given
+        self.base_tokenizer = OpenAIGPTTokenizer.from_pretrained('openai-gpt', do_lower_case=True,
+                                                                 cache_dir=self.test_dir)
+        self.rust_tokenizer = PyOpenAiGptTokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['openai-gpt']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['openai-gpt'])
         )
         output_baseline = []
         for example in self.examples:
