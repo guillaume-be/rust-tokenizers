@@ -1,4 +1,4 @@
-// Copyright 2018 Salesforce
+// Copyright 2018 The Open AI Team Authors
 // Copyright 2018 The HuggingFace Inc. team.
 // Copyright 2019 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,50 +13,53 @@
 
 use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens};
+use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, openai_gpt_bpe};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
-use regex::Regex;
+use std::sync::Arc;
 
-
-pub struct CtrlTokenizer {
-    vocab: Rc<OpenAiGptVocab>,
+pub struct OpenAiGptTokenizer {
+    vocab: Arc<OpenAiGptVocab>,
+    base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
     cache: RefCell<HashMap<String, Vec<String>>>,
-    regex_pattern: Regex,
 }
 
-impl CtrlTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str) -> CtrlTokenizer {
-        let vocab = Rc::new(OpenAiGptVocab::from_file(vocab_path));
+impl OpenAiGptTokenizer {
+    pub fn from_file(vocab_path: &str, merges_path: &str) -> OpenAiGptTokenizer {
+        let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path));
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
         let cache = RefCell::new(HashMap::new());
-        let regex_pattern = Regex::new(r"\S+\n?").unwrap();
-        CtrlTokenizer { vocab, bpe_ranks, cache, regex_pattern }
+        OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks, cache}
     }
 
-    pub fn from_existing_vocab_and_merges(vocab: Rc<OpenAiGptVocab>, merges: Rc<BpePairVocab>) -> CtrlTokenizer {
+    pub fn from_existing_vocab_and_merges(vocab: Arc<OpenAiGptVocab>, merges: Rc<BpePairVocab>) -> OpenAiGptTokenizer {
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
         let cache = RefCell::new(HashMap::new());
-        let regex_pattern = Regex::new(r"\S+\n?").unwrap();
-        CtrlTokenizer { vocab, bpe_ranks: merges, cache, regex_pattern }
+        OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks: merges, cache}
     }
 }
 
-impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
+impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     fn vocab(&self) -> &OpenAiGptVocab {
         &self.vocab
     }
 
     fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
+
         let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
+
         for text in temp_text {
             if !self.vocab.special_values.contains_key(text) {
-                for word in self.regex_pattern.find_iter(text.as_ref()) {
-                    let cached: bool = match self.cache.borrow().get(word.as_str()) {
+                let sub_words: Vec<String> = self.base_tokenizer.tokenize(text);
+
+                for word in sub_words {
+                    let cached: bool = match self.cache.borrow().get(&word) {
                         Some(value) => {
                             tokenized_text.extend(value.clone());
                             true
@@ -64,8 +67,8 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
                         None => false
                     };
                     if !cached {
-                        let bpe_output = ctrl_bpe(word.as_str(), &self.bpe_ranks);
-                        self.cache.borrow_mut().insert(word.as_str().to_owned(), bpe_output.clone());
+                        let bpe_output = openai_gpt_bpe(&word, &self.bpe_ranks);
+                        self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
                         tokenized_text.extend(bpe_output);
                     }
                 };
@@ -88,12 +91,12 @@ mod tests {
         let values: HashMap<String, i64> = [
             ("t".to_owned(), 0),
             ("h".to_owned(), 1),
-            ("a@@".to_owned(), 2),
+            ("a</w>".to_owned(), 2),
             ("n".to_owned(), 3),
             ("the".to_owned(), 4),
-            ("r@@".to_owned(), 5),
+            ("Ġ".to_owned(), 5),
             ("<unk>".to_owned(), 6),
-            ("o@@".to_owned(), 8)
+            ("o</w>".to_owned(), 7)
         ].iter().cloned().collect();
 
         let special_values: HashMap<String, i64> = [
@@ -105,13 +108,13 @@ mod tests {
 
     fn generate_test_merges() -> BpePairVocab {
         let values: HashMap<(String, String), i64> = [
-            (("t".to_owned(), "h".to_owned()), 0),
-            (("a".to_owned(), "n".to_owned()), 1),
-            (("i".to_owned(), "n".to_owned()), 2),
-            (("th".to_owned(), "e</w>".to_owned()), 3),
-            (("e".to_owned(), "r".to_owned()), 4),
-            (("r".to_owned(), "e".to_owned()), 5),
-            (("l".to_owned(), "l".to_owned()), 6),
+            (("4".to_owned(), "t".to_owned()), 0),
+            (("2".to_owned(), "n".to_owned()), 1),
+            (("r".to_owned(), "th</w>".to_owned()), 2),
+            (("t".to_owned(), "he</w>".to_owned()), 3),
+            (("h".to_owned(), "e".to_owned()), 4),
+            (("t".to_owned(), "h</w>".to_owned()), 5),
+            (("t".to_owned(), "h".to_owned()), 6),
         ].iter().cloned().collect();
 
 
@@ -119,19 +122,15 @@ mod tests {
     }
 
     #[test]
-    fn test_ctrl_tokenizer() {
+    fn test_openai_gpt_tokenizer() {
 //        Given
-        let vocab = Rc::new(generate_test_vocab());
+        let vocab = Arc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges);
         let test_tuples = [
             (
                 "the earth",
-                vec!("the", "e@@", "a@@", "r@@", "t@@", "h")
-            ),
-            (
-                "Hello, world!",
-                vec!("H@@", "e@@", "ll@@", "o@@", ",", "w@@", "o@@", "r@@", "l@@", "d@@", "!")
+                vec!("th", "e</w>", "e", "a", "rth</w>")
             ),
             (
                 "",
@@ -151,27 +150,28 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.tokenize(*source_text), *expected_result);
+            assert_eq!(openai_gpt_tokenizer.tokenize(*source_text), *expected_result);
         }
 
-        assert_eq!(ctrl_tokenizer.tokenize_list(source_texts.clone()), expected_results);
+        assert_eq!(openai_gpt_tokenizer.tokenize_list(source_texts.clone()), expected_results);
     }
+
 
     #[test]
     fn test_encode() {
 //        Given
-        let vocab = Rc::new(generate_test_vocab());
+        let vocab = Arc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(4, 6, 2, 5, 6, 1), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(6, 6, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
-                "Hello, world!",
-                TokenizedInput { token_ids: vec!(6, 6, 6, 8, 6, 6, 8, 5, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                " ",
+                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 "",
@@ -183,9 +183,9 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
+            assert_eq!(openai_gpt_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
                        *expected_result);
         }
-        assert_eq!(ctrl_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+        assert_eq!(openai_gpt_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
     }
 }

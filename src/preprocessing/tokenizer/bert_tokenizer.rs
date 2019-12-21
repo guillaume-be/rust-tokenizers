@@ -13,7 +13,7 @@
 
 use crate::preprocessing::tokenizer::base_tokenizer::{MultiThreadedTokenizer, BaseTokenizer, Tokenizer};
 use std::sync::Arc;
-use crate::preprocessing::tokenizer::tokenization_utils::tokenize_wordpiece;
+use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_wordpiece, split_on_special_tokens};
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::BertVocab;
 
@@ -36,11 +36,18 @@ impl BertTokenizer {
 }
 
 impl Tokenizer<BertVocab> for BertTokenizer {
+
     fn vocab(&self) -> &BertVocab {
         &self.vocab
     }
+
     fn tokenize(&self, text: &str) -> Vec<String> {
-        let tokenized_text: Vec<String> = self.base_tokenizer.tokenize(text);
+        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
+        let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
+        for text in temp_text {
+            tokenized_text.extend(self.base_tokenizer.tokenize(text));
+        }
+
         let tokenized_text: Vec<String> = tokenized_text
             .iter()
             .map(|v| tokenize_wordpiece(v.to_owned(), self.vocab.as_ref(), 100))
