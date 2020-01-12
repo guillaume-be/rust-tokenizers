@@ -1,8 +1,10 @@
 [package]
 name = "rust_transformers"
 version = "0.1.0"
-authors = ["Guillaume B <guillaume.becquin@gmail.com>"]
+authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
+description = "High performance tokenizers for Rust"
+repository = "https://github.com/guillaume-be/rust-tokenizers"
 
 [dependencies]
 csv = "1.1"
