@@ -9,7 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import math
 import tempfile
 from pathlib import Path
 import gc
@@ -18,6 +18,7 @@ from transformers.tokenization_gpt2 import GPT2Tokenizer
 from rust_transformers import PyGpt2Tokenizer
 from transformers.modeling_gpt2 import GPT2Model
 import torch
+from timeit import default_timer as timer
 
 
 class TestBenchmarkGPT2:
@@ -78,7 +79,7 @@ class TestBenchmarkGPT2:
         features = [self.base_tokenizer.prepare_for_model(input, None, add_special_tokens=True, max_length=128) for
                     input in features]
         max_len = max([len(f['input_ids']) for f in features])
-        features = [[f['input_ids'] + [0]*(max_len-len(f['input_ids'])) for f in features]]
+        features = [[f['input_ids'] + [0] * (max_len - len(f['input_ids'])) for f in features]]
         all_input_ids = torch.tensor(features, dtype=torch.long)
 
         if self.use_gpu:
@@ -86,6 +87,16 @@ class TestBenchmarkGPT2:
 
         with torch.no_grad():
             _ = self.model(all_input_ids)[0].cpu().numpy()
+
+    def setup_base_tokenizer(self):
+        self.base_tokenizer = GPT2Tokenizer.from_pretrained('gpt2', do_lower_case=True,
+                                                            cache_dir=self.test_dir)
+
+    def setup_rust_tokenizer(self):
+        self.rust_tokenizer = PyGpt2Tokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['gpt2']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2'])
+        )
 
     def baseline_batch(self):
         tokens_list = [self.base_tokenizer.tokenize(sentence) for sentence in self.sentence_list]
@@ -95,7 +106,7 @@ class TestBenchmarkGPT2:
                                                           add_special_tokens=True,
                                                           max_length=128) for input in features]
         max_len = max([len(f['input_ids']) for f in features])
-        features = [[f['input_ids'] + [0]*(max_len-len(f['input_ids'])) for f in features]]
+        features = [[f['input_ids'] + [0] * (max_len - len(f['input_ids'])) for f in features]]
         all_input_ids = torch.tensor(features, dtype=torch.long)
         if self.use_gpu:
             all_input_ids = all_input_ids.cuda()
@@ -109,7 +120,7 @@ class TestBenchmarkGPT2:
                                                truncation_strategy='longest_first',
                                                stride=0) for sentence in self.sentence_list]
         max_len = max([len(f.token_ids) for f in features])
-        features = [[f.token_ids + [0]*(max_len-len(f.token_ids)) for f in features]]
+        features = [[f.token_ids + [0] * (max_len - len(f.token_ids)) for f in features]]
         all_input_ids = torch.tensor(features, dtype=torch.long)
         if self.use_gpu:
             all_input_ids = all_input_ids.cuda()
@@ -117,11 +128,29 @@ class TestBenchmarkGPT2:
             output = self.model(all_input_ids)[0].cpu().numpy()
         return output
 
-    def test_ctrl_baseline(self, benchmark):
-        benchmark(self.baseline_batch)
+    def test_gpt2_baseline(self):
+        values = []
+        for i in range(10):
+            self.setup_base_tokenizer()
+            t0 = timer()
+            self.baseline_batch()
+            t1 = timer()
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
+        print(f'baseline - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
-    def test_ctrl_rust_single_threaded(self, benchmark):
-        benchmark(self.rust_batch_single_threaded)
+    def test_gpt2_rust_single_threaded(self):
+        values = []
+        for i in range(10):
+            self.setup_rust_tokenizer()
+            t0 = timer()
+            self.rust_batch_single_threaded()
+            t1 = timer()
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
+        print(f'rust single thread - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
     def teardown_class(self):
         self.model = None

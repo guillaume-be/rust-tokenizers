@@ -9,7 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import math
 import tempfile
 from pathlib import Path
 import gc
@@ -18,6 +18,7 @@ from transformers.tokenization_ctrl import CTRLTokenizer
 from rust_transformers import PyCtrlTokenizer
 from transformers.modeling_ctrl import CTRLModel
 import torch
+from timeit import default_timer as timer
 
 
 class TestBenchmarkCTRL:
@@ -55,6 +56,16 @@ class TestBenchmarkCTRL:
         with torch.no_grad():
             _ = self.model(all_input_ids)[0].cpu().numpy()
 
+    def setup_base_tokenizer(self):
+        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl', do_lower_case=True,
+                                                            cache_dir=self.test_dir)
+
+    def setup_rust_tokenizer(self):
+        self.rust_tokenizer = PyCtrlTokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['ctrl']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl'])
+        )
+
     def baseline_batch(self):
         tokens_list = [self.base_tokenizer.tokenize(sentence) for sentence in self.sentence_list]
         features = [self.base_tokenizer.convert_tokens_to_ids(tokens) for tokens in tokens_list]
@@ -81,11 +92,29 @@ class TestBenchmarkCTRL:
             output = self.model(all_input_ids)[0].cpu().numpy()
         return output
 
-    def test_ctrl_baseline(self, benchmark):
-        benchmark(self.baseline_batch)
+    def test_ctrl_baseline(self):
+        values = []
+        for i in range(10):
+            self.setup_base_tokenizer()
+            t0 = timer()
+            self.baseline_batch()
+            t1 = timer()
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
+        print(f'baseline - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
-    def test_ctrl_rust_single_threaded(self, benchmark):
-        benchmark(self.rust_batch_single_threaded)
+    def test_ctrl_rust_single_threaded(self):
+        values = []
+        for i in range(10):
+            self.setup_rust_tokenizer()
+            t0 = timer()
+            self.rust_batch_single_threaded()
+            t1 = timer()
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
+        print(f'rust single thread - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
     def teardown_class(self):
         self.model = None
