@@ -131,6 +131,7 @@ mod tests {
     use crate::RobertaVocab;
     use std::collections::HashMap;
     use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+    use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> RobertaVocab {
         let values: HashMap<String, i64> = [
@@ -156,7 +157,10 @@ mod tests {
             ("<mask>".to_owned(), 11),
         ].iter().cloned().collect();
 
-        RobertaVocab { values, unknown_value: "<unk>", special_values }
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        RobertaVocab { values, indices, unknown_value: "<unk>", special_values, special_indices }
     }
 
     fn generate_test_merges() -> BpePairVocab {

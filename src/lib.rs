@@ -25,8 +25,7 @@ use crate::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
 use crate::preprocessing::tokenizer::roberta_tokenizer::RobertaTokenizer;
 use crate::preprocessing::tokenizer::openai_gpt_tokenizer::OpenAiGptTokenizer;
 
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate lazy_static;
 
 trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
     fn tokenizer(&self) -> &T;

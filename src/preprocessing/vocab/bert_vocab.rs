@@ -12,13 +12,15 @@
 // limitations under the License.
 
 use std::collections::HashMap;
-use crate::preprocessing::vocab::base_vocab::Vocab;
+use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
 use std::process;
 
 pub struct BertVocab {
     pub values: HashMap<String, i64>,
+    pub indices: HashMap<i64, String>,
     pub unknown_value: &'static str,
     pub special_values: HashMap<String, i64>,
+    pub special_indices: HashMap<i64, String>,
 }
 
 impl BertVocab {
@@ -35,7 +37,11 @@ impl Vocab for BertVocab {
         &self.values
     }
 
+    fn indices(&self) -> &HashMap<i64, String> {&self.indices}
+
     fn special_values(&self) -> &HashMap<String, i64> { &self.special_values }
+
+    fn special_indices(&self) -> &HashMap<i64, String> {&self.special_indices}
 
     fn from_file(path: &str) -> BertVocab {
         let values = BertVocab::read_vocab_file(path);
@@ -56,12 +62,25 @@ impl Vocab for BertVocab {
         let mask_value = BertVocab::mask_value();
         BertVocab::_register_as_special_value(mask_value, &values, &mut special_values);
 
-        BertVocab { values, unknown_value, special_values }
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        BertVocab { values, indices, unknown_value, special_values, special_indices }
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
         match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
             Ok(index) => index,
+            Err(err) => {
+                println!("{}", err);
+                process::exit(1);
+            }
+        }
+    }
+
+    fn id_to_token(&self, id: &i64) -> String {
+        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
+            Ok(token) => token,
             Err(err) => {
                 println!("{}", err);
                 process::exit(1);
@@ -84,13 +103,17 @@ mod tests {
 //        Given
         let values: HashMap<String, i64> = HashMap::new();
         let special_values: HashMap<String, i64> = HashMap::new();
+        let indices: HashMap<i64, String> = HashMap::new();
+        let special_indices: HashMap<i64, String> = HashMap::new();
         let unknown_value = BertVocab::unknown_value();
 
 //        When
         let base_vocab = BertVocab {
             values,
+            indices,
             unknown_value,
             special_values,
+            special_indices
         };
 
 //        Then
@@ -170,6 +193,28 @@ mod tests {
         assert_eq!(base_vocab.token_to_id("[MASK]"), 6);
         assert_eq!(base_vocab.token_to_id("[CLS]"), 4);
         assert_eq!(base_vocab.token_to_id("[SEP]"), 5);
+
+        drop(path);
+        Ok(())
+    }
+
+    #[test]
+    fn test_decode_tokens() -> Result<(), io::Error> {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new()?;
+        write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
+        let path = vocab_file.into_temp_path();
+        let bert_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        When & Then
+        assert_eq!(bert_vocab.id_to_token(&(0 as i64)), "hello");
+        assert_eq!(bert_vocab.id_to_token(&(1 as i64)), "world");
+        assert_eq!(bert_vocab.id_to_token(&(3 as i64)), "!");
+        assert_eq!(bert_vocab.id_to_token(&(2 as i64)), "[UNK]");
+        assert_eq!(bert_vocab.id_to_token(&(7 as i64)), "[PAD]");
+        assert_eq!(bert_vocab.id_to_token(&(6 as i64)), "[MASK]");
+        assert_eq!(bert_vocab.id_to_token(&(4 as i64)), "[CLS]");
+        assert_eq!(bert_vocab.id_to_token(&(5 as i64)), "[SEP]");
 
         drop(path);
         Ok(())

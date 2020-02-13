@@ -83,6 +83,7 @@ mod tests {
     use crate::OpenAiGptVocab;
     use std::collections::HashMap;
     use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+    use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> OpenAiGptVocab {
         let values: HashMap<String, i64> = [
@@ -100,7 +101,10 @@ mod tests {
             ("<unk>".to_owned(), 6),
         ].iter().cloned().collect();
 
-        OpenAiGptVocab { values, unknown_value: "<unk>", special_values }
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        OpenAiGptVocab { values, indices, unknown_value: "<unk>", special_values, special_indices }
     }
 
     fn generate_test_merges() -> BpePairVocab {

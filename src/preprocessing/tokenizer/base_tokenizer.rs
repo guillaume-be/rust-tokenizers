@@ -200,6 +200,7 @@ mod tests {
     use super::*;
     use crate::BertVocab;
     use std::collections::HashMap;
+    use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -227,7 +228,10 @@ mod tests {
             ("[PAD]".to_owned(), 10)
         ].iter().cloned().collect();
 
-        BertVocab { values, unknown_value: "[UNK]", special_values }
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        BertVocab { values, indices, unknown_value: "[UNK]", special_values, special_indices }
     }
 
     #[test]

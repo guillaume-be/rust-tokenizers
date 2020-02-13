@@ -440,6 +440,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
     use std::iter::FromIterator;
+    use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -467,7 +468,10 @@ mod tests {
             ("[PAD]".to_owned(), 10)
         ].iter().cloned().collect();
 
-        BertVocab { values, unknown_value: "[UNK]", special_values }
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        BertVocab { values, indices, unknown_value: "[UNK]", special_values, special_indices }
     }
 
     #[test]
@@ -987,7 +991,7 @@ mod tests {
             let test_results = truncate_sequences(test_token_ids.clone(), None, parameters.0, parameters.1, parameters.2);
             match test_results {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
-                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+                Err(e) => assert_eq!(e.to_string(), (**expected_outputs.as_ref().err().unwrap()).to_string())
             }
         }
     }
@@ -1055,7 +1059,7 @@ mod tests {
             let test_results = truncate_sequences(test_token_ids.clone(), Some(test_pair_token_ids.clone()), parameters.0, parameters.1, parameters.2);
             match test_results {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
-                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+                Err(e) => assert_eq!(e.to_string(), (**expected_outputs.as_ref().err().unwrap()).to_string())
             }
         }
     }
@@ -1098,7 +1102,7 @@ mod tests {
             let test_results = truncate_sequences(test_token_ids.clone(), Some(test_pair_token_ids.clone()), parameters.0, parameters.1, parameters.2);
             match test_results {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
-                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+                Err(e) => assert_eq!(e.to_string(), (**expected_outputs.as_ref().err().unwrap()).to_string())
             }
         }
     }
@@ -1141,7 +1145,7 @@ mod tests {
             let test_results = truncate_sequences(test_token_ids.clone(), Some(test_pair_token_ids.clone()), parameters.0, parameters.1, parameters.2);
             match test_results {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
-                Err(e) => assert_eq!(e.description(), (**expected_outputs.as_ref().err().unwrap()).description())
+                Err(e) => assert_eq!(e.to_string(), (**expected_outputs.as_ref().err().unwrap()).to_string())
             }
         }
     }

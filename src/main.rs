@@ -22,7 +22,7 @@ use rust_transformers::preprocessing::tokenizer::openai_gpt_tokenizer::OpenAiGpt
 
 fn main() {
     let _data = match rust_transformers::preprocessing::adapters::read_sst2(
-        "E:/Coding/rust-transformers/resources/data/SST-2/train.tsv",
+        "E:/Coding/backup-rust/rust-transformers/resources/data/SST-2/train.tsv",
         b'\t') {
         Ok(examples) => {
             examples
@@ -33,25 +33,16 @@ fn main() {
         }
     };
 
-    let vocab_path = "E:/Coding/rust-transformers/resources/vocab/openai-gpt-vocab.json";
-    let bpe_path = "E:/Coding/rust-transformers/resources/vocab/openai-gpt-merges.txt";
-//    let vocab_path = "E:/Coding/rust-transformers/resources/vocab/bert-base-uncased-vocab.txt";
+    let vocab_path = "E:/Coding/backup-rust/rust-transformers/resources/vocab/openai-gpt-vocab.json";
+    let bpe_path = "E:/Coding/backup-rust/rust-transformers/resources/vocab/openai-gpt-merges.txt";
     let vocab = Arc::new(rust_transformers::OpenAiGptVocab::from_file(vocab_path));
     let _bpe_ranks = Rc::new(BpePairVocab::from_file(bpe_path));
 
-    let _test_sentence = Example::new_from_string("relies less on forced air than on petter næss ' delicate , clever direction ... and a wonderful , imaginative script by axel hellstenius . ");
-//    println!("{:?}", _bpe_ranks.pair_to_id("r", "o"));
-//    let roberta_tokenizer: RobertaTokenizer = RobertaTokenizer::from_existing_vocab_and_merges(vocab.clone(), _bpe_ranks.clone());
+    let _test_sentence = Example::new_from_string("This is a sample sentence to be tokenized");
     let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab.clone(), _bpe_ranks.clone());
 
     let _text_list: Vec<&str> = _data.iter().map(|v| v.sentence_1.as_ref()).collect();
     let _before = Instant::now();
-
-//    println!("{:?}", openai_gpt_tokenizer.tokenize(&_test_sentence.sentence_1));
-//    let _results = openai_gpt_tokenizer.encode_list(_text_list, 128, &TruncationStrategy::LongestFirst, 0);
-    println!("{:?}",openai_gpt_tokenizer.encode(&_test_sentence.sentence_1, None, 128, &TruncationStrategy::LongestFirst, 0));
-
-//    println!("{:?}", roberta_tokenizer.tokenize(&_test_sentence.sentence_1));
-//    println!("{:?}", gpt2_tokenizer.encode(&_test_sentence.sentence_1, None,128, &TruncationStrategy::LongestFirst, 0));
+    println!("{:?}", openai_gpt_tokenizer.encode(&_test_sentence.sentence_1, None, 128, &TruncationStrategy::LongestFirst, 0));
     println!("Elapsed time: {:.2?}", _before.elapsed());
 }

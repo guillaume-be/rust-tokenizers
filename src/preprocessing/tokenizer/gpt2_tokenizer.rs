@@ -107,6 +107,7 @@ mod tests {
     use crate::Gpt2Vocab;
     use std::collections::HashMap;
     use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+    use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> Gpt2Vocab {
         let values: HashMap<String, i64> = [
@@ -124,7 +125,10 @@ mod tests {
             ("<|endoftext|>".to_owned(), 6),
         ].iter().cloned().collect();
 
-        Gpt2Vocab { values, unknown_value: "<|endoftext|>", special_values }
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        Gpt2Vocab { values, indices, unknown_value: "<|endoftext|>", special_values, special_indices }
     }
 
     fn generate_test_merges() -> BpePairVocab {

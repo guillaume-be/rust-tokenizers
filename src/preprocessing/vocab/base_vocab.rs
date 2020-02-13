@@ -15,13 +15,26 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::error::Error;
 use std::process;
+use std::hash::Hash;
+
+pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(input_hashmap: &HashMap<T, U>) -> HashMap<U, T> {
+    input_hashmap
+        .into_iter()
+        .map(|(key, &value)| (value.clone(), key.clone()))
+        .collect()
+}
+
 
 pub trait Vocab {
     fn unknown_value() -> &'static str;
 
     fn values(&self) -> &HashMap<String, i64>;
 
+    fn indices(&self) -> &HashMap<i64, String>;
+
     fn special_values(&self) -> &HashMap<String, i64>;
+
+    fn special_indices(&self) -> &HashMap<i64, String>;
 
     fn from_file(path: &str) -> Self;
 
@@ -55,6 +68,20 @@ pub trait Vocab {
         }
     }
 
+    fn _id_to_token(&self,
+                    id: &i64,
+                    indices: &HashMap<i64, String>,
+                    special_indices: &HashMap<i64, String>,
+                    unknown_value: &str) -> Result<String, Box<dyn Error>> {
+        match special_indices.get(id) {
+            Some(token) => Ok(token.clone()),
+            None => match indices.get(id) {
+                Some(token) => Ok(token.clone()),
+                None => Ok(unknown_value.to_owned())
+            }
+        }
+    }
+
     fn _register_as_special_value(token: &str,
                                   values: &HashMap<String, i64>,
                                   special_values: &mut HashMap<String, i64>) {
@@ -67,6 +94,8 @@ pub trait Vocab {
 
     fn token_to_id(&self, token: &str) -> i64;
 
+    fn id_to_token(&self, id: &i64) -> String;
+
     fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Vec<i64> {
         tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
@@ -75,8 +104,10 @@ pub trait Vocab {
 
 pub struct BaseVocab {
     pub values: HashMap<String, i64>,
+    pub indices: HashMap<i64, String>,
     pub unknown_value: &'static str,
     pub special_values: HashMap<String, i64>,
+    pub special_indices: HashMap<i64, String>,
 }
 
 impl Vocab for BaseVocab {
@@ -86,8 +117,16 @@ impl Vocab for BaseVocab {
         &self.values
     }
 
+    fn indices(&self) -> &HashMap<i64, String> {
+        &self.indices
+    }
+
     fn special_values(&self) -> &HashMap<String, i64> {
         &self.special_values
+    }
+
+    fn special_indices(&self) -> &HashMap<i64, String> {
+        &self.special_indices
     }
 
     fn from_file(path: &str) -> BaseVocab {
@@ -96,12 +135,25 @@ impl Vocab for BaseVocab {
         let unknown_value = BaseVocab::unknown_value();
         BaseVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
 
-        BaseVocab { values, unknown_value, special_values }
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        BaseVocab { values, indices, unknown_value, special_values, special_indices }
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
         match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
             Ok(index) => index,
+            Err(err) => {
+                println!("{}", err);
+                process::exit(1);
+            }
+        }
+    }
+
+    fn id_to_token(&self, id: &i64) -> String {
+        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
+            Ok(token) => token,
             Err(err) => {
                 println!("{}", err);
                 process::exit(1);
@@ -124,13 +176,17 @@ mod tests {
 //        Given
         let values: HashMap<String, i64> = HashMap::new();
         let special_values: HashMap<String, i64> = HashMap::new();
+        let indices: HashMap<i64, String> = HashMap::new();
+        let special_indices: HashMap<i64, String> = HashMap::new();
         let unknown_value = BaseVocab::unknown_value();
 
 //        When
         let base_vocab = BaseVocab {
             values,
+            indices,
             unknown_value,
             special_values,
+            special_indices,
         };
 
 //        Then
@@ -194,6 +250,24 @@ mod tests {
         assert_eq!(base_vocab.token_to_id("!"), 3);
         assert_eq!(base_vocab.token_to_id("[UNK]"), 2);
         assert_eq!(base_vocab.token_to_id("oov_value"), 2);
+
+        drop(path);
+        Ok(())
+    }
+
+    #[test]
+    fn test_decode_tokens() -> Result<(), io::Error> {
+//        Given
+        let mut vocab_file = tempfile::NamedTempFile::new()?;
+        write!(vocab_file, "hello \n world \n [UNK] \n !")?;
+        let path = vocab_file.into_temp_path();
+        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap());
+
+//        When & Then
+        assert_eq!(base_vocab.id_to_token(&(0 as i64)), "hello");
+        assert_eq!(base_vocab.id_to_token(&(1 as i64)), "world");
+        assert_eq!(base_vocab.id_to_token(&(3 as i64)), "!");
+        assert_eq!(base_vocab.id_to_token(&(2 as i64)), "[UNK]");
 
         drop(path);
         Ok(())
