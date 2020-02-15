@@ -16,7 +16,6 @@ use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_cjk_chars, wh
 use std::sync::Arc;
 use rayon::prelude::*;
 use itertools::Itertools;
-use pyo3::prelude::*;
 
 pub enum TruncationStrategy {
     LongestFirst,
@@ -25,18 +24,12 @@ pub enum TruncationStrategy {
     DoNotTruncate,
 }
 
-#[pyclass]
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct TokenizedInput {
-    #[pyo3(get)]
     pub token_ids: Vec<i64>,
-    #[pyo3(get)]
     pub segment_ids: Vec<i8>,
-    #[pyo3(get)]
     pub special_tokens_mask: Vec<i8>,
-    #[pyo3(get)]
     pub overflowing_tokens: Vec<i64>,
-    #[pyo3(get)]
     pub num_truncated_tokens: usize,
 }
 

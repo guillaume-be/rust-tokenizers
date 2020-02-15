@@ -11,28 +11,28 @@
 # limitations under the License.
 import math
 import tempfile
-from timeit import default_timer as timer
 from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_gpt2 import GPT2Tokenizer
-from rust_transformers import PyGpt2Tokenizer
+from rust_tokenizers import PyGpt2Tokenizer
 from transformers.modeling_gpt2 import GPT2Model
 import torch
+from timeit import default_timer as timer
 
 
-class TestBenchmarkDistilGPT2:
+class TestBenchmarkGPT2:
     def setup_class(self):
         self.use_gpu = torch.cuda.is_available()
         self.test_dir = Path(tempfile.mkdtemp())
 
-        self.base_tokenizer = GPT2Tokenizer.from_pretrained('distilgpt2', do_lower_case=True,
+        self.base_tokenizer = GPT2Tokenizer.from_pretrained('gpt2', do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyGpt2Tokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilgpt2']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilgpt2'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['gpt2']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2'])
         )
-        self.model = GPT2Model.from_pretrained('distilgpt2',
+        self.model = GPT2Model.from_pretrained('gpt2',
                                                output_attentions=False).eval()
         if self.use_gpu:
             self.model.cuda()
@@ -89,13 +89,13 @@ class TestBenchmarkDistilGPT2:
             _ = self.model(all_input_ids)[0].cpu().numpy()
 
     def setup_base_tokenizer(self):
-        self.base_tokenizer = GPT2Tokenizer.from_pretrained('distilgpt2', do_lower_case=True,
+        self.base_tokenizer = GPT2Tokenizer.from_pretrained('gpt2', do_lower_case=True,
                                                             cache_dir=self.test_dir)
 
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyGpt2Tokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilgpt2']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilgpt2'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['gpt2']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2'])
         )
 
     def baseline_batch(self):
@@ -128,28 +128,28 @@ class TestBenchmarkDistilGPT2:
             output = self.model(all_input_ids)[0].cpu().numpy()
         return output
 
-    def test_distilgpt2_baseline(self):
+    def test_gpt2_baseline(self):
         values = []
         for i in range(10):
             self.setup_base_tokenizer()
             t0 = timer()
             self.baseline_batch()
             t1 = timer()
-            values.append((t1-t0)*1000)
-        mean = sum(values)/len(values)
-        std_dev = math.sqrt(sum([(value - mean)**2 for value in values]))/(len(values)-1)
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'baseline - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
-    def test_distilgpt2_rust_single_threaded(self):
+    def test_gpt2_rust_single_threaded(self):
         values = []
         for i in range(10):
             self.setup_rust_tokenizer()
             t0 = timer()
             self.rust_batch_single_threaded()
             t1 = timer()
-            values.append((t1-t0)*1000)
-        mean = sum(values)/len(values)
-        std_dev = math.sqrt(sum([(value - mean)**2 for value in values]))/(len(values)-1)
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'rust single thread - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
     def teardown_class(self):

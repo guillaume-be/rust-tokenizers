@@ -15,24 +15,24 @@ from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_roberta import RobertaTokenizer
-from rust_transformers import PyRobertaTokenizer
+from rust_tokenizers import PyRobertaTokenizer
 from transformers.modeling_roberta import RobertaModel
 import torch
 from timeit import default_timer as timer
 
 
-class TestBenchmarkDistilRoberta:
+class TestBenchmarkRoberta:
     def setup_class(self):
         self.use_gpu = torch.cuda.is_available()
         self.test_dir = Path(tempfile.mkdtemp())
 
-        self.base_tokenizer = RobertaTokenizer.from_pretrained('distilroberta-base', do_lower_case=True,
+        self.base_tokenizer = RobertaTokenizer.from_pretrained('roberta-base', do_lower_case=True,
                                                                cache_dir=self.test_dir)
         self.rust_tokenizer = PyRobertaTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilroberta-base']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilroberta-base'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['roberta-base']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base'])
         )
-        self.model = RobertaModel.from_pretrained('distilroberta-base',
+        self.model = RobertaModel.from_pretrained('roberta-base',
                                                   output_attentions=False).eval()
         if self.use_gpu:
             self.model.cuda()
@@ -89,13 +89,13 @@ class TestBenchmarkDistilRoberta:
             _ = self.model(all_input_ids)[0].cpu().numpy()
 
     def setup_base_tokenizer(self):
-        self.base_tokenizer = RobertaTokenizer.from_pretrained('distilroberta-base', do_lower_case=True,
+        self.base_tokenizer = RobertaTokenizer.from_pretrained('roberta-base', do_lower_case=True,
                                                                cache_dir=self.test_dir)
 
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyRobertaTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilroberta-base']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilroberta-base'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['roberta-base']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base'])
         )
 
     def baseline_batch(self):
@@ -128,7 +128,7 @@ class TestBenchmarkDistilRoberta:
             output = self.model(all_input_ids)[0].cpu().numpy()
         return output
 
-    def test_distilroberta_baseline(self):
+    def test_roberta_baseline(self):
         values = []
         for i in range(10):
             self.setup_base_tokenizer()
@@ -140,7 +140,7 @@ class TestBenchmarkDistilRoberta:
         std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'baseline - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
-    def test_distilroberta_rust_single_threaded(self):
+    def test_roberta_rust_single_threaded(self):
         values = []
         for i in range(10):
             self.setup_rust_tokenizer()

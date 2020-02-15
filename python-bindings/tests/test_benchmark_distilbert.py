@@ -1,4 +1,3 @@
-# Copyright 2018 The Open AI Team Authors, The Google AI Language Team Authors
 # Copyright 2018 The HuggingFace Inc. team.
 # Copyright 2019 Guillaume Becquin
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,23 +14,24 @@ import tempfile
 from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_bert import BertTokenizer
-from rust_transformers import PyBertTokenizer
-from transformers.modeling_bert import BertForSequenceClassification
+from transformers.tokenization_distilbert import DistilBertTokenizer
+from rust_tokenizers import PyBertTokenizer
+from transformers.modeling_distilbert import DistilBertForSequenceClassification
 import torch
 from timeit import default_timer as timer
 
 
-class TestBenchmarkBert:
+class TestBenchmarkDistilBert:
     def setup_class(self):
         self.use_gpu = torch.cuda.is_available()
         self.test_dir = Path(tempfile.mkdtemp())
 
-        self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True,
-                                                            cache_dir=self.test_dir)
+        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True,
+                                                                  cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']))
-        self.model = BertForSequenceClassification.from_pretrained('bert-base-uncased', output_attentions=False).eval()
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']))
+        self.model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased',
+                                                                         output_attentions=False).eval()
         if self.use_gpu:
             self.model.cuda()
         self.sentence_list = ['For instance, on the planet Earth, man had always assumed that he was more intelligent '
@@ -55,12 +55,12 @@ class TestBenchmarkBert:
             _ = self.model(all_input_ids)[0].cpu().numpy()
 
     def setup_base_tokenizer(self):
-        self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True,
-                                                            cache_dir=self.test_dir)
+        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True,
+                                                                  cache_dir=self.test_dir)
 
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']))
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']))
 
     def baseline_batch(self):
         tokens_list = [self.base_tokenizer.tokenize(sentence) for sentence in self.sentence_list]
@@ -100,7 +100,7 @@ class TestBenchmarkBert:
             output = self.model(all_input_ids)[0].cpu().numpy()
         return output
 
-    def test_bert_baseline(self):
+    def test_distilbert_baseline(self):
         values = []
         for i in range(10):
             self.setup_base_tokenizer()
@@ -112,7 +112,7 @@ class TestBenchmarkBert:
         std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'baseline - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
-    def test_bert_rust_single_threaded(self):
+    def test_distilbert_rust_single_threaded(self):
         values = []
         for i in range(10):
             self.setup_rust_tokenizer()
@@ -124,7 +124,7 @@ class TestBenchmarkBert:
         std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'rust single thread - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
-    def test_bert_rust_multi_threaded(self):
+    def test_distilbert_rust_multi_threaded(self):
         values = []
         for i in range(10):
             self.setup_rust_tokenizer()

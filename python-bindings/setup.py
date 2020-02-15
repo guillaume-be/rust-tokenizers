@@ -67,10 +67,10 @@ install_requires = ["torch>=1.1.0", "transformers==2.2.1"]
 test_requires = install_requires + ["pytest", "pytest-benchmark"]
 
 setup(
-    name="rust_transformers",
-    version="0.1.0",
-    packages=["rust_transformers"],
-    rust_extensions=[RustExtension("rust_transformers.rust_transformers", "Cargo.toml", debug=False)],
+    name="rust_tokenizers",
+    version="1.0.0",
+    packages=["rust_tokenizers"],
+    rust_extensions=[RustExtension("rust_tokenizers.rust_tokenizers", "Cargo.toml", debug=False)],
     install_requires=install_requires,
     setup_requires=setup_requires,
     test_requires=test_requires,

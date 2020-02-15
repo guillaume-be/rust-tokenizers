@@ -14,31 +14,33 @@ import tempfile
 from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_distilbert import DistilBertTokenizer
-from rust_transformers import PyBertTokenizer
-from transformers.modeling_distilbert import DistilBertForSequenceClassification
+from transformers.tokenization_ctrl import CTRLTokenizer
+from rust_tokenizers import PyCtrlTokenizer
+from transformers.modeling_ctrl import CTRLModel
 import torch
 from timeit import default_timer as timer
 
 
-class TestBenchmarkDistilBert:
+class TestBenchmarkCTRL:
     def setup_class(self):
         self.use_gpu = torch.cuda.is_available()
         self.test_dir = Path(tempfile.mkdtemp())
 
-        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True,
-                                                                  cache_dir=self.test_dir)
-        self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']))
-        self.model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased',
-                                                                         output_attentions=False).eval()
+        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl', do_lower_case=True,
+                                                            cache_dir=self.test_dir)
+        self.rust_tokenizer = PyCtrlTokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['ctrl']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl'])
+        )
+        self.model = CTRLModel.from_pretrained('ctrl',
+                                               output_attentions=False).eval()
         if self.use_gpu:
             self.model.cuda()
         self.sentence_list = ['For instance, on the planet Earth, man had always assumed that he was more intelligent '
                               'than dolphins because he had achieved so much—the wheel, New York, wars and so on—whilst'
                               ' all the dolphins had ever done was muck about in the water having a good time. But '
                               'conversely, the dolphins had always believed that they were far more intelligent than '
-                              'man—for precisely the same reasons.'] * 64
+                              'man—for precisely the same reasons.'] * 1
 
         # Pre-allocate GPU memory
         tokens_list = [self.base_tokenizer.tokenize(sentence) for sentence in self.sentence_list]
@@ -55,12 +57,14 @@ class TestBenchmarkDistilBert:
             _ = self.model(all_input_ids)[0].cpu().numpy()
 
     def setup_base_tokenizer(self):
-        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True,
-                                                                  cache_dir=self.test_dir)
+        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl', do_lower_case=True,
+                                                            cache_dir=self.test_dir)
 
     def setup_rust_tokenizer(self):
-        self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']))
+        self.rust_tokenizer = PyCtrlTokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['ctrl']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl'])
+        )
 
     def baseline_batch(self):
         tokens_list = [self.base_tokenizer.tokenize(sentence) for sentence in self.sentence_list]
@@ -88,19 +92,7 @@ class TestBenchmarkDistilBert:
             output = self.model(all_input_ids)[0].cpu().numpy()
         return output
 
-    def rust_batch_multi_threaded(self):
-        features = self.rust_tokenizer.encode_list(self.sentence_list,
-                                                   max_len=128,
-                                                   truncation_strategy='longest_first',
-                                                   stride=0)
-        all_input_ids = torch.tensor([f.token_ids for f in features], dtype=torch.long)
-        if self.use_gpu:
-            all_input_ids = all_input_ids.cuda()
-        with torch.no_grad():
-            output = self.model(all_input_ids)[0].cpu().numpy()
-        return output
-
-    def test_distilbert_baseline(self):
+    def test_ctrl_baseline(self):
         values = []
         for i in range(10):
             self.setup_base_tokenizer()
@@ -112,7 +104,7 @@ class TestBenchmarkDistilBert:
         std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'baseline - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
-    def test_distilbert_rust_single_threaded(self):
+    def test_ctrl_rust_single_threaded(self):
         values = []
         for i in range(10):
             self.setup_rust_tokenizer()
@@ -123,18 +115,6 @@ class TestBenchmarkDistilBert:
         mean = sum(values) / len(values)
         std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'rust single thread - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
-
-    def test_distilbert_rust_multi_threaded(self):
-        values = []
-        for i in range(10):
-            self.setup_rust_tokenizer()
-            t0 = timer()
-            self.rust_batch_multi_threaded()
-            t1 = timer()
-            values.append((t1 - t0) * 1000)
-        mean = sum(values) / len(values)
-        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
-        print(f'rust multi threaded - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
     def teardown_class(self):
         self.model = None
