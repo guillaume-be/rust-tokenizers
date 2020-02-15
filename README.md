@@ -1,5 +1,9 @@
 # rust-tokenizers
 
+[![Build Status](https://travis-ci.com/guillaume-be/rust-tokenizers.svg?branch=master)](https://travis-ci.com/guillaume-be/rust-tokenizers)
+[![Latest version](https://img.shields.io/crates/v/rust_tokenizers.svg)](https://crates.io/crates/rust_tokenizers)
+![License](https://img.shields.io/crates/l/rust_tokenizers.svg)
+
 Rust-tokenizer is a drop-in replacement for the tokenization methods from the [Transformers library](https://github.com/huggingface/transformers)
 It includes a broad range of tokenizers for state-of-the-art transformers architectures, including:
 - BERT
