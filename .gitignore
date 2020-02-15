@@ -1,4 +1,9 @@
-/target
+main/target
+*/Cargo.lock
+python-bindings/build
+python-bindings/dist
+python-bindings/*egg-info*
+python-bindings/target
 **/*.rs.bk
 .idea*
 /resources
