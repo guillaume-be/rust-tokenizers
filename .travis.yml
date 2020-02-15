@@ -2,28 +2,21 @@ matrix:
   include:
     - language: rust
       rust: stable
-      os:
-        - linux
-        - windows
-        - osx
+      os: linux
       script:
         - cargo build --manifest-path ./main/Cargo.toml --verbose
         - cargo test --manifest-path ./main/Cargo.toml
 
     - language: rust
       rust: beta
-      os:
-        - windows
+      os: linux
       script:
         - cargo build --manifest-path ./main/Cargo.toml --verbose
         - cargo test --manifest-path ./main/Cargo.toml
 
     - language: rust
       rust: nightly
-      os:
-        - linux
-        - windows
-        - osx
+      os: linux
       script:
         - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose
 
@@ -33,5 +26,6 @@ matrix:
       before_script:
         - cd python-bindings
         - bash install_rust.sh
+        - pip install -r requirements-dev
       script:
         - python setup.py install
