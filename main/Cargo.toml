@@ -16,17 +16,13 @@ itertools = "0.8.2"
 serde_json = "1.0.44"
 regex = "1.3.1"
 
-[dependencies.pyo3]
-version = "0.8.3"
-features = ["extension-module"]
-
 [dev-dependencies]
 tempfile = "3.1.0"
 
 [lib]
 name = "rust_transformers"
 path = "src/lib.rs"
-crate-type = ["lib", "cdylib"]
+crate-type = ["lib"]
 
 [[bin]]
 name = "rust_transformers_bin"

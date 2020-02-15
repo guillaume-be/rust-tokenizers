@@ -1,0 +1,24 @@
+[package]
+name = "rust_tokenizers_python"
+version = "0.2.0"
+authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
+edition = "2018"
+description = "High performance tokenizers for Rust"
+repository = "https://github.com/guillaume-be/rust-tokenizers"
+license = "Apache-2.0"
+
+[dependencies.pyo3]
+version = "0.8.3"
+features = ["extension-module"]
+
+[dependencies.rust_transformers]
+version = "*"
+path = "../main"
+
+[dev-dependencies]
+tempfile = "3.1.0"
+
+[lib]
+name = "rust_transformers"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
