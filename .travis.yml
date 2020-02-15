@@ -3,35 +3,34 @@ language: rust
 jobs:
   include:
     - language: rust
-          rust: stable
-          os:
-            - linux
-            - osx
-            - windows
-          script:
-            - cargo build --manifest-path ./main/Cargo.toml --verbose
-            - cargo test --manifest-path ./main/Cargo.toml
+      rust: stable
+      os:
+        - linux
+        - osx
+        - windows
+      script:
+        - cargo build --manifest-path ./main/Cargo.toml --verbose
+        - cargo test --manifest-path ./main/Cargo.toml
 
-            rust: beta
-            os:
-              - linux
-            script:
-              - cargo build --manifest-path ./main/Cargo.toml --verbose
-              - cargo test --manifest-path ./main/Cargo.toml
+    - rust: beta
+      os:
+        - linux
+      script:
+        - cargo build --manifest-path ./main/Cargo.toml --verbose
+        - cargo test --manifest-path ./main/Cargo.toml
 
-            rust: nightly
-            os:
-              - linux
-              - osx
-              - windows
-            script:
-              - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose
+    - rust: nightly
+      os:
+        - linux
+        - osx
+        - windows
+      script:
+        - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose
 
     - language: python
      python: 3.7
        before_script:
-         - cd python-bindings
+       - cd python-bindings
        script:
-         - python -m pip install --upgrade pip
-         - python setup.py install
-
+       - python -m pip install --upgrade pip
+       - python setup.py install
