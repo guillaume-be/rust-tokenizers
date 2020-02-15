@@ -26,6 +26,6 @@ matrix:
       before_script:
         - cd python-bindings
         - bash install_rust.sh
-        - pip install -r requirements-dev
+        - pip install -r requirements-dev.txt
       script:
         - python setup.py install
