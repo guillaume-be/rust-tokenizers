@@ -28,8 +28,10 @@ matrix:
         - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose
 
     - language: python
+      os: linux
       python: 3.7
       before_script:
         - cd python-bindings
+        - bash install_rush.sh
       script:
         - python setup.py install
