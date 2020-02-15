@@ -32,6 +32,6 @@ matrix:
       python: 3.7
       before_script:
         - cd python-bindings
-        - bash install_rush.sh
+        - bash install_rust.sh
       script:
         - python setup.py install
