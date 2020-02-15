@@ -1,24 +1,6 @@
 matrix:
   include:
-    - language: rust
-      rust: stable
-      os: linux
-      script:
-        - cargo build --manifest-path ./main/Cargo.toml --verbose
-        - cargo test --manifest-path ./main/Cargo.toml
 
-    - language: rust
-      rust: beta
-      os: linux
-      script:
-        - cargo build --manifest-path ./main/Cargo.toml --verbose
-        - cargo test --manifest-path ./main/Cargo.toml
-
-    - language: rust
-      rust: nightly
-      os: linux
-      script:
-        - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose
 
     - language: python
       os: linux
