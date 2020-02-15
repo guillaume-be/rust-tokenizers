@@ -8,6 +8,7 @@ matrix:
       before_script:
         - cd python-bindings
         - bash install_rust.sh
+        - export PATH=$PATH:$HOME/rust/bin:$HOME/.cargo/bin
         - pip install -r requirements-dev.txt
       script:
         - python setup.py install
