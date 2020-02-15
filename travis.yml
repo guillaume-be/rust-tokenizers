@@ -1,0 +1,31 @@
+language: rust
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+os:
+  - linux
+  - osx
+  - windows
+
+jobs:
+  include:
+  - rust: stable
+    script:
+      - cargo build --manifest-path ./main/Cargo.toml --verbose
+      - cargo test --manifest-path ./main/Cargo.toml
+
+  - rust: beta
+    script:
+      - cargo build --manifest-path ./main/Cargo.toml --verbose
+      - cargo test --manifest-path ./main/Cargo.toml
+
+  - rust: nightly
+    script:
+      - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose
+
+
+dist:
+  - xenial
