@@ -1,11 +1,12 @@
 [package]
 name = "rust_tokenizers"
-version = "0.2.0"
+version = "1.0.0"
 authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
 description = "High performance tokenizers for Rust"
 repository = "https://github.com/guillaume-be/rust-tokenizers"
 license = "Apache-2.0"
+readme = "README.md"
 
 [dependencies]
 csv = "1.1"

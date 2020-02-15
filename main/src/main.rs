@@ -21,7 +21,6 @@ fn main() {
 
 
     let vocab_path = env::var("bert_vocab").expect("`bert_vocab` environment variable not set");
-    println!("{}", vocab_path);
     let vocab = Arc::new(rust_tokenizers::BertVocab::from_file(&vocab_path));
 
 
