@@ -16,7 +16,7 @@ from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_gpt2 import GPT2Tokenizer
-from rust_transformers import PyGpt2Tokenizer
+from rust_tokenizers import PyGpt2Tokenizer
 from transformers.modeling_gpt2 import GPT2Model
 import torch
 

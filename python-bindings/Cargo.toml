@@ -11,7 +11,7 @@ license = "Apache-2.0"
 version = "0.8.3"
 features = ["extension-module"]
 
-[dependencies.rust_transformers]
+[dependencies.rust_tokenizers]
 version = "*"
 path = "../main"
 
@@ -19,6 +19,6 @@ path = "../main"
 tempfile = "3.1.0"
 
 [lib]
-name = "rust_transformers"
+name = "rust_tokenizers"
 path = "src/lib.rs"
 crate-type = ["cdylib"]

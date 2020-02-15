@@ -15,7 +15,7 @@ from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_ctrl import CTRLTokenizer
-from rust_transformers import PyCtrlTokenizer
+from rust_tokenizers import PyCtrlTokenizer
 from transformers.modeling_ctrl import CTRLModel
 import torch
 from timeit import default_timer as timer

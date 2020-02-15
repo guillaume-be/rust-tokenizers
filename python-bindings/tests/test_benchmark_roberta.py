@@ -15,7 +15,7 @@ from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_roberta import RobertaTokenizer
-from rust_transformers import PyRobertaTokenizer
+from rust_tokenizers import PyRobertaTokenizer
 from transformers.modeling_roberta import RobertaModel
 import torch
 from timeit import default_timer as timer

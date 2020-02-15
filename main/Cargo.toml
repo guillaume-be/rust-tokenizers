@@ -1,5 +1,5 @@
 [package]
-name = "rust_transformers"
+name = "rust_tokenizers"
 version = "0.2.0"
 authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
@@ -20,10 +20,10 @@ regex = "1.3.1"
 tempfile = "3.1.0"
 
 [lib]
-name = "rust_transformers"
+name = "rust_tokenizers"
 path = "src/lib.rs"
 crate-type = ["lib"]
 
 [[bin]]
-name = "rust_transformers_bin"
+name = "rust_tokenizers_bin"
 path = "src/main.rs"

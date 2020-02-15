@@ -1,7 +1,7 @@
 use pyo3::{PyResult, PyRawObject, Python};
 use pyo3::prelude::*;
 use pyo3::exceptions;
-use rust_transformers::{Tokenizer, Vocab, TruncationStrategy, MultiThreadedTokenizer, BertTokenizer, BertVocab, CtrlTokenizer, OpenAiGptVocab, Gpt2Tokenizer, Gpt2Vocab, RobertaTokenizer, RobertaVocab, OpenAiGptTokenizer};
+use rust_tokenizers::{Tokenizer, Vocab, TruncationStrategy, MultiThreadedTokenizer, BertTokenizer, BertVocab, CtrlTokenizer, OpenAiGptVocab, Gpt2Tokenizer, Gpt2Vocab, RobertaTokenizer, RobertaVocab, OpenAiGptTokenizer};
 
 #[pyclass]
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
@@ -189,7 +189,7 @@ trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
 }
 
 
-#[pyclass(module = "rust_transformers")]
+#[pyclass(module = "rust_tokenizers")]
 struct PyBertTokenizer {
     tokenizer: BertTokenizer,
 }
@@ -236,7 +236,7 @@ impl PyBertTokenizer {
     }
 }
 
-#[pyclass(module = "rust_transformers")]
+#[pyclass(module = "rust_tokenizers")]
 struct PyCtrlTokenizer {
     tokenizer: CtrlTokenizer,
 }
@@ -282,7 +282,7 @@ impl PyCtrlTokenizer {
 }
 
 
-#[pyclass(module = "rust_transformers")]
+#[pyclass(module = "rust_tokenizers")]
 struct PyGpt2Tokenizer {
     tokenizer: Gpt2Tokenizer,
 }
@@ -327,7 +327,7 @@ impl PyGpt2Tokenizer {
     }
 }
 
-#[pyclass(module = "rust_transformers")]
+#[pyclass(module = "rust_tokenizers")]
 struct PyRobertaTokenizer {
     tokenizer: RobertaTokenizer,
 }
@@ -372,7 +372,7 @@ impl PyRobertaTokenizer {
     }
 }
 
-#[pyclass(module = "rust_transformers")]
+#[pyclass(module = "rust_tokenizers")]
 struct PyOpenAiGptTokenizer {
     tokenizer: OpenAiGptTokenizer,
 }
@@ -418,7 +418,7 @@ impl PyOpenAiGptTokenizer {
 }
 
 #[pymodule]
-fn rust_transformers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
     m.add_class::<PyCtrlTokenizer>()?;
     m.add_class::<PyGpt2Tokenizer>()?;

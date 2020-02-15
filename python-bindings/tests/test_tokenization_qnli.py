@@ -17,7 +17,7 @@ from transformers.data.processors.glue import QnliProcessor
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_bert import BertTokenizer
 from transformers.tokenization_distilbert import DistilBertTokenizer
-from rust_transformers import PyBertTokenizer
+from rust_tokenizers import PyBertTokenizer
 import os
 
 

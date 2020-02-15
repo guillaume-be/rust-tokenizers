@@ -21,7 +21,7 @@ from transformers.tokenization_ctrl import CTRLTokenizer
 from transformers.tokenization_gpt2 import GPT2Tokenizer
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.tokenization_openai import OpenAIGPTTokenizer
-from rust_transformers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer, \
+from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer, \
     PyOpenAiGptTokenizer
 import os
 
