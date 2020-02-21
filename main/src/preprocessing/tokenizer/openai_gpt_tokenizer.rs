@@ -77,6 +77,10 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
         }
         tokenized_text
     }
+
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens.join("").replace("</w>", " ").trim().to_owned()
+    }
 }
 
 #[cfg(test)]
@@ -86,6 +90,7 @@ mod tests {
     use std::collections::HashMap;
     use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
     use crate::preprocessing::vocab::base_vocab::swap_key_values;
+    use itertools::Itertools;
 
     fn generate_test_vocab() -> OpenAiGptVocab {
         let values: HashMap<String, i64> = [
@@ -96,7 +101,10 @@ mod tests {
             ("the".to_owned(), 4),
             ("Ġ".to_owned(), 5),
             ("<unk>".to_owned(), 6),
-            ("o</w>".to_owned(), 7)
+            ("o</w>".to_owned(), 7),
+            ("the</w>".to_owned(), 8),
+            ("rth</w>".to_owned(), 9),
+            ("ea".to_owned(), 10),
         ].iter().cloned().collect();
 
         let special_values: HashMap<String, i64> = [
@@ -118,6 +126,8 @@ mod tests {
             (("h".to_owned(), "e".to_owned()), 4),
             (("t".to_owned(), "h</w>".to_owned()), 5),
             (("t".to_owned(), "h".to_owned()), 6),
+            (("th".to_owned(), "e</w>".to_owned()), 7),
+            (("e".to_owned(), "a".to_owned()), 8),
         ].iter().cloned().collect();
 
 
@@ -133,7 +143,7 @@ mod tests {
         let test_tuples = [
             (
                 "The earth",
-                vec!("th", "e</w>", "e", "a", "rth</w>")
+                vec!("the</w>", "ea", "rth</w>")
             ),
             (
                 "",
@@ -205,7 +215,7 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(6, 6, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(8, 10, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 " ",
@@ -225,5 +235,30 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(openai_gpt_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+    }
+
+    #[test]
+    fn test_decode() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+        let skip_special_tokens = false;
+        let clean_up_tokenization_spaces = false;
+        let test_tuples = [
+            (
+                vec!(8, 10, 9),
+                "the earth",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(openai_gpt_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&openai_gpt_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
     }
 }
