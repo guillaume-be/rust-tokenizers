@@ -30,7 +30,8 @@ class TestBenchmarkOpenAiGpt:
                                                                  cache_dir=self.test_dir)
         self.rust_tokenizer = PyOpenAiGptTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['openai-gpt']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['openai-gpt'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['openai-gpt']),
+            do_lower_case=True
         )
         self.model = OpenAIGPTModel.from_pretrained('openai-gpt',
                                                     output_attentions=False).eval()
@@ -95,7 +96,8 @@ class TestBenchmarkOpenAiGpt:
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyOpenAiGptTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['openai-gpt']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['openai-gpt'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['openai-gpt']),
+            do_lower_case=True
         )
 
     def baseline_batch(self):

@@ -30,7 +30,8 @@ class TestBenchmarkBert:
         self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']))
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
+            do_lower_case=True)
         self.model = BertForSequenceClassification.from_pretrained('bert-base-uncased', output_attentions=False).eval()
         if self.use_gpu:
             self.model.cuda()
@@ -60,7 +61,8 @@ class TestBenchmarkBert:
 
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']))
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
+            do_lower_case=True)
 
     def baseline_batch(self):
         tokens_list = [self.base_tokenizer.tokenize(sentence) for sentence in self.sentence_list]

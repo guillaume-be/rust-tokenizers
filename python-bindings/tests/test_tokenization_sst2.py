@@ -40,7 +40,8 @@ class TestTokenizationSST2:
         self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']))
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
+            do_lower_case=True)
         output_baseline = []
         for example in self.examples:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
@@ -66,7 +67,8 @@ class TestTokenizationSST2:
         self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True,
                                                                   cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']))
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']),
+            do_lower_case=True)
         output_baseline = []
         for example in self.examples:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
@@ -93,7 +95,7 @@ class TestTokenizationSST2:
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyCtrlTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['ctrl']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl']), do_lower_case=True
         )
         output_baseline = []
         for example in self.examples:
@@ -121,7 +123,7 @@ class TestTokenizationSST2:
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyGpt2Tokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['gpt2']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2']), do_lower_case=True
         )
         output_baseline = []
         for example in self.examples:
@@ -149,7 +151,8 @@ class TestTokenizationSST2:
                                                                cache_dir=self.test_dir)
         self.rust_tokenizer = PyRobertaTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['roberta-base']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base']),
+            do_lower_case=True
         )
         output_baseline = []
         for example in self.examples:
@@ -177,7 +180,8 @@ class TestTokenizationSST2:
                                                                  cache_dir=self.test_dir)
         self.rust_tokenizer = PyOpenAiGptTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['openai-gpt']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['openai-gpt'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['openai-gpt']),
+            do_lower_case=True
         )
         output_baseline = []
         for example in self.examples:

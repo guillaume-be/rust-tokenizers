@@ -29,29 +29,28 @@ pub struct OpenAiGptTokenizer {
 }
 
 impl OpenAiGptTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str) -> OpenAiGptTokenizer {
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> OpenAiGptTokenizer {
         let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path));
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case);
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
         let cache = RefCell::new(HashMap::new());
-        OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks, cache}
+        OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks, cache }
     }
 
-    pub fn from_existing_vocab_and_merges(vocab: Arc<OpenAiGptVocab>, merges: Rc<BpePairVocab>) -> OpenAiGptTokenizer {
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone());
+    pub fn from_existing_vocab_and_merges(vocab: Arc<OpenAiGptVocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> OpenAiGptTokenizer {
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case);
         let cache = RefCell::new(HashMap::new());
-        OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks: merges, cache}
+        OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks: merges, cache }
     }
 }
 
 impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     fn vocab(&self) -> &OpenAiGptVocab {
-        &self.vocab
+        self.vocab.as_ref()
     }
 
     fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
-
         let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
 
         for text in temp_text {
@@ -130,11 +129,46 @@ mod tests {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let test_tuples = [
             (
-                "the earth",
+                "The earth",
                 vec!("th", "e</w>", "e", "a", "rth</w>")
+            ),
+            (
+                "",
+                vec!()
+            ),
+            (
+                " ",
+                vec!("<unk>")
+            ),
+            (
+                " \n ",
+                vec!("<unk>")
+            ),
+        ];
+        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(openai_gpt_tokenizer.tokenize(*source_text), *expected_result);
+        }
+
+        assert_eq!(openai_gpt_tokenizer.tokenize_list(source_texts.clone()), expected_results);
+    }
+
+    #[test]
+    fn test_openai_gpt_tokenizer_no_lower_casing() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
+        let test_tuples = [
+            (
+                "The Earth",
+                vec!("T", "h", "e</w>", "E", "a", "rth</w>")
             ),
             (
                 "",
@@ -166,7 +200,7 @@ mod tests {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (

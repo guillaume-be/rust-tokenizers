@@ -20,6 +20,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use regex::Regex;
+use itertools::Itertools;
 
 
 pub struct CtrlTokenizer {
@@ -27,34 +28,40 @@ pub struct CtrlTokenizer {
     bpe_ranks: Rc<BpePairVocab>,
     cache: RefCell<HashMap<String, Vec<String>>>,
     regex_pattern: Regex,
+    lower_case: bool,
 }
 
 impl CtrlTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str) -> CtrlTokenizer {
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> CtrlTokenizer {
         let vocab = Rc::new(OpenAiGptVocab::from_file(vocab_path));
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
         let cache = RefCell::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
-        CtrlTokenizer { vocab, bpe_ranks, cache, regex_pattern }
+        CtrlTokenizer { vocab, bpe_ranks, cache, regex_pattern, lower_case }
     }
 
-    pub fn from_existing_vocab_and_merges(vocab: Rc<OpenAiGptVocab>, merges: Rc<BpePairVocab>) -> CtrlTokenizer {
+    pub fn from_existing_vocab_and_merges(vocab: Rc<OpenAiGptVocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> CtrlTokenizer {
         let cache = RefCell::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
-        CtrlTokenizer { vocab, bpe_ranks: merges, cache, regex_pattern }
+        CtrlTokenizer { vocab, bpe_ranks: merges, cache, regex_pattern, lower_case }
     }
 }
 
 impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
     fn vocab(&self) -> &OpenAiGptVocab {
-        &self.vocab
+        self.vocab.as_ref()
     }
 
     fn tokenize(&self, text: &str) -> Vec<String> {
         let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
         let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
+        let temp_text = temp_text
+            .into_iter()
+            .map(|v| if self.lower_case { v.to_lowercase() } else { v.to_owned() })
+            .collect_vec();
+
         for text in temp_text {
-            if !self.vocab.special_values.contains_key(text) {
+            if !self.vocab.special_values.contains_key(text.as_str()) {
                 for word in self.regex_pattern.find_iter(text.as_ref()) {
                     let cached: bool = match self.cache.borrow().get(word.as_str()) {
                         Some(value) => {
@@ -64,13 +71,13 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
                         None => false
                     };
                     if !cached {
-                        let bpe_output = ctrl_bpe(word.as_str(), &self.bpe_ranks);
+                        let bpe_output = ctrl_bpe(word.as_str(), self.bpe_ranks.as_ref());
                         self.cache.borrow_mut().insert(word.as_str().to_owned(), bpe_output.clone());
                         tokenized_text.extend(bpe_output);
                     }
                 };
             } else {
-                tokenized_text.push(text.to_owned());
+                tokenized_text.push(text);
             }
         }
         tokenized_text
@@ -127,11 +134,50 @@ mod tests {
 //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let test_tuples = [
             (
-                "the earth",
+                "The Earth",
                 vec!("the", "e@@", "a@@", "r@@", "t@@", "h")
+            ),
+            (
+                "Hello, world!",
+                vec!("h@@", "e@@", "ll@@", "o@@", ",", "w@@", "o@@", "r@@", "l@@", "d@@", "!")
+            ),
+            (
+                "",
+                vec!()
+            ),
+            (
+                " ",
+                vec!("<unk>")
+            ),
+            (
+                " \n ",
+                vec!("<unk>")
+            ),
+        ];
+        let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
+        let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
+
+//        When & Then
+        for (source_text, expected_result) in test_tuples.iter() {
+            assert_eq!(ctrl_tokenizer.tokenize(*source_text), *expected_result);
+        }
+
+        assert_eq!(ctrl_tokenizer.tokenize_list(source_texts.clone()), expected_results);
+    }
+
+    #[test]
+    fn test_ctrl_tokenizer_no_lower_casing() {
+//        Given
+        let vocab = Rc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
+        let test_tuples = [
+            (
+                "the Earth",
+                vec!("the", "E@@", "a@@", "r@@", "t@@", "h")
             ),
             (
                 "Hello, world!",
@@ -166,7 +212,7 @@ mod tests {
 //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges);
+        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (

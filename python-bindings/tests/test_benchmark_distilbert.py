@@ -29,7 +29,8 @@ class TestBenchmarkDistilBert:
         self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True,
                                                                   cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']))
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']),
+            do_lower_case=True)
         self.model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased',
                                                                          output_attentions=False).eval()
         if self.use_gpu:
@@ -60,7 +61,8 @@ class TestBenchmarkDistilBert:
 
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']))
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']),
+            do_lower_case=True)
 
     def baseline_batch(self):
         tokens_list = [self.base_tokenizer.tokenize(sentence) for sentence in self.sentence_list]
