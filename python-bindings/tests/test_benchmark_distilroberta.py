@@ -30,7 +30,8 @@ class TestBenchmarkDistilRoberta:
                                                                cache_dir=self.test_dir)
         self.rust_tokenizer = PyRobertaTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilroberta-base']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilroberta-base'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilroberta-base']),
+            do_lower_case=True
         )
         self.model = RobertaModel.from_pretrained('distilroberta-base',
                                                   output_attentions=False).eval()
@@ -95,7 +96,8 @@ class TestBenchmarkDistilRoberta:
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyRobertaTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilroberta-base']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilroberta-base'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilroberta-base']),
+            do_lower_case=True
         )
 
     def baseline_batch(self):

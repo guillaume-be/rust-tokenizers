@@ -205,9 +205,9 @@ impl PyMultiThreadTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {}
 #[pymethods]
 impl PyBertTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String) {
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
         obj.init(PyBertTokenizer {
-            tokenizer: BertTokenizer::from_file(&path),
+            tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case),
         });
     }
 
@@ -250,9 +250,9 @@ impl PyTokenizer<CtrlTokenizer, OpenAiGptVocab> for PyCtrlTokenizer {
 #[pymethods]
 impl PyCtrlTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String) {
+    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyCtrlTokenizer {
-            tokenizer: CtrlTokenizer::from_file(&vocab_path, &merges_path),
+            tokenizer: CtrlTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case),
         });
     }
 
@@ -296,9 +296,9 @@ impl PyTokenizer<Gpt2Tokenizer, Gpt2Vocab> for PyGpt2Tokenizer {
 #[pymethods]
 impl PyGpt2Tokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String) {
+    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyGpt2Tokenizer {
-            tokenizer: Gpt2Tokenizer::from_file(&vocab_path, &merges_path),
+            tokenizer: Gpt2Tokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case),
         });
     }
 
@@ -341,9 +341,9 @@ impl PyTokenizer<RobertaTokenizer, RobertaVocab> for PyRobertaTokenizer {
 #[pymethods]
 impl PyRobertaTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String) {
+    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyRobertaTokenizer {
-            tokenizer: RobertaTokenizer::from_file(&vocab_path, &merges_path),
+            tokenizer: RobertaTokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case),
         });
     }
 
@@ -386,9 +386,9 @@ impl PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab> for PyOpenAiGptTokenizer {
 #[pymethods]
 impl PyOpenAiGptTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String) {
+    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyOpenAiGptTokenizer {
-            tokenizer: OpenAiGptTokenizer::from_file(&vocab_path, &merges_path),
+            tokenizer: OpenAiGptTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case),
         });
     }
 

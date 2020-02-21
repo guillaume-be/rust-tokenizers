@@ -482,4 +482,10 @@ pub static ref BYTES_TO_UNICODE: HashMap<u8, char> = {vec ! [
     ].into_iter().collect()
     };
 
+
+pub static ref UNICODE_TO_BYTES: HashMap<char, u8> = BYTES_TO_UNICODE
+        .clone()
+        .into_iter()
+        .map(|(key, value)| (value.clone(), key.clone()))
+        .collect();
 }

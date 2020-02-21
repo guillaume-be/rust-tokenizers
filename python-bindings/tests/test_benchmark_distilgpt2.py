@@ -30,7 +30,8 @@ class TestBenchmarkDistilGPT2:
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyGpt2Tokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilgpt2']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilgpt2'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilgpt2']),
+            do_lower_case=True
         )
         self.model = GPT2Model.from_pretrained('distilgpt2',
                                                output_attentions=False).eval()
@@ -95,7 +96,8 @@ class TestBenchmarkDistilGPT2:
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyGpt2Tokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilgpt2']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilgpt2'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['distilgpt2']),
+            do_lower_case=True
         )
 
     def baseline_batch(self):
@@ -135,9 +137,9 @@ class TestBenchmarkDistilGPT2:
             t0 = timer()
             self.baseline_batch()
             t1 = timer()
-            values.append((t1-t0)*1000)
-        mean = sum(values)/len(values)
-        std_dev = math.sqrt(sum([(value - mean)**2 for value in values]))/(len(values)-1)
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'baseline - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
     def test_distilgpt2_rust_single_threaded(self):
@@ -147,9 +149,9 @@ class TestBenchmarkDistilGPT2:
             t0 = timer()
             self.rust_batch_single_threaded()
             t1 = timer()
-            values.append((t1-t0)*1000)
-        mean = sum(values)/len(values)
-        std_dev = math.sqrt(sum([(value - mean)**2 for value in values]))/(len(values)-1)
+            values.append((t1 - t0) * 1000)
+        mean = sum(values) / len(values)
+        std_dev = math.sqrt(sum([(value - mean) ** 2 for value in values])) / (len(values) - 1)
         print(f'rust single thread - mean: {mean:.2f}, std. dev: {std_dev:.2f}')
 
     def teardown_class(self):

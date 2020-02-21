@@ -30,7 +30,7 @@ class TestBenchmarkGPT2:
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyGpt2Tokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['gpt2']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2']), do_lower_case=True
         )
         self.model = GPT2Model.from_pretrained('gpt2',
                                                output_attentions=False).eval()
@@ -95,7 +95,8 @@ class TestBenchmarkGPT2:
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyGpt2Tokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['gpt2']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2'])
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['gpt2']),
+            do_lower_case=True
         )
 
     def baseline_batch(self):
