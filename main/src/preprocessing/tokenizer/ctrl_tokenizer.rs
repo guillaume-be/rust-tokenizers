@@ -82,6 +82,10 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         }
         tokenized_text
     }
+
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens.join(" ").replace("@@ ", "").trim().to_owned()
+    }
 }
 
 #[cfg(test)]
@@ -237,5 +241,55 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(ctrl_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+    }
+
+    #[test]
+    fn test_decode() {
+//        Given
+        let vocab = Rc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
+        let skip_special_tokens = false;
+        let clean_up_tokenization_spaces = false;
+        let test_tuples = [
+            (
+                vec!(4, 6, 2, 5, 6, 1),
+                "the <unk> ar<unk> h",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(ctrl_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_decode_skip_special_tokens() {
+//        Given
+        let vocab = Rc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
+        let skip_special_tokens = true;
+        let clean_up_tokenization_spaces = true;
+        let test_tuples = [
+            (
+                vec!(4, 6, 2, 5, 6, 1),
+                "the arh",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(ctrl_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
     }
 }
