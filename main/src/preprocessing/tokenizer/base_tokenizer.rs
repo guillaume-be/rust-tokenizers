@@ -92,6 +92,42 @@ pub trait Tokenizer<T: Vocab> {
             .collect()
     }
 
+    fn decode(&self, token_ids: Vec<i64>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> String {
+        let tokens: Vec<String> = if skip_special_tokens {
+            token_ids
+                .iter()
+                .filter(|id| !self.vocab().special_indices().contains_key(id))
+                .map(|id| { self.vocab().id_to_token(id) })
+                .collect_vec()
+        } else {
+            token_ids
+                .iter()
+                .map(|id| { self.vocab().id_to_token(id) })
+                .collect_vec()
+        };
+
+        let tokens = tokens.join(" ");
+        if clean_up_tokenization_spaces {
+            Self::clean_up_tokenization(tokens)
+        } else {
+            tokens
+        }
+    }
+
+    fn clean_up_tokenization(input_string: String) -> String {
+        input_string
+            .replace(" .", ".")
+            .replace(" !", "!")
+            .replace(" ?", "?")
+    }
+
+    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Vec<String> {
+        token_ids_list
+            .into_iter()
+            .map(|token_ids| self.decode(token_ids, skip_special_tokens, clean_up_tokenization_spaces))
+            .collect()
+    }
+
 
     fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>) -> (Vec<i64>, Vec<i8>, Vec<i8>) {
         let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
@@ -135,6 +171,13 @@ pub trait MultiThreadedTokenizer<T: Vocab>
         text_list
             .par_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
+            .collect()
+    }
+
+    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Vec<String> {
+        token_ids_list
+            .par_iter()
+            .map(|token_ids| self.decode(token_ids.to_vec(), skip_special_tokens, clean_up_tokenization_spaces))
             .collect()
     }
 }
@@ -446,5 +489,38 @@ mod tests {
         }
         assert_eq!(Tokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
         assert_eq!(MultiThreadedTokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+    }
+
+    #[test]
+    fn test_decode() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true);
+        let skip_special_tokens = false;
+        let clean_up_tokenization_spaces = false;
+        let test_tuples = [
+            (
+                vec!(0, 1, 3),
+                "hello world !",
+            ),
+            (
+                vec!(10, 0, 1, 3),
+                "[PAD] hello world !",
+            ),
+            (
+                vec!(10, 0, 1, 2, 3),
+                "[PAD] hello world [UNK] !",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
     }
 }
