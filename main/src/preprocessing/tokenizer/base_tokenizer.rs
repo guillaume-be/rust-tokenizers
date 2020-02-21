@@ -106,15 +106,19 @@ pub trait Tokenizer<T: Vocab> {
                 .collect_vec()
         };
 
-        let tokens = tokens.join(" ");
+        let decoded_string = self.convert_tokens_to_string(tokens);
         if clean_up_tokenization_spaces {
-            Self::clean_up_tokenization(tokens)
+            self.clean_up_tokenization(decoded_string)
         } else {
-            tokens
+            decoded_string
         }
     }
 
-    fn clean_up_tokenization(input_string: String) -> String {
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens.join(" ")
+    }
+
+    fn clean_up_tokenization(&self, input_string: String) -> String {
         input_string
             .replace(" .", ".")
             .replace(" !", "!")
@@ -510,6 +514,72 @@ mod tests {
             (
                 vec!(10, 0, 1, 2, 3),
                 "[PAD] hello world [UNK] !",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_decode_skip_special_tokens() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true);
+        let skip_special_tokens = true;
+        let clean_up_tokenization_spaces = false;
+        let test_tuples = [
+            (
+                vec!(0, 1, 3),
+                "hello world !",
+            ),
+            (
+                vec!(10, 0, 1, 3),
+                "hello world !",
+            ),
+            (
+                vec!(10, 0, 1, 2, 3),
+                "hello world !",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_decode_clean_up_tokenization_spaces() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true);
+        let skip_special_tokens = true;
+        let clean_up_tokenization_spaces = true;
+        let test_tuples = [
+            (
+                vec!(0, 1, 3),
+                "hello world!",
+            ),
+            (
+                vec!(10, 0, 1, 3),
+                "hello world!",
+            ),
+            (
+                vec!(10, 0, 1, 2, 3),
+                "hello world!",
             )
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();

@@ -76,6 +76,10 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         }
         (output, token_segment_ids, special_tokens_mask)
     }
+
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens.join(" ").replace(" ##", "").trim().to_owned()
+    }
 }
 
 impl MultiThreadedTokenizer<BertVocab> for BertTokenizer {}
@@ -91,6 +95,7 @@ mod tests {
     use std::collections::HashMap;
     use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
     use crate::preprocessing::vocab::base_vocab::swap_key_values;
+    use itertools::Itertools;
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -256,5 +261,63 @@ mod tests {
         }
         assert_eq!(Tokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
         assert_eq!(MultiThreadedTokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+    }
+
+    #[test]
+    fn test_decode() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true);
+        let skip_special_tokens = false;
+        let clean_up_tokenization_spaces = false;
+        let test_tuples = [
+            (
+                vec!(0, 1, 3),
+                "hello world !",
+            ),
+            (
+                vec!(4, 0, 2, 11, 12, 13, 1, 3, 5),
+                "[CLS] hello [UNK] unaffable world ! [SEP]",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(bert_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_decode_skip_special_tokens() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true);
+        let skip_special_tokens = true;
+        let clean_up_tokenization_spaces = true;
+        let test_tuples = [
+            (
+                vec!(0, 1, 3),
+                "hello world!",
+            ),
+            (
+                vec!(4, 0, 2, 11, 12, 13, 1, 3, 5),
+                "hello unaffable world!",
+            )
+        ];
+        let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(bert_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+                       *expected_result);
+        }
+        assert_eq!(Tokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
     }
 }
