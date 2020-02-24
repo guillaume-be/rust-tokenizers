@@ -123,6 +123,14 @@ pub trait Tokenizer<T: Vocab> {
             .replace(" .", ".")
             .replace(" !", "!")
             .replace(" ?", "?")
+            .replace(" ,", ",")
+            .replace(" ' ", "'")
+            .replace(" n't", "n't")
+            .replace(" 'm'", "'m")
+            .replace(" do not", " don't")
+            .replace(" 's", "'s")
+            .replace(" 've", "'ve")
+            .replace(" 're", "'re")
     }
 
     fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Vec<String> {
