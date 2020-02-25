@@ -15,6 +15,7 @@ pub mod preprocessing;
 
 pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab, openai_gpt_vocab::OpenAiGptVocab, gpt2_vocab::Gpt2Vocab, roberta_vocab::RobertaVocab};
 pub use preprocessing::tokenizer::bert_tokenizer;
+pub use preprocessing::tokenizer::tokenization_utils;
 pub use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
 pub use crate::preprocessing::tokenizer::base_tokenizer::{MultiThreadedTokenizer, TruncationStrategy, TokenizedInput, Tokenizer};
 pub use crate::preprocessing::vocab::base_vocab::Vocab;
