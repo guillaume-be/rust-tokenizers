@@ -117,7 +117,7 @@ pub fn is_whitespace(character: &char) -> bool {
 /// The unassigned unicode category `Cn` has been skipped in order to avoid unnecessary checks.
 ///    A faster method may be called by setting strict to false and only check against the core control
 /// characters. To match the original BERT tokenization, this should remain true.
-fn is_control(character: &char, strict: bool) -> bool {
+pub fn is_control(character: &char, strict: bool) -> bool {
     if ADDITIONAL_WHITESPACE_CHARS.contains(character) {
         false
     } else {
@@ -144,7 +144,7 @@ fn is_control(character: &char, strict: bool) -> bool {
     }
 }
 
-fn is_punctuation(character: &char) -> bool {
+pub fn is_punctuation(character: &char) -> bool {
     let u32_char = *character as u32;
     if ((u32_char >= 33) & (u32_char <= 47)) |
         ((u32_char >= 58) & (u32_char <= 64)) |
@@ -239,9 +239,9 @@ pub fn tokenize_wordpiece(token: String, vocab: &impl Vocab, max_word_len: usize
     tokenized_text
 }
 
-pub(crate) fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
-                                 num_tokens_to_remove: usize, truncation_strategy: &TruncationStrategy, stride: usize)
-                                 -> Result<(Vec<i64>, Option<Vec<i64>>, Vec<i64>), Box<dyn Error>> {
+pub fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
+                          num_tokens_to_remove: usize, truncation_strategy: &TruncationStrategy, stride: usize)
+                          -> Result<(Vec<i64>, Option<Vec<i64>>, Vec<i64>), Box<dyn Error>> {
     if num_tokens_to_remove == 0 {
         Ok((tokens_1, tokens_2, Vec::new()))
     } else {
