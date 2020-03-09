@@ -25,6 +25,11 @@ pub struct Gpt2Vocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+impl Gpt2Vocab {
+    pub fn bos_value() -> &'static str { "<|endoftext|>" }
+    pub fn eos_value() -> &'static str { "<|endoftext|>" }
+}
+
 impl Vocab for Gpt2Vocab {
     fn unknown_value() -> &'static str { "<|endoftext|>" }
 
@@ -47,6 +52,12 @@ impl Vocab for Gpt2Vocab {
         let mut special_values = HashMap::new();
         let unknown_value = Gpt2Vocab::unknown_value();
         Gpt2Vocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+
+        let bos_value = Gpt2Vocab::bos_value();
+        Gpt2Vocab::_register_as_special_value(bos_value, &values, &mut special_values);
+
+        let eos_value = Gpt2Vocab::eos_value();
+        Gpt2Vocab::_register_as_special_value(eos_value, &values, &mut special_values);
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
@@ -105,6 +116,8 @@ mod tests {
 
 //        Then
         assert_eq!(gpt2_vocab.unknown_value, "<|endoftext|>");
+        assert_eq!(Gpt2Vocab::bos_value(), "<|endoftext|>");
+        assert_eq!(Gpt2Vocab::eos_value(), "<|endoftext|>");
         assert_eq!(gpt2_vocab.unknown_value, Gpt2Vocab::unknown_value());
         assert_eq!(gpt2_vocab.values, *gpt2_vocab.values());
         assert_eq!(gpt2_vocab.special_values, *gpt2_vocab.special_values());
