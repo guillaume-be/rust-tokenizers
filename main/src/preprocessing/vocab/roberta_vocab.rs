@@ -26,12 +26,12 @@ pub struct RobertaVocab {
 }
 
 impl RobertaVocab {
-    pub(crate) fn pad_value() -> &'static str { "<pad>" }
-    pub(crate) fn bos_value() -> &'static str { "<s>" }
-    pub(crate) fn eos_value() -> &'static str { "</s>" }
-    pub(crate) fn sep_value() -> &'static str { "</s>" }
-    pub(crate) fn cls_value() -> &'static str { "<s>" }
-    pub(crate) fn mask_value() -> &'static str { "<mask>" }
+    pub fn pad_value() -> &'static str { "<pad>" }
+    pub fn bos_value() -> &'static str { "<s>" }
+    pub fn eos_value() -> &'static str { "</s>" }
+    pub fn sep_value() -> &'static str { "</s>" }
+    pub fn cls_value() -> &'static str { "<s>" }
+    pub fn mask_value() -> &'static str { "<mask>" }
 }
 
 impl Vocab for RobertaVocab {

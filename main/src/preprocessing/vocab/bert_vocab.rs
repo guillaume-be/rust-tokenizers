@@ -24,10 +24,10 @@ pub struct BertVocab {
 }
 
 impl BertVocab {
-    pub(crate) fn pad_value() -> &'static str { "[PAD]" }
-    pub(crate) fn sep_value() -> &'static str { "[SEP]" }
-    pub(crate) fn cls_value() -> &'static str { "[CLS]" }
-    pub(crate) fn mask_value() -> &'static str { "[MASK]" }
+    pub fn pad_value() -> &'static str { "[PAD]" }
+    pub fn sep_value() -> &'static str { "[SEP]" }
+    pub fn cls_value() -> &'static str { "[CLS]" }
+    pub fn mask_value() -> &'static str { "[MASK]" }
 }
 
 impl Vocab for BertVocab {
