@@ -22,10 +22,10 @@ import os
 
 
 @pytest.mark.slow
-class TestTokenizationSST2:
+class TestTokenizationQNLI:
     def setup_class(self):
         self.processor = QnliProcessor()
-        # Note: these tests do not download automatically test datasets. Please download them manually and update your
+        # Note: these tests do not download automatically test data sets. Please download them manually and update your
         # environment variables accordingly
         self.examples = self.processor.get_train_examples(os.environ["QNLI_PATH"])
         self.test_dir = Path(tempfile.mkdtemp())
@@ -85,5 +85,3 @@ class TestTokenizationSST2:
         # Then
         for rust, baseline in zip(output_rust, output_baseline):
             assert (rust.token_ids == baseline['input_ids'])
-            assert (rust.segment_ids == baseline['token_type_ids'])
-            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])

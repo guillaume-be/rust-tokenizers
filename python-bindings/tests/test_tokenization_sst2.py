@@ -86,8 +86,6 @@ class TestTokenizationSST2:
         # Then
         for rust, baseline in zip(output_rust, output_baseline):
             assert (rust.token_ids == baseline['input_ids'])
-            assert (rust.segment_ids == baseline['token_type_ids'])
-            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_ctrl(self):
         # Given
@@ -171,7 +169,6 @@ class TestTokenizationSST2:
         # Then
         for rust, baseline in zip(output_rust, output_baseline):
             assert (rust.token_ids == baseline['input_ids'])
-            assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_openai_gpt(self):
