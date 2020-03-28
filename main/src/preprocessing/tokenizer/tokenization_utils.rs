@@ -63,7 +63,7 @@ fn split_with_separator<'a>(text: &'a str, separator: &'a str) -> Vec<&'a str> {
         return result;
     }
     for (i, subtext) in split_text.iter().enumerate() {
-        let trimmed_subtext = subtext.trim();
+        let trimmed_subtext = subtext.trim_end();
         if (i == 0) & trimmed_subtext.is_empty() {
             result.push(separator);
         } else if i == split_text.len() - 1 {
@@ -517,11 +517,11 @@ mod tests {
         let test_tuples = [
             (
                 "Sentence with [MASK] token.",
-                vec!("Sentence with", "[MASK]", "token.")
+                vec!("Sentence with", "[MASK]", " token.")
             ),
             (
                 "[CLS]Sentence with [MASK] token.",
-                vec!("[CLS]", "Sentence with", "[MASK]", "token.")
+                vec!("[CLS]", "Sentence with", "[MASK]", " token.")
             ),
             (
                 "[CLS]",
@@ -549,7 +549,7 @@ mod tests {
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!("[UNK]", "中华人民共和国", "[PAD]", "asdf")
+                vec!("[UNK]", "中华人民共和国", "[PAD]", " asdf")
             ),
         ];
 

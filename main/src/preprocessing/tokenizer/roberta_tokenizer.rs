@@ -15,7 +15,7 @@ use crate::RobertaVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens};
+use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -57,12 +57,24 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> Vec<String> {
-        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
-        let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
-        let temp_text = temp_text
-            .into_iter()
-            .map(|v| if self.lower_case { v.to_lowercase() } else { v.to_owned() })
-            .collect_vec();
+        if text.len() == 0 {
+            return vec!();
+        }
+        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len() + 1);
+        let temp_text = if !is_whitespace(&text.chars().next().unwrap()) {
+            let text = format!("{}{}", ' ', text);
+            let temp_text = split_on_special_tokens(text.as_str(), self.vocab.as_ref());
+            temp_text
+                .into_iter()
+                .map(|v| if self.lower_case { v.to_lowercase() } else { v.to_owned() })
+                .collect_vec()
+        } else {
+            let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
+            temp_text
+                .into_iter()
+                .map(|v| if self.lower_case { v.to_lowercase() } else { v.to_owned() })
+                .collect_vec()
+        };
 
 //        Rust regex's library does not include lookahead, decomposing the process in 2 steps
         for text in temp_text {
@@ -159,7 +171,7 @@ mod tests {
             ("h".to_owned(), 1),
             ("a@@".to_owned(), 2),
             ("n".to_owned(), 3),
-            ("the".to_owned(), 4),
+            ("Ġthe".to_owned(), 4),
             ("Ġ".to_owned(), 5),
             ("<unk>".to_owned(), 6),
             ("o@@".to_owned(), 7),
@@ -212,7 +224,7 @@ mod tests {
         let test_tuples = [
             (
                 "The Earth",
-                vec!("the", "Ġear", "th")
+                vec!("Ġthe", "Ġear", "th")
             ),
             (
                 "",
@@ -220,7 +232,7 @@ mod tests {
             ),
             (
                 "✿",
-                vec!("â", "ľ", "¿")
+                vec!("Ġ", "â", "ľ", "¿")
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -243,7 +255,7 @@ mod tests {
         let test_tuples = [
             (
                 "The Earth",
-                vec!("T", "he", "Ġ", "E", "a", "r", "th")
+                vec!("Ġ", "T", "he", "Ġ", "E", "a", "r", "th")
             ),
             (
                 "",
@@ -251,7 +263,7 @@ mod tests {
             ),
             (
                 "✿",
-                vec!("â", "ľ", "¿")
+                vec!("Ġ", "â", "ľ", "¿")
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -280,7 +292,7 @@ mod tests {
             ),
             (
                 "✿",
-                TokenizedInput { token_ids: vec!(8, 6, 6, 6, 9), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(8, 5, 6, 6, 6, 9), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
             ),
             (
                 "",
@@ -309,7 +321,7 @@ mod tests {
         let test_tuples = [
             (
                 vec!(8, 4, 12, 13, 9),
-                "<s>the earth</s>",
+                "<s> the earth</s>",
             )
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
