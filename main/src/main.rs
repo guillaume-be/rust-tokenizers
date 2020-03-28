@@ -23,7 +23,6 @@ fn main() {
     let vocab_path = env::var("bert_vocab").expect("`bert_vocab` environment variable not set");
     let vocab = Arc::new(rust_tokenizers::BertVocab::from_file(vocab_path.as_str()));
 
-
     let _test_sentence = Example::new_from_string("This is a sample sentence to be tokenized");
     let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab.clone(), true);
 
