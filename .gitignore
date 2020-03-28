@@ -1,5 +1,4 @@
 main/target
-**/Cargo.lock
 python-bindings/build
 python-bindings/dist
 python-bindings/*egg-info*
