@@ -153,7 +153,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             .map(|character| UNICODE_TO_BYTES.get(&character).unwrap().clone())
             .collect_vec();
 
-        String::from_utf8(tokens).unwrap()
+        String::from_utf8_lossy(&tokens).to_string()
     }
 }
 

@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "csv 1.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
