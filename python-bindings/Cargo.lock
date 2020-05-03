@@ -484,7 +484,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "csv",
  "itertools",
