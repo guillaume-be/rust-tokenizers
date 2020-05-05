@@ -77,6 +77,10 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         (output, token_segment_ids, special_tokens_mask)
     }
 
+    fn is_continuation_token(&self, token: &str) -> bool {
+        token.starts_with("##")
+    }
+
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.join(" ").replace(" ##", "").trim().to_owned()
     }
@@ -319,5 +323,39 @@ mod tests {
         }
         assert_eq!(Tokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
         assert_eq!(MultiThreadedTokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_is_continuation_token() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true);
+        let test_tuples = [
+            (
+                "Hello",
+                false,
+            ),
+            (
+                "Una",
+                false,
+            ),
+            (
+                "##ffa",
+                true,
+            ),
+            (
+                "##ble",
+                true,
+            ),
+            (
+                "",
+                false,
+            )
+        ];
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(bert_tokenizer.is_continuation_token(source_ids), *expected_result);
+        }
     }
 }

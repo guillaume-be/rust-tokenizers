@@ -83,6 +83,12 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         tokenized_text
     }
 
+    /// Note: For CTRL this functions returns true for  tokens are in fact followed by a continuation
+    /// token (CTRL would split `World` into `Wo@@` and `rld`)
+    fn is_continuation_token(&self, token: &str) -> bool {
+        token.ends_with("@@")
+    }
+
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.join(" ").replace("@@ ", "").trim().to_owned()
     }
@@ -291,5 +297,40 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_is_continuation_token() {
+//        Given
+        let vocab = Rc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
+        let test_tuples = [
+            (
+                "Hello",
+                false,
+            ),
+            (
+                "Una@@",
+                true,
+            ),
+            (
+                "ffa@@",
+                true,
+            ),
+            (
+                "ble",
+                false,
+            ),
+            (
+                "",
+                false,
+            )
+        ];
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(ctrl_tokenizer.is_continuation_token(source_ids), *expected_result);
+        }
     }
 }
