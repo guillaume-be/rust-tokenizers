@@ -143,6 +143,19 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         (output, token_segment_ids, special_tokens_mask)
     }
 
+    fn is_continuation_token(&self, token: &str) -> bool {
+        if token.is_empty() {
+            false
+        } else if token.starts_with("Ġ") {
+            false
+        } else {
+            match token.find(|c: char| { !c.is_alphabetic() }) {
+                Some(0) => false,
+                _ => true,
+            }
+        }
+    }
+
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         let tokens = tokens
             .iter()
@@ -333,5 +346,40 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(Tokenizer::decode_list(&roberta_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_is_continuation_token() {
+//        Given
+        let vocab = Rc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let roberta_tokenizer: RobertaTokenizer = RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+        let test_tuples = [
+            (
+                "ĠHello",
+                false,
+            ),
+            (
+                "ĠUna",
+                false,
+            ),
+            (
+                "ffa",
+                true,
+            ),
+            (
+                "ble",
+                true,
+            ),
+            (
+                "",
+                false,
+            )
+        ];
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(roberta_tokenizer.is_continuation_token(source_ids), *expected_result);
+        }
     }
 }

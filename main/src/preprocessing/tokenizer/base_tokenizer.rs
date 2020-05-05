@@ -114,6 +114,10 @@ pub trait Tokenizer<T: Vocab> {
         }
     }
 
+    fn is_continuation_token(&self, _token: &str) -> bool {
+        false
+    }
+
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.join(" ")
     }

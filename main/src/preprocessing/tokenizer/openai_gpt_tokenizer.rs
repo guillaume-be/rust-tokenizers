@@ -77,6 +77,11 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
         }
         tokenized_text
     }
+    /// Note: For OpenAI GPT this functions returns true for tokens are in fact followed by a continuation
+    /// token (would split `World` into `Wo` and `rld</w>`)
+    fn is_continuation_token(&self, token: &str) -> bool {
+        !token.ends_with("</w>") & !token.is_empty()
+    }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.join("").replace("</w>", " ").trim().to_owned()
@@ -260,5 +265,40 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(Tokenizer::decode_list(&openai_gpt_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_is_continuation_token() {
+//        Given
+        let vocab = Arc::new(generate_test_vocab());
+        let merges = Rc::new(generate_test_merges());
+        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+        let test_tuples = [
+            (
+                "Hello</w>",
+                false,
+            ),
+            (
+                "Una",
+                true,
+            ),
+            (
+                "ffa",
+                true,
+            ),
+            (
+                "ble</w>",
+                false,
+            ),
+            (
+                "",
+                false,
+            )
+        ];
+
+//        When & Then
+        for (source_ids, expected_result) in test_tuples.iter() {
+            assert_eq!(openai_gpt_tokenizer.is_continuation_token(source_ids), *expected_result);
+        }
     }
 }
