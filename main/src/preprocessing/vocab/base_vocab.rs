@@ -28,16 +28,22 @@ pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(input_hashmap: &HashMap<T,
 pub trait Vocab {
     fn unknown_value() -> &'static str;
 
+    ///Return the map of token strings to IDs
     fn values(&self) -> &HashMap<String, i64>;
 
+    ///Return the map of token IDs to strings
     fn indices(&self) -> &HashMap<i64, String>;
 
+    ///Return the map of token strings to IDs
     fn special_values(&self) -> &HashMap<String, i64>;
 
+    ///Return the map of token IDs to strings for special values
     fn special_indices(&self) -> &HashMap<i64, String>;
 
+    ///Read a vocabulary file from file
     fn from_file(path: &str) -> Self;
 
+    ///Read a Bert-style vocab.txt file (single column, one token per line)
     fn read_vocab_file(path: &str) -> HashMap<String, i64> {
         let f = File::open(path).expect("Could not open vocabulary file.");
         let br = BufReader::new(f);
@@ -99,14 +105,26 @@ pub trait Vocab {
     fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Vec<i64> {
         tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
+
 }
 
 
 pub struct BaseVocab {
+    ///A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
+
+    ///A mapping of token IDs to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
+
+    ///The string to use for unknown (out of vocabulary) tokens
     pub unknown_value: &'static str,
+
+    ///A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
+    ///values), special values typically include things like BOS/EOS markers, class markers, mask
+    ///markers and padding markers
     pub special_values: HashMap<String, i64>,
+
+    ///A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
 }
 

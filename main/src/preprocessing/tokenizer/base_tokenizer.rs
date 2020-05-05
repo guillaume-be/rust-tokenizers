@@ -26,8 +26,11 @@ pub enum TruncationStrategy {
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct TokenizedInput {
+    ///Vector of token IDs
     pub token_ids: Vec<i64>,
+    ///Vector segments ids, segments are seperated with a [SEP] marker, each increments the segment ID. This vector has the same length as token_ids.
     pub segment_ids: Vec<i8>,
+    ///Flags tokens as special tokens (1) or not (0). This vector has the same length as token_ids.
     pub special_tokens_mask: Vec<i8>,
     pub overflowing_tokens: Vec<i64>,
     pub num_truncated_tokens: usize,
