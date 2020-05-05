@@ -26,7 +26,11 @@ pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(input_hashmap: &HashMap<T,
 
 
 pub trait Vocab {
+    ///Associative function returning the unknown value
     fn unknown_value() -> &'static str;
+
+    ///Returns the unknown value on an instance
+    fn get_unknown_value(&self) -> &'static str;
 
     ///Return the map of token strings to IDs
     fn values(&self) -> &HashMap<String, i64>;
@@ -130,6 +134,8 @@ pub struct BaseVocab {
 
 impl Vocab for BaseVocab {
     fn unknown_value() -> &'static str { "[UNK]" }
+
+    fn get_unknown_value(&self) -> &'static str { "[UNK]" }
 
     fn values(&self) -> &HashMap<String, i64> {
         &self.values

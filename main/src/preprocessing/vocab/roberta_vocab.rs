@@ -48,6 +48,8 @@ impl RobertaVocab {
 impl Vocab for RobertaVocab {
     fn unknown_value() -> &'static str { "<unk>" }
 
+    fn get_unknown_value(&self) -> &'static str { "<unk>" }
+
     fn values(&self) -> &HashMap<String, i64> {
         &self.values
     }

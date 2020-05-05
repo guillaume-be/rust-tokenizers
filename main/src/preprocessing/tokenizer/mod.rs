@@ -11,8 +11,9 @@
 
 pub mod base_tokenizer;
 pub mod bert_tokenizer;
-pub mod ctrl_tokenizer;
-pub mod openai_gpt_tokenizer;
+//TODO: re-enable!
+//pub mod ctrl_tokenizer;
+//pub mod openai_gpt_tokenizer;
 pub mod gpt2_tokenizer;
 pub mod roberta_tokenizer;
 pub mod tokenization_utils;

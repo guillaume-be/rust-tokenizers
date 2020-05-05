@@ -13,9 +13,9 @@
 
 use crate::Gpt2Vocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset, Token, TokenRef, Mask};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens};
+use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, split_on_regex};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -27,7 +27,7 @@ use itertools::Itertools;
 pub struct Gpt2Tokenizer {
     vocab: Rc<Gpt2Vocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<String>>>,
+    cache: RefCell<HashMap<String, Vec<Token>>>,
     pattern_lookahead: Regex,
     pattern_tokenization: Regex,
     lower_case: bool,
@@ -56,55 +56,72 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize(&self, text: &str) -> Vec<String> {
-        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
-        let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
-        let temp_text = temp_text
+    fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
+        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
-            .map(|v| if self.lower_case { v.to_lowercase() } else { v.to_owned() })
-            .collect_vec();
-
-//        Rust regex's library does not include lookahead, decomposing the process in 2 steps
-        for text in temp_text {
-            if !self.vocab.special_values.contains_key(text.as_str()) {
-                let mut sub_words: Vec<&str> = vec!();
-                let mut splits: Vec<&str> = vec!();
-
-                let mut i: usize = 0;
-                let mut end: usize;
-                for hit in self.pattern_lookahead.find_iter(text.as_str()) {
-                    end = hit.end() - 1 - hit.as_str().chars().last().unwrap().len_utf8();
-                    splits.push(&text[i..end]);
-                    i = end;
-                }
-                splits.push(&text[i..]);
-
-                for sub_word in splits {
-                    for hit in self.pattern_tokenization.find_iter(sub_word) {
-                        sub_words.push(hit.as_str());
+            .map(|token| {
+                // v-- this is where the token gets owned, all steps above handle TokenRefs (dealing with &str)
+                let mut token = token.owned_token();
+                if !self.vocab.special_values().contains_key(&token.text) {
+                    //apply the necessary transformations to the actual tokens (unless it's a special value)
+                    if self.lower_case {
+                        token.text = token.text.to_lowercase();
                     }
                 }
 
-                for word in sub_words {
-                    let word: String = word.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
-                    let cached: bool = match self.cache.borrow().get(&word) {
-                        Some(value) => {
-                            tokenized_text.extend(value.clone());
-                            true
-                        }
-                        None => false
-                    };
-                    if !cached {
-                        let bpe_output = bpe(word.as_str(), self.bpe_ranks.as_ref());
-                        self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
-                        tokenized_text.extend(bpe_output);
+                split_on_regex(token.token_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
+            })
+            .flatten()
+            .map(|token: Token| {
+                let mut tokens: Vec<Token> = Vec::new();
+                let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
+                let cached: bool = match self.cache.borrow().get(&text) {
+                    Some(cached_tokens) => {
+                        tokens.extend(cached_tokens.clone().into_iter().map(|mut t| {
+                            //the tokens from the cache have 0-based offsets, adapt the offset
+                            //according to the input offset
+                            t.offset.begin += token.offset.begin;
+                            t.offset.end += token.offset.begin;
+                            t
+                        }).collect::<Vec<Token>>());
+                        true
                     }
+                    None => false
                 };
-            } else {
-                tokenized_text.push(text);
+                if !cached {
+                    let bpe_output: Vec<Token> = bpe(TokenRef {
+                        text: text.as_str(),
+                        offset: Offset { //we reset the offset, so we can cache
+                            begin: 0,
+                            end: token.offset.end - token.offset.begin
+                        },
+                        mask: Mask::None
+                    }, self.bpe_ranks.as_ref());
+                    self.cache.borrow_mut().insert(text.to_owned(), bpe_output.clone());
+                    tokens.extend(bpe_output.into_iter().map(|mut t| {
+                        //the tokens from the bpe_output have 0-based offsets, adapt the offset
+                        //according to the input offset
+                        t.offset.begin += token.offset.begin;
+                        t.offset.end += token.offset.begin;
+                        t
+                    }).collect::<Vec<Token>>())
+                }
+
+                tokens
+            })
+            .flatten()
+            .collect();
+
+        //fix mask
+        if !tokens.is_empty() {
+            for i in 1..(tokens.len() - 1) {
+                if tokens[i].mask == Mask::InexactBegin && tokens[i-1].mask == Mask::InexactBegin {
+                    tokens[i-1].mask = Mask::None;
+                }
             }
         }
-        tokenized_text
+
+        tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -250,15 +267,19 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(4, 8, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(4, 8, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(
+                    Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 })
+                    ),
+                    mask: vec!(Mask::None, Mask::InexactBegin, Mask::InexactContinuation)
+                }
             ),
             (
                 " ",
-                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!( Some(Offset { begin: 0, end: 1 }) ), mask: vec!(Mask::None) }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(), mask: vec!(Mask::None) }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

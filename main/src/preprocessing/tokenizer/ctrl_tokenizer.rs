@@ -13,7 +13,7 @@
 
 use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset};
 use std::collections::HashMap;
 use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens};
 use std::rc::Rc;
@@ -52,7 +52,8 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize(&self, text: &str) -> Vec<String> {
+    fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
+        //TODO
         let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
         let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
         let temp_text = temp_text
@@ -80,7 +81,7 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
                 tokenized_text.push(text);
             }
         }
-        tokenized_text
+        tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {

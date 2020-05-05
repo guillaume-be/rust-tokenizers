@@ -13,7 +13,7 @@
 
 use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer, Offset};
 use std::collections::HashMap;
 use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, openai_gpt_bpe};
 use std::rc::Rc;
@@ -31,14 +31,14 @@ pub struct OpenAiGptTokenizer {
 impl OpenAiGptTokenizer {
     pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> OpenAiGptTokenizer {
         let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path));
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case);
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
         let cache = RefCell::new(HashMap::new());
         OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks, cache }
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Arc<OpenAiGptVocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> OpenAiGptTokenizer {
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case);
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let cache = RefCell::new(HashMap::new());
         OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks: merges, cache }
     }
@@ -49,7 +49,8 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize(&self, text: &str) -> Vec<String> {
+    fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
+        //TODO
         let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
         let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
 
@@ -75,12 +76,13 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
                 tokenized_text.push(text.to_owned());
             }
         }
-        tokenized_text
+        tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.join("").replace("</w>", " ").trim().to_owned()
     }
+
 }
 
 #[cfg(test)]

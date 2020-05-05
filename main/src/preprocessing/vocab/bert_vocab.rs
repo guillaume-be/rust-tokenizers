@@ -44,6 +44,8 @@ impl BertVocab {
 impl Vocab for BertVocab {
     fn unknown_value() -> &'static str { "[UNK]" }
 
+    fn get_unknown_value(&self) -> &'static str { "[UNK]" }
+
     fn values(&self) -> &HashMap<String, i64> {
         &self.values
     }
