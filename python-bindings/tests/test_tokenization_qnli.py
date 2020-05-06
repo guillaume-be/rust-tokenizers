@@ -12,22 +12,28 @@
 
 import tempfile
 from pathlib import Path
+from zipfile import ZipFile
+
 import pytest
+import requests
 from transformers.data.processors.glue import QnliProcessor
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_bert import BertTokenizer
 from transformers.tokenization_distilbert import DistilBertTokenizer
 from rust_tokenizers import PyBertTokenizer
-import os
 
 
 @pytest.mark.slow
 class TestTokenizationQNLI:
     def setup_class(self):
         self.processor = QnliProcessor()
-        # Note: these tests do not download automatically test data sets. Please download them manually and update your
-        # environment variables accordingly
-        self.examples = self.processor.get_train_examples(os.environ["QNLI_PATH"])
+        self.test_dir = Path(tempfile.mkdtemp())
+        qnli_url = 'https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FQNLIv2.zip?alt=media&token=6fdcf570-0fc5-4631-8456-9505272d1601'
+        contents = requests.get(qnli_url)
+        (self.test_dir / 'QNLI.zip').open('wb').write(contents.content)
+        with ZipFile(self.test_dir / 'QNLI.zip', 'r') as zipObj:
+            zipObj.extractall(self.test_dir)
+        self.examples = self.processor.get_train_examples(self.test_dir / 'QNLI')
         self.test_dir = Path(tempfile.mkdtemp())
 
     def test_tokenization_bert(self):
@@ -55,17 +61,19 @@ class TestTokenizationQNLI:
 
         # Then
         for rust, baseline in zip(output_rust, output_baseline):
-            assert (rust.token_ids == baseline['input_ids'])
+            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                                                            f'Rust: {rust.token_ids} \n' \
+                                                            f' Python {baseline["input_ids"]}'
             assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_distilbert(self):
         # Given
-        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True,
+        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased', do_lower_case=False,
                                                                   cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-uncased']),
-            do_lower_case=True)
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-cased']),
+            do_lower_case=False)
         output_baseline = []
         for example in self.examples:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
@@ -84,4 +92,6 @@ class TestTokenizationQNLI:
 
         # Then
         for rust, baseline in zip(output_rust, output_baseline):
-            assert (rust.token_ids == baseline['input_ids'])
+            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                                                            f'Rust: {rust.token_ids} \n' \
+                                                            f' Python {baseline["input_ids"]}'

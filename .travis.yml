@@ -42,3 +42,5 @@ matrix:
         - pip install -r requirements-dev.txt
       script:
         - python setup.py install
+        - pytest ./tests/test_tokenization_sst2.py
+        - pytest ./test/test_tokenization_qnli.py
