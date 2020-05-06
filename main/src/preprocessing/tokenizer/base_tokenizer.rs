@@ -228,8 +228,8 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
             if !self.vocab.as_ref().special_values().contains_key(string) {
                 if self.lower_case {
                     *string = string.to_lowercase();
+                    *string = strip_accents(string.to_owned());
                 }
-                *string = strip_accents(string.to_owned());
             }
         }
 
