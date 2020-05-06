@@ -385,7 +385,7 @@ mod tests {
             ),
             (
                 "Allons, Flipote, allons; que d'eux je me délivre.",
-                vec!("Allons", ",", "Flipote", ",", "allons", ";", "que", "d", "\'", "eux", "je", "me", "delivre", ".")
+                vec!("Allons", ",", "Flipote", ",", "allons", ";", "que", "d", "\'", "eux", "je", "me", "délivre", ".")
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
