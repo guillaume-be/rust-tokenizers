@@ -15,7 +15,7 @@ use crate::Gpt2Vocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset, Token, TokenRef, Mask};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, split_on_regex};
+use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, split_on_regex, split_on_bpe_pairs};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -73,41 +73,7 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
             })
             .flatten()
             .map(|token: Token| {
-                let mut tokens: Vec<Token> = Vec::new();
-                let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
-                let cached: bool = match self.cache.borrow().get(&text) {
-                    Some(cached_tokens) => {
-                        tokens.extend(cached_tokens.clone().into_iter().map(|mut t| {
-                            //the tokens from the cache have 0-based offsets, adapt the offset
-                            //according to the input offset
-                            t.offset.begin += token.offset.begin;
-                            t.offset.end += token.offset.begin;
-                            t
-                        }).collect::<Vec<Token>>());
-                        true
-                    }
-                    None => false
-                };
-                if !cached {
-                    let bpe_output: Vec<Token> = bpe(TokenRef {
-                        text: text.as_str(),
-                        offset: Offset { //we reset the offset, so we can cache
-                            begin: 0,
-                            end: token.offset.end - token.offset.begin
-                        },
-                        mask: Mask::None
-                    }, self.bpe_ranks.as_ref());
-                    self.cache.borrow_mut().insert(text.to_owned(), bpe_output.clone());
-                    tokens.extend(bpe_output.into_iter().map(|mut t| {
-                        //the tokens from the bpe_output have 0-based offsets, adapt the offset
-                        //according to the input offset
-                        t.offset.begin += token.offset.begin;
-                        t.offset.end += token.offset.begin;
-                        t
-                    }).collect::<Vec<Token>>())
-                }
-
-                tokens
+                split_on_bpe_pairs(token.token_ref(), &self.bpe_ranks, &self.cache)
             })
             .flatten()
             .collect();

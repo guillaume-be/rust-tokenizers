@@ -20,9 +20,11 @@ use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 use std::error::Error;
 use std::cmp::min;
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::collections::{HashMap,HashSet};
 use regex::Regex;
 use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy,Offset,OffsetSize,Token,TokenRef,Mask};
-use std::collections::HashSet;
 use crate::preprocessing::vocab::bpe_vocab::{BpePairRef, BpePairVocab};
 
 
@@ -681,6 +683,45 @@ pub fn bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token> {
     }
 
     output.0
+}
+
+pub fn split_on_bpe_pairs<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab, cache: &RefCell<HashMap<String, Vec<Token>>>) -> Vec<Token> {
+    let mut tokens: Vec<Token> = Vec::new();
+    let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
+    let cached: bool = match cache.borrow().get(&text) {
+        Some(cached_tokens) => {
+            tokens.extend(cached_tokens.clone().into_iter().map(|mut t| {
+                //the tokens from the cache have 0-based offsets, adapt the offset
+                //according to the input offset
+                t.offset.begin += token.offset.begin;
+                t.offset.end += token.offset.begin;
+                t
+            }).collect::<Vec<Token>>());
+            true
+        }
+        None => false
+    };
+    if !cached {
+        let bpe_output: Vec<Token> = bpe(TokenRef {
+            text: text.as_str(),
+            offset: Offset { //we reset the offset, so we can cache
+                begin: 0,
+                end: token.offset.end - token.offset.begin
+            },
+            mask: Mask::None
+        }, bpe_ranks);
+        cache.borrow_mut().insert(text.to_owned(), bpe_output.clone());
+        tokens.extend(bpe_output.into_iter().map(|mut t| {
+            //the tokens from the bpe_output have 0-based offsets, adapt the offset
+            //according to the input offset
+            t.offset.begin += token.offset.begin;
+            t.offset.end += token.offset.begin;
+            t
+        }).collect::<Vec<Token>>())
+    }
+
+    tokens
+
 }
 
 //==============================
