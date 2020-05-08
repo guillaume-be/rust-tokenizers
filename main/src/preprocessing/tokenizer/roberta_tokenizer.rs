@@ -15,7 +15,7 @@ use crate::RobertaVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset,Token,TokenRef,Mask};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace, split_on_regex, split_on_bpe_pairs};
+use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace, split_on_regex_with_lookahead, split_on_bpe_pairs};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -72,14 +72,14 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             .into_iter()
             .map(|token| {
                 let mut token = token.owned_token();
-                if !self.vocab.special_values().contains_key(&token.text) {
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
                         token.text = token.text.to_lowercase();
                     }
                 }
 
-                split_on_regex(token.token_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
+                split_on_regex_with_lookahead(token.token_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {

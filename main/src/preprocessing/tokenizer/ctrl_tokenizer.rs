@@ -13,9 +13,9 @@
 
 use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset,Mask,Token,TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens};
+use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens, split_on_regex, split_on_bpe_pairs};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -26,7 +26,7 @@ use itertools::Itertools;
 pub struct CtrlTokenizer {
     vocab: Rc<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<String>>>,
+    cache: RefCell<HashMap<String, Vec<Token>>>,
     regex_pattern: Regex,
     lower_case: bool,
 }
@@ -53,34 +53,35 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
     }
 
     fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
-        //TODO
-        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
-        let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
-        let temp_text = temp_text
+        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
-            .map(|v| if self.lower_case { v.to_lowercase() } else { v.to_owned() })
-            .collect_vec();
-
-        for text in temp_text {
-            if !self.vocab.special_values.contains_key(text.as_str()) {
-                for word in self.regex_pattern.find_iter(text.as_ref()) {
-                    let cached: bool = match self.cache.borrow().get(word.as_str()) {
-                        Some(value) => {
-                            tokenized_text.extend(value.clone());
-                            true
-                        }
-                        None => false
-                    };
-                    if !cached {
-                        let bpe_output = ctrl_bpe(word.as_str(), self.bpe_ranks.as_ref());
-                        self.cache.borrow_mut().insert(word.as_str().to_owned(), bpe_output.clone());
-                        tokenized_text.extend(bpe_output);
+            .map(|token| {
+                let mut token = token.owned_token();
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    //apply the necessary transformations to the actual tokens (unless it's a special value)
+                    if self.lower_case {
+                        token.text = token.text.to_lowercase();
                     }
-                };
-            } else {
-                tokenized_text.push(text);
+                }
+
+                split_on_regex(token.token_ref(), &self.regex_pattern).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
+            })
+            .flatten()
+            .map(|token: Token| {
+                split_on_bpe_pairs(token.token_ref(), ctrl_bpe, &self.bpe_ranks, &self.cache)
+            })
+            .flatten()
+            .collect();
+
+        //fix mask
+        if !tokens.is_empty() {
+            for i in 1..tokens.len() - 1 {
+                if tokens[i].mask == Mask::InexactBegin && tokens[i-1].mask == Mask::InexactBegin {
+                    tokens[i-1].mask = Mask::None;
+                }
             }
         }
+
         tokens
     }
 
@@ -222,15 +223,25 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(4, 6, 2, 5, 6, 1), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(4, 6, 2, 5, 6, 1), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0,
+                 token_offsets: vec!(),
+                 mask: vec!(),
+                }
             ),
             (
                 "Hello, world!",
-                TokenizedInput { token_ids: vec!(6, 6, 6, 8, 6, 6, 8, 5, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(6, 6, 6, 8, 6, 6, 8, 5, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0,
+                 token_offsets: vec!(),
+                 mask: vec!(),
+                }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 ,
+                 token_offsets: vec!(),
+                 mask: vec!(),
+                }
+
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

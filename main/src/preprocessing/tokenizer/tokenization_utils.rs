@@ -213,7 +213,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
     tokens
 }
 
-pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_lookahead: &Regex, pattern_tokenization: &Regex) -> Vec<TokenRef<'a>> {
+pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead: &Regex, pattern_tokenization: &Regex) -> Vec<TokenRef<'a>> {
     if token.mask == Mask::None {
         let mut sub_words: Vec<TokenRef<'a>> = vec!();
         let mut splits: Vec<TokenRef<'a>> = vec!();
@@ -242,26 +242,31 @@ pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_lookahead: &Regex, patter
         });
 
         for sub_word in splits {
-            beginchar = sub_word.offset.begin as usize;
-            for hit in pattern_tokenization.find_iter(sub_word.text) {
-                //eprintln!("hit in sub_word: {:?}", hit);
-                endchar = beginchar + hit.as_str().chars().count();
-                sub_words.push( TokenRef {
-                    text: hit.as_str(),
-                    offset: Offset::new(beginchar as OffsetSize, endchar as OffsetSize),
-                    mask: Mask::None,
-                });
-                beginchar = endchar;
-            }
+            sub_words.extend(split_on_regex(sub_word, pattern_tokenization))
         }
 
-
-        //eprintln!("RETURNED SUBWORDS: {:?}", sub_words);
         sub_words
 
     } else {
         vec!(token)
     }
+}
+
+pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> Vec<TokenRef<'a>> {
+    let mut tokens: Vec<TokenRef<'a>> = Vec::new();
+    let mut endchar: usize;
+    let mut beginchar: usize = token.offset.begin as usize;
+    for hit in pattern_tokenization.find_iter(token.text) {
+        assert_eq!(hit.start(),0); //code needs some additions if this is false
+        endchar = beginchar + hit.as_str().chars().count();
+        tokens.push( TokenRef {
+            text: hit.as_str(),
+            offset: Offset::new(beginchar as OffsetSize, endchar as OffsetSize),
+            mask: Mask::None,
+        });
+        beginchar = endchar;
+    }
+    tokens
 }
 
 ///Split a token on one or more substrings (given a substring test function)
