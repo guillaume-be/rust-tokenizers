@@ -83,7 +83,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             })
             .flatten()
             .map(|token: Token| {
-                split_on_bpe_pairs(token.token_ref(), &self.bpe_ranks, &self.cache)
+                split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache)
             })
             .flatten()
             .map(|mut token: Token| {

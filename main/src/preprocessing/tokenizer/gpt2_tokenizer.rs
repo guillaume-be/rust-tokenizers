@@ -73,7 +73,7 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
             })
             .flatten()
             .map(|token: Token| {
-                split_on_bpe_pairs(token.token_ref(), &self.bpe_ranks, &self.cache)
+                split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache)
             })
             .flatten()
             .collect();

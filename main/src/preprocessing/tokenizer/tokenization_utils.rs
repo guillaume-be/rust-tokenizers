@@ -607,8 +607,9 @@ pub fn ctrl_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token>
     let mut sub_tokens: Vec<Token> = token.text.chars().enumerate().map(|(i,chr)|
         Token {
             text: chr.to_string(),
-            offset: Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),
-            mask: Mask::None,
+            offset: token.offset.clone(),
+            //offset: Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),   //this will not work because we work on a byte sequence here that may not have a clear alignment with the original token anymore
+            mask: Mask::InexactContinuation,
         }).collect();
 
     if !sub_tokens.is_empty() {
@@ -627,11 +628,15 @@ pub fn ctrl_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token>
     for (i, token) in output.0.iter_mut().enumerate() {
         if i < length - 1 {
             token.text += "@@";
-            token.mask = Mask::Unfinished;
+            assert_eq!(token.mask, Mask::InexactContinuation);
         } else if i == length - 1 {
             //strip the last </w> suffix again, we only needed it for group_common_pairs
             token.text = token.text.trim_end_matches("</w>").to_owned();
         }
+    }
+
+    if let Some(first_token)  = output.0.get_mut(0) {
+        first_token.mask = Mask::InexactBegin;
     }
 
     output.0
@@ -642,9 +647,10 @@ pub fn openai_gpt_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<
         Token {
             text: chr.to_string(),
             offset: Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),
-            mask: Mask::None,
+            mask: Mask::InexactContinuation,
         }).collect();
 
+    //the addition of </w> is basically the only difference between this function and the default bpe:
     if !sub_tokens.is_empty() {
         sub_tokens.last_mut().unwrap().text += "</w>";
     };
@@ -656,6 +662,11 @@ pub fn openai_gpt_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<
             break;
         }
     }
+
+    if let Some(first_token)  = output.0.get_mut(0) {
+        first_token.mask = Mask::InexactBegin;
+    }
+
     output.0
 }
 
@@ -685,7 +696,9 @@ pub fn bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token> {
     output.0
 }
 
-pub fn split_on_bpe_pairs<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab, cache: &RefCell<HashMap<String, Vec<Token>>>) -> Vec<Token> {
+pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks: &BpePairVocab, cache: &RefCell<HashMap<String, Vec<Token>>>) -> Vec<Token>
+    where F: Fn(TokenRef,&BpePairVocab) -> Vec<Token>
+{
     let mut tokens: Vec<Token> = Vec::new();
     let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
     let cached: bool = match cache.borrow().get(&text) {
@@ -702,7 +715,7 @@ pub fn split_on_bpe_pairs<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab, cac
         None => false
     };
     if !cached {
-        let bpe_output: Vec<Token> = bpe(TokenRef {
+        let bpe_output: Vec<Token> = bpe_function(TokenRef {
             text: text.as_str(),
             offset: Offset { //we reset the offset, so we can cache
                 begin: 0,
@@ -1627,31 +1640,31 @@ mod tests {
         let test_tuples = [
             (
                 "hello",
-                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Unfinished }, //OUT
-                      Token { text: "ell@@".to_owned(), offset: Offset::new(1,4), mask: Mask::Unfinished },
-                      Token { text: "o".to_owned(), offset: Offset::new(4,5), mask: Mask::None })
+                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,5), mask: Mask::InexactBegin }, //OUT
+                      Token { text: "ell@@".to_owned(), offset: Offset::new(0,5), mask: Mask::InexactContinuation },
+                      Token { text: "o".to_owned(), offset: Offset::new(0,5), mask: Mask::InexactContinuation })
             ),
             (
                 "hellllo",
-                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Unfinished }, //OUT
-                      Token { text: "ell@@".to_owned(), offset: Offset::new(1,4), mask: Mask::Unfinished },
-                      Token { text: "ll@@".to_owned(), offset: Offset::new(4,6), mask: Mask::Unfinished },
-                      Token { text: "o".to_owned(), offset: Offset::new(6,7), mask: Mask::None })
+                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,7), mask: Mask::InexactBegin }, //OUT
+                      Token { text: "ell@@".to_owned(), offset: Offset::new(0,7), mask: Mask::InexactContinuation },
+                      Token { text: "ll@@".to_owned(), offset: Offset::new(0,7), mask: Mask::InexactContinuation },
+                      Token { text: "o".to_owned(), offset: Offset::new(0,7), mask: Mask::InexactContinuation })
             ),
             (
                 "helo",
-                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Unfinished }, //OUT
-                      Token { text: "el@@".to_owned(), offset: Offset::new(1,3), mask: Mask::Unfinished },
-                      Token { text: "o".to_owned(), offset: Offset::new(3,4), mask: Mask::None })
+                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,4), mask: Mask::InexactBegin }, //OUT
+                      Token { text: "el@@".to_owned(), offset: Offset::new(0,4), mask: Mask::InexactContinuation },
+                      Token { text: "o".to_owned(), offset: Offset::new(0,4), mask: Mask::InexactContinuation })
             ),
             (
                 "42",
-                vec!(Token { text: "4@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Unfinished }, //OUT
-                      Token { text: "2".to_owned(), offset: Offset::new(1,2), mask: Mask::None })
+                vec!(Token { text: "4@@".to_owned(), offset: Offset::new(0,2), mask: Mask::InexactBegin }, //OUT
+                      Token { text: "2".to_owned(), offset: Offset::new(0,2), mask: Mask::InexactContinuation })
             ),
             (
                 "1",
-                vec!(Token { text: "1".to_owned(), offset: Offset::new(0,1), mask: Mask::None }), //OUT
+                vec!(Token { text: "1".to_owned(), offset: Offset::new(0,1), mask: Mask::InexactBegin }), //OUT
             ),
             (
                 "",
