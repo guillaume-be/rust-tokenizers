@@ -1,6 +1,7 @@
 // Copyright 2018 The Open AI Team Authors
 // Copyright 2018 The HuggingFace Inc. team.
-// Copyright 2019 Guillaume Becquin
+// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2020 Maarten van Gompel
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -20,7 +21,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use regex::Regex;
-use crate::preprocessing::tokenizer::constants::{BYTES_TO_UNICODE, UNICODE_TO_BYTES};
+use crate::preprocessing::tokenizer::constants::{UNICODE_TO_BYTES};
 use std::iter::Iterator;
 use itertools::Itertools;
 

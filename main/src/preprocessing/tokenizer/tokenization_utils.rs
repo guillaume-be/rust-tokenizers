@@ -1,6 +1,7 @@
 // Copyright 2018 The Open AI Team Authors, The Google AI Language Team Authors
 // Copyright 2018 The HuggingFace Inc. team.
-// Copyright 2019 Guillaume Becquin
+// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2020 Maarten van Gompel
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -14,13 +15,12 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::BertVocab;
 use crate::preprocessing::tokenizer::constants::{WHITESPACE_CHARS, ADDITIONAL_WHITESPACE_CHARS,
-                                                 PUNCTUATION_CHARS, CONTROL_CHARS, ACCENT_MARKERS, BYTES_TO_UNICODE, UNICODE_TO_BYTES};
+                                                 PUNCTUATION_CHARS, CONTROL_CHARS, ACCENT_MARKERS, BYTES_TO_UNICODE};
 use unicode_normalization::char::decompose_canonical;
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 use std::error::Error;
 use std::cmp::min;
-use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::{HashMap,HashSet};
 use regex::Regex;
@@ -54,7 +54,7 @@ pub fn split_on_special_tokens<'a>(token: TokenRef<'a>, vocab: &impl Vocab) -> V
                         Mask::Unknown
                     } else {
                         Mask::Special
-                    })
+                    }
             }
         }
         (0,0,Mask::None)
@@ -177,9 +177,6 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
                         offset: Offset { begin: token.offset.begin + charbegin as OffsetSize , end: token.offset.begin + charidx as OffsetSize },
                         mask: Mask::None
                     });
-                    //reset
-                    charbegin = charidx + 1;
-                    bytesbegin = bytesidx + c.len_utf8();
                 }
                 if add_separators {
                     //add seperator as a singleton token
@@ -257,7 +254,10 @@ pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> 
     let mut endchar: usize;
     let mut beginchar: usize = token.offset.begin as usize;
     for hit in pattern_tokenization.find_iter(token.text) {
-        assert_eq!(hit.start(),0); //code needs some additions if this is false
+        let startbyte = hit.start();
+        if startbyte > 0 {
+           beginchar = token.offset.begin as usize + token.text[..startbyte].chars().count();
+        }
         endchar = beginchar + hit.as_str().chars().count();
         tokens.push( TokenRef {
             text: hit.as_str(),
@@ -284,7 +284,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
 
     if token.mask == Mask::None { //don't process a token that already got marked in the mask
         //iterate over all characters, returning the byte position with each
-        for ( charidx , (bytesidx, c)) in token.text.char_indices().enumerate() {
+        for ( charidx , (bytesidx, _)) in token.text.char_indices().enumerate() {
             charcount += 1;
             let (matched_bytes, matched_chars, set_mask): (usize, usize, Mask) = test_substr(&token.text[bytesidx..]);
             if matched_chars > 0 {
@@ -1228,7 +1228,6 @@ mod tests {
     #[test]
     fn test_split_on_punct() {
 //        Given
-        let vocab = generate_test_vocab();
         let test_tuples = [
             (
                 "Sentence One. Sentence Two",

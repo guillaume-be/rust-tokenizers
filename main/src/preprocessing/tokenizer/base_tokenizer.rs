@@ -1,6 +1,7 @@
 // Copyright 2018 The Open AI Team Authors, The Google AI Language Team Authors
 // Copyright 2018 The HuggingFace Inc. team.
-// Copyright 2019 Guillaume Becquin
+// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2020 Maarten van Gompel
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -14,7 +15,7 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, split_on_special_tokens, clean_text, truncate_sequences};
 use std::sync::Arc;
-use std::borrow::{ToOwned,Borrow};
+use std::borrow::{ToOwned};
 use std::convert::AsRef;
 use rayon::prelude::*;
 use itertools::Itertools;

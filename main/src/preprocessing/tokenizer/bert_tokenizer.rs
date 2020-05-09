@@ -1,6 +1,7 @@
 // Copyright 2018 The Google AI Language Team Authors
 // Copyright 2018 The HuggingFace Inc. team.
-// Copyright 2019 Guillaume Becquin
+// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2020 Maarten van Gompel
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,7 +14,7 @@
 
 use crate::preprocessing::tokenizer::base_tokenizer::{MultiThreadedTokenizer, BaseTokenizer, Tokenizer, Offset, TokenRef, Token, Mask};
 use std::sync::Arc;
-use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_wordpiece, whitespace_tokenize, split_on_special_tokens};
+use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_wordpiece};
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::BertVocab;
 
