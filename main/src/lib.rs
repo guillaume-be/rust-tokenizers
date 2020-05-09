@@ -17,7 +17,7 @@ pub use preprocessing::vocab::{base_vocab::BaseVocab, bert_vocab::BertVocab, ope
 pub use preprocessing::tokenizer::bert_tokenizer;
 pub use preprocessing::tokenizer::tokenization_utils;
 pub use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
-pub use crate::preprocessing::tokenizer::base_tokenizer::{MultiThreadedTokenizer, TruncationStrategy, TokenizedInput, Tokenizer};
+pub use crate::preprocessing::tokenizer::base_tokenizer::{MultiThreadedTokenizer, TruncationStrategy, TokenizedInput, Tokenizer,Token,TokenRef,Mask,Offset};
 pub use crate::preprocessing::vocab::base_vocab::Vocab;
 pub use crate::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
 pub use crate::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
