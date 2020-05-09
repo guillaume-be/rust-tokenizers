@@ -84,7 +84,11 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             })
             .flatten()
             .map(|token: Token| {
-                split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache)
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache)
+                } else {
+                    vec!(token)
+                }
             })
             .flatten()
             .map(|mut token: Token| {

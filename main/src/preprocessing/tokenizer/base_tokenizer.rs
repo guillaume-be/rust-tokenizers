@@ -49,7 +49,7 @@ pub enum Mask {
     Punctuation,
     ///the token represents a single Chinese/Japanese/Korean character (including kana and hangul)
     CJK,
-    ///the token is a special marker (such as a seperator marker, a class marker, etc)
+    ///the token is a special marker (such as a separator marker, a class marker, etc)
     Special,
     ///the token is the begin in a series of subtokens, the offset refers specifically to the subtoken. Subsequent tokens in this sequence will carry the 'Continuation' mask
     Begin,

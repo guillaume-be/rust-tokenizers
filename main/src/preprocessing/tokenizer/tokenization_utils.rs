@@ -130,7 +130,7 @@ pub fn is_punctuation(character: &char) -> bool {
 }
 
 
-///Simple tokenisation based on whitespace only
+///Simple tokenization based on whitespace only
 pub fn whitespace_tokenize(token: TokenRef) -> Vec<TokenRef> {
     split_on_char(token, is_whitespace, false, Mask::Whitespace)
 }
@@ -164,7 +164,6 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
     let mut bytesbegin: usize = 0;
     let mut charcount: usize = 0;
 
-
     if token.mask == Mask::None {
         //iterate over all characters, returning the byte position with each
         for (charidx, (bytesidx, c)) in token.text.char_indices().enumerate() {
@@ -179,7 +178,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
                     });
                 }
                 if add_separators {
-                    //add seperator as a singleton token
+                    //add separator as a singleton token
                     tokens.push(TokenRef {
                         text: &token.text[bytesidx..bytesidx + c.len_utf8()],
                         offset: Offset { begin: token.offset.begin + charidx as OffsetSize, end: token.offset.begin + charidx as OffsetSize + 1 },
@@ -283,29 +282,29 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
 
     if token.mask == Mask::None { //don't process a token that already got marked in the mask
         //iterate over all characters, returning the byte position with each
-        for (charidx, (bytesidx, _)) in token.text.char_indices().enumerate() {
+        for (char_idx, (bytes_idx, _)) in token.text.char_indices().enumerate() {
             charcount += 1;
-            let (matched_bytes, matched_chars, set_mask): (usize, usize, Mask) = test_substr(&token.text[bytesidx..]);
+            let (matched_bytes, matched_chars, set_mask): (usize, usize, Mask) = test_substr(&token.text[bytes_idx..]);
             if matched_chars > 0 {
-                if charbegin < charidx {
+                if charbegin < char_idx {
                     //add previous token
                     tokens.push(TokenRef {
-                        text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
+                        text: &token.text[bytesbegin..bytesbegin + (bytes_idx - bytesbegin)],
                         offset: Offset { begin: token.offset.begin + charbegin as OffsetSize, end: token.offset.begin + (charbegin + matched_chars) as OffsetSize },
                         mask: Mask::None,
                     });
                 }
                 if add_separators {
-                    //add seperator as a singleton token
+                    //add separator as a singleton token
                     tokens.push(TokenRef {
-                        text: &token.text[bytesidx..bytesidx + matched_bytes],
-                        offset: Offset { begin: token.offset.begin + charidx as OffsetSize, end: token.offset.begin + (charidx + matched_chars) as OffsetSize },
+                        text: &token.text[bytes_idx..bytes_idx + matched_bytes],
+                        offset: Offset { begin: token.offset.begin + char_idx as OffsetSize, end: token.offset.begin + (char_idx + matched_chars) as OffsetSize },
                         mask: set_mask,
                     });
                 }
                 //reset
-                charbegin = charidx + matched_chars;
-                bytesbegin = bytesidx + matched_bytes;
+                charbegin = char_idx + matched_chars;
+                bytesbegin = bytes_idx + matched_bytes;
             }
         }
     }
@@ -321,6 +320,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
             mask: Mask::None,
         });
     }
+    println!("{:?}", tokens);
     tokens
 }
 
@@ -349,10 +349,10 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
             let mut is_unk: bool = true; //out of vocabulary? to be falsified
             while start < end {
                 let mut substr = token.text[start..end].to_owned();
-                let charlength = substr.chars().count();
+                let char_length = substr.chars().count();
                 let suboffset = Offset {
                     begin: token.offset.begin + pos_begin as OffsetSize,
-                    end: token.offset.begin + pos_begin as OffsetSize + charlength as OffsetSize,
+                    end: token.offset.begin + pos_begin as OffsetSize + char_length as OffsetSize,
                 };
                 if start > 0 {
                     substr = format!("##{}", substr);

@@ -68,7 +68,11 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
             })
             .flatten()
             .map(|token: Token| {
-                split_on_bpe_pairs(token.token_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache)
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    split_on_bpe_pairs(token.token_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache)
+                } else {
+                    vec!(token)
+                }
             })
             .flatten()
             .collect();

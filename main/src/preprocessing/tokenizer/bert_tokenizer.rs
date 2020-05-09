@@ -26,12 +26,14 @@ pub struct BertTokenizer {
 impl BertTokenizer {
     pub fn from_file(path: &str, lower_case: bool) -> BertTokenizer {
         let vocab = Arc::new(BertVocab::from_file(path));
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
+        let strip_accents = lower_case;
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
         BertTokenizer { vocab, base_tokenizer }
     }
 
     pub fn from_existing_vocab(vocab: Arc<BertVocab>, lower_case: bool) -> BertTokenizer {
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
+        let strip_accents = lower_case;
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
         BertTokenizer { vocab, base_tokenizer }
     }
 }

@@ -69,12 +69,15 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
                         token.text = token.text.to_lowercase();
                     }
                 }
-
                 split_on_regex_with_lookahead(token.token_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {
-                split_on_bpe_pairs(token.token_ref(), bpe, (&self.bpe_ranks).as_ref(), &self.cache)
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    split_on_bpe_pairs(token.token_ref(), bpe, (&self.bpe_ranks).as_ref(), &self.cache)
+                } else {
+                    vec!(token)
+                }
             })
             .flatten()
             .collect();
@@ -160,13 +163,17 @@ mod tests {
                 "",
                 vec!()
             ),
-//            (
-//                " ",
-//                vec!()
-//            ),
+            (
+                " ",
+                vec!()
+            ),
             (
                 "   t",
                 vec!("Ġ", "Ġ", "Ġt")
+            ),
+            (
+                "t ",
+                vec!("t")
             ),
             (
                 " \n ",
@@ -199,10 +206,10 @@ mod tests {
                 "",
                 vec!()
             ),
-//            (
-//                " ",
-//                vec!()
-//            ),
+            (
+                " ",
+                vec!()
+            ),
             (
                 "   t",
                 vec!("Ġ", "Ġ", "Ġt")
