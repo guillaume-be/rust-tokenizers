@@ -14,14 +14,14 @@
 
 use crate::RobertaVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset,Token,TokenRef,Mask};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Offset, Token, TokenRef, Mask};
 use std::collections::HashMap;
 use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace, split_on_regex_with_lookahead, split_on_bpe_pairs, fix_mask};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use regex::Regex;
-use crate::preprocessing::tokenizer::constants::{UNICODE_TO_BYTES};
+use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
 use std::iter::Iterator;
 use itertools::Itertools;
 
@@ -57,7 +57,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
+    fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         if initial_token.text.len() == 0 {
             return vec!();
         }
@@ -84,7 +84,11 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             })
             .flatten()
             .map(|token: Token| {
-                split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache)
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache, true)
+                } else {
+                    vec!(token)
+                }
             })
             .flatten()
             .map(|mut token: Token| {
@@ -103,6 +107,19 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         fix_mask(tokens)
     }
 
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        let tokens = tokens
+            .iter()
+            .join("")
+            .replace(" ##", "")
+            .trim()
+            .chars()
+            .map(|character| UNICODE_TO_BYTES.get(&character).unwrap().clone())
+            .collect_vec();
+
+        String::from_utf8_lossy(&tokens).to_string()
+    }
+
     fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>, offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>, mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Mask>) {
         let mut output: Vec<i64> = vec!();
         let mut token_segment_ids: Vec<i8> = vec!();
@@ -117,7 +134,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         output.extend(tokens_1);
         output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
         offsets.push(None);
-        offsets.extend(offsets_1.into_iter().map(|offset| offset.to_option()).collect::<Vec<Option<Offset>>>());
+        offsets.extend(offsets_1.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
         offsets.push(None);
         mask.push(Mask::Special);
         mask.extend(mask_1);
@@ -133,7 +150,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             output.extend(add_tokens);
             output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
             if let Some(add_offsets) = offsets_2 {
-                offsets.extend(add_offsets.into_iter().map(|offset| offset.to_option()).collect::<Vec<Option<Offset>>>());
+                offsets.extend(add_offsets.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
             } else {
                 offsets.extend(vec![None; length]);
             }
@@ -146,19 +163,6 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             mask.push(Mask::Special);
         }
         (output, token_segment_ids, special_tokens_mask, offsets, mask)
-    }
-
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        let tokens = tokens
-            .iter()
-            .join("")
-            .replace(" ##", "")
-            .trim()
-            .chars()
-            .map(|character| UNICODE_TO_BYTES.get(&character).unwrap().clone())
-            .collect_vec();
-
-        String::from_utf8_lossy(&tokens).to_string()
     }
 }
 
@@ -230,7 +234,7 @@ mod tests {
             (
                 "The Earth",
                 vec!("Ġthe", "Ġear", "th"),
-                vec!( Offset { begin: 0, end: 3 }, Offset { begin: 3, end: 7 }, Offset { begin: 7, end: 9 } ),
+                vec!(Offset { begin: 0, end: 3 }, Offset { begin: 3, end: 7 }, Offset { begin: 7, end: 9 }),
                 vec!(Mask::None, Mask::Begin, Mask::Continuation)
             ),
             (
@@ -271,7 +275,7 @@ mod tests {
                 "The Earth",
                 vec!("Ġ", "T", "he", "Ġ", "E", "a", "r", "th"),
                 vec!(Offset { begin: 0, end: 0 }, Offset { begin: 0, end: 1 }, Offset { begin: 1, end: 3 }, Offset { begin: 3, end: 4 }, Offset { begin: 4, end: 5 }, Offset { begin: 5, end: 6 }, Offset { begin: 6, end: 7 }, Offset { begin: 7, end: 9 }), //note: first inserted whitespace has offset (0,0), which will map to Option::None in further encoding
-                vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Begin, Mask::Continuation, Mask::Continuation,Mask::Continuation, Mask::Continuation)
+                vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation)
             ),
             (
                 "",
@@ -311,26 +315,45 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(8, 4, 12, 13, 9), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(
-                    None, Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 }), None
+                TokenizedInput {
+                    token_ids: vec!(8, 4, 12, 13, 9),
+                    segment_ids: vec!(0, 0, 0, 0, 0),
+                    special_tokens_mask: vec!(1, 0, 0, 0, 1),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(
+                        None, Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 }), None
                     ),
-                mask: vec!(Mask::Special, Mask::None, Mask::Begin, Mask::Continuation, Mask::Special)
+                    mask: vec!(Mask::Special, Mask::None, Mask::Begin, Mask::Continuation, Mask::Special),
                 }
             ),
             (
                 "✿",
-                TokenizedInput { token_ids: vec!(8, 5, 6, 6, 6, 9), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(
-                    None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), None
+                TokenizedInput {
+                    token_ids: vec!(8, 5, 6, 6, 6, 9),
+                    segment_ids: vec!(0, 0, 0, 0, 0, 0),
+                    special_tokens_mask: vec!(1, 0, 0, 0, 0, 1),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(
+                        None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), None
                     ),
-                mask: vec!(Mask::Special, Mask::InexactBegin, Mask::InexactContinuation, Mask::InexactContinuation, Mask::InexactContinuation, Mask::Special)
+                    mask: vec!(Mask::Special, Mask::InexactBegin, Mask::InexactContinuation, Mask::InexactContinuation, Mask::InexactContinuation, Mask::Special),
                 }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(8, 9), segment_ids: vec!(0, 0), special_tokens_mask: vec!(1, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(
-                    None, None
+                TokenizedInput {
+                    token_ids: vec!(8, 9),
+                    segment_ids: vec!(0, 0),
+                    special_tokens_mask: vec!(1, 1),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(
+                        None, None
                     ),
-                mask: vec!(Mask::Special, Mask::Special) }
+                    mask: vec!(Mask::Special, Mask::Special),
+                }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

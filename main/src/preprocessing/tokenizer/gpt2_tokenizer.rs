@@ -14,14 +14,14 @@
 
 use crate::Gpt2Vocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Token, TokenRef, Mask,Offset};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Token, TokenRef, Mask};
 use std::collections::HashMap;
 use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, split_on_regex_with_lookahead, split_on_bpe_pairs, fix_mask};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use regex::Regex;
-use crate::preprocessing::tokenizer::constants::{UNICODE_TO_BYTES};
+use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
 use std::iter::Iterator;
 use itertools::Itertools;
 
@@ -57,7 +57,7 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
+    fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         let tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
             .map(|token| {
@@ -69,12 +69,15 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
                         token.text = token.text.to_lowercase();
                     }
                 }
-
                 split_on_regex_with_lookahead(token.token_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {
-                split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache)
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    split_on_bpe_pairs(token.token_ref(), bpe, (&self.bpe_ranks).as_ref(), &self.cache, true)
+                } else {
+                    vec!(token)
+                }
             })
             .flatten()
             .collect();
@@ -100,7 +103,7 @@ mod tests {
     use super::*;
     use crate::Gpt2Vocab;
     use std::collections::HashMap;
-    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput, Offset};
     use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> Gpt2Vocab {
@@ -162,11 +165,19 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<|endoftext|>")
+                vec!()
+            ),
+            (
+                "   t",
+                vec!("Ġ", "Ġ", "Ġt")
+            ),
+            (
+                "t ",
+                vec!("t")
             ),
             (
                 " \n ",
-                vec!("<|endoftext|>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -197,11 +208,15 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<|endoftext|>")
+                vec!()
+            ),
+            (
+                "   t",
+                vec!("Ġ", "Ġ", "Ġt")
             ),
             (
                 " \n ",
-                vec!("<|endoftext|>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -225,19 +240,25 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(4, 8, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(
-                    Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 })
+                TokenizedInput {
+                    token_ids: vec!(4, 8, 9),
+                    segment_ids: vec!(0, 0, 0),
+                    special_tokens_mask: vec!(0, 0, 0),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(
+                        Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 })
                     ),
-                    mask: vec!(Mask::None, Mask::Begin, Mask::Continuation)
+                    mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
                 }
             ),
             (
                 " ",
-                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!( Some(Offset { begin: 0, end: 1 }) ), mask: vec!(Mask::None) }
+                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(), mask: vec!() }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(), mask: vec!(Mask::None) }
+                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(), mask: vec!() }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

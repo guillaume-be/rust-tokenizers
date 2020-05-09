@@ -62,8 +62,8 @@ class PyTest(TestCommand):
         subprocess.check_call(["pytest", "tests"])
 
 
-setup_requires = ["setuptools-rust>=0.10.1", "wheel"]
-test_requires = ["pytest", "pytest-benchmark", "torch>=1.3.1", "transformers==2.6.0"]
+setup_requires = ["setuptools-rust>=0.10.6", "wheel"]
+test_requires = ["pytest", "pytest-benchmark", "torch>=1.5.0", "transformers==2.8.0"]
 
 setup(
     name="rust_tokenizers",

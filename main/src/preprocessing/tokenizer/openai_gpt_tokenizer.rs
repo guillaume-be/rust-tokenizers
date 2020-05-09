@@ -14,7 +14,7 @@
 
 use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer, Mask, Token, TokenRef, Offset};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer, Mask, Token, TokenRef};
 use std::collections::HashMap;
 use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe, fix_mask};
 use std::rc::Rc;
@@ -50,10 +50,10 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
+    fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         let tokens: Vec<Token> = self.base_tokenizer.tokenize_to_tokens(initial_token).into_iter().map(|token| {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                split_on_bpe_pairs(token.token_ref(), openai_gpt_bpe, &self.bpe_ranks, &self.cache)
+                split_on_bpe_pairs(token.token_ref(), openai_gpt_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
             } else {
                 vec!(token)
             }
@@ -65,7 +65,6 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.join("").replace("</w>", " ").trim().to_owned()
     }
-
 }
 
 #[cfg(test)]
@@ -73,7 +72,7 @@ mod tests {
     use super::*;
     use crate::OpenAiGptVocab;
     use std::collections::HashMap;
-    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput, Offset};
     use crate::preprocessing::vocab::base_vocab::swap_key_values;
     use itertools::Itertools;
 
@@ -136,11 +135,11 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<unk>")
+                vec!()
             ),
             (
                 " \n ",
-                vec!("<unk>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -171,11 +170,11 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<unk>")
+                vec!()
             ),
             (
                 " \n ",
-                vec!("<unk>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -200,23 +199,38 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(8, 10, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0,
-                 token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 6 }), Some(Offset { begin: 6, end: 9 })),
-                 mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
+                TokenizedInput {
+                    token_ids: vec!(8, 10, 9),
+                    segment_ids: vec!(0, 0, 0),
+                    special_tokens_mask: vec!(0, 0, 0),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 6 }), Some(Offset { begin: 6, end: 9 })),
+                    mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
                 }
             ),
             (
                 " ",
-                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0 ,
-                 token_offsets: vec!(),
-                 mask: vec!(),
+                TokenizedInput {
+                    token_ids: vec!(),
+                    segment_ids: vec!(),
+                    special_tokens_mask: vec!(),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(),
+                    mask: vec!(),
                 }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 ,
-                 token_offsets: vec!(),
-                 mask: vec!(),
+                TokenizedInput {
+                    token_ids: vec!(),
+                    segment_ids: vec!(),
+                    special_tokens_mask: vec!(),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(),
+                    mask: vec!(),
                 }
             )
         ];
