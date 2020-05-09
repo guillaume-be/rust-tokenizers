@@ -54,7 +54,7 @@ pub fn split_on_special_tokens<'a>(token: TokenRef<'a>, vocab: &impl Vocab) -> V
                         Mask::Unknown
                     } else {
                         Mask::Special
-                    }
+                    });
             }
         }
         (0,0,Mask::None)
