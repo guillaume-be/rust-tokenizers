@@ -41,7 +41,8 @@ class TestTokenizationSST2:
 
     def test_tokenization_bert(self):
         # Given
-        self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True,
+        self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
+                                                            do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
@@ -62,18 +63,20 @@ class TestTokenizationSST2:
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
-            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
-                                                            f'Sentence a: {self.examples[idx].text_a} \n' \
-                                                            f'Sentence b: {self.examples[idx].text_b} \n' \
-                                                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
-                                                            f'Rust: {rust.token_ids} \n' \
-                                                            f' Python {baseline["input_ids"]}'
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f' Python {baseline["input_ids"]}'
             assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_distilbert(self):
         # Given
-        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased', do_lower_case=False,
+        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased',
+                                                                  do_lower_case=False,
                                                                   cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-cased']),
@@ -94,20 +97,23 @@ class TestTokenizationSST2:
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
-            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
-                                                            f'Sentence a: {self.examples[idx].text_a} \n' \
-                                                            f'Sentence b: {self.examples[idx].text_b} \n' \
-                                                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
-                                                            f'Rust: {rust.token_ids} \n' \
-                                                            f' Python {baseline["input_ids"]}'
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f' Python {baseline["input_ids"]}'
 
     def test_tokenization_ctrl(self):
         # Given
-        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl', do_lower_case=True,
+        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl',
+                                                            do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyCtrlTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['ctrl']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl']), do_lower_case=True
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl']),
+            do_lower_case=True
         )
         output_baseline = []
         for example in self.examples:
@@ -125,18 +131,20 @@ class TestTokenizationSST2:
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
-            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
-                                                            f'Sentence a: {self.examples[idx].text_a} \n' \
-                                                            f'Sentence b: {self.examples[idx].text_b} \n' \
-                                                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
-                                                            f'Rust: {rust.token_ids} \n' \
-                                                            f' Python {baseline["input_ids"]}'
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f' Python {baseline["input_ids"]}'
             assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_gpt2(self):
         # Given
-        self.base_tokenizer = GPT2Tokenizer.from_pretrained('gpt2', do_lower_case=True,
+        self.base_tokenizer = GPT2Tokenizer.from_pretrained('gpt2',
+                                                            do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyGpt2Tokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['gpt2']),
@@ -158,12 +166,13 @@ class TestTokenizationSST2:
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
-            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
-                                                            f'Sentence a: {self.examples[idx].text_a} \n' \
-                                                            f'Sentence b: {self.examples[idx].text_b} \n' \
-                                                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
-                                                            f'Rust: {rust.token_ids} \n' \
-                                                            f' Python {baseline["input_ids"]}'
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f' Python {baseline["input_ids"]}'
             assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
@@ -192,17 +201,19 @@ class TestTokenizationSST2:
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
-            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
-                                                            f'Sentence a: {self.examples[idx].text_a} \n' \
-                                                            f'Sentence b: {self.examples[idx].text_b} \n' \
-                                                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
-                                                            f'Rust: {rust.token_ids} \n' \
-                                                            f' Python {baseline["input_ids"]}'
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f' Python {baseline["input_ids"]}'
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_openai_gpt(self):
         # Given
-        self.base_tokenizer = OpenAIGPTTokenizer.from_pretrained('openai-gpt', do_lower_case=True,
+        self.base_tokenizer = OpenAIGPTTokenizer.from_pretrained('openai-gpt',
+                                                                 do_lower_case=True,
                                                                  cache_dir=self.test_dir)
         self.rust_tokenizer = PyOpenAiGptTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['openai-gpt']),
@@ -225,22 +236,24 @@ class TestTokenizationSST2:
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
-            assert rust.token_ids == baseline['input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
-                                                            f'Sentence a: {self.examples[idx].text_a} \n' \
-                                                            f'Sentence b: {self.examples[idx].text_b} \n' \
-                                                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
-                                                            f'Rust: {rust.token_ids} \n' \
-                                                            f' Python {baseline["input_ids"]}'
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f' Python {baseline["input_ids"]}'
             assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def get_token_diff(self, rust_tokens, python_tokens):
         last_index = 1
         first_index = 0
-        while rust_tokens[first_index] == python_tokens[first_index]:
+        max_index = min(len(rust_tokens), len(python_tokens))
+        while rust_tokens[first_index] == python_tokens[first_index] and first_index < max_index - 1:
             first_index += 1
         first_index -= 1
-        while rust_tokens[-last_index] == python_tokens[-last_index]:
+        while rust_tokens[-last_index] == python_tokens[-last_index] and last_index < max_index - 1:
             last_index += 1
         last_index += 1
         python_last_index = len(python_tokens) + last_index
