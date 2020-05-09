@@ -71,6 +71,14 @@ impl Default for Mask {
     }
 }
 
+
+pub trait TokenTrait {
+    fn offset(&self) -> Option<Offset>;
+    fn mask(&self) -> Mask;
+    fn as_str(&self) -> &str;
+}
+
+
 #[derive(Debug, PartialEq)]
 ///A token that references the original text
 pub struct TokenRef<'a> {
@@ -94,6 +102,35 @@ impl<'a> TokenRef<'a> {
             offset: self.offset,
             mask: self.mask,
         }
+    }
+
+}
+
+impl<'a> TokenTrait for TokenRef<'a> {
+    fn offset(&self) -> Option<Offset> {
+        self.offset.clone().into_option()
+    }
+
+    fn mask(&self) -> Mask {
+        self.mask
+    }
+
+    fn as_str(&self) -> &str {
+        self.text
+    }
+}
+
+impl TokenTrait for Token {
+    fn offset(&self) -> Option<Offset> {
+        self.offset.clone().into_option()
+    }
+
+    fn mask(&self) -> Mask {
+        self.mask
+    }
+
+    fn as_str(&self) -> &str {
+        self.text.as_str()
     }
 }
 
