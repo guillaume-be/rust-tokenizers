@@ -219,7 +219,6 @@ pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead:
         let mut beginchar: usize = 0; //chars
         let mut endchar: usize;
         for hit in pattern_lookahead.find_iter(token.text) {
-            //eprintln!("hit in lookahead: {:?}", hit);
             endbyte = hit.end() - 1 - hit.as_str().chars().last().unwrap().len_utf8();
             let splittext = &token.text[beginbyte..endbyte];
             endchar = beginchar + splittext.chars().count();
@@ -267,30 +266,33 @@ pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> 
     tokens
 }
 
-///Split a token on one or more substrings (given a substring test function)
+/// Split a token on one or more substrings (given a substring test function)
 /// * token: The token to split
 /// * test_str: A function that contains the string buffer from the current point forward and
-/// returns a 3-tuple with the length of the match in bytes, chars and the mask to set  (if the
+/// returns a 3-tuple with the length of the match in bytes, chars and the mask to set (if the
 /// length is zero then there is no match.
-/// * add_separators: Add the separating characters to the tokens as well? (bool), separating tokens will be indicated in the returned mask by the value set in `set_mask`, which is returned by the test_substr function
+/// * add_separators: Add the separating characters to the tokens as well? (bool), separating tokens
+/// will be indicated in the returned mask by the value set in `set_mask`, which is returned by the test_substr function
 pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separators: bool) -> Vec<TokenRef<'a>>
     where F: Fn(&'a str) -> (usize, usize, Mask) {
     let mut tokens: Vec<TokenRef<'a>> = Vec::new();
-    let mut charbegin: usize = 0;
-    let mut bytesbegin: usize = 0;
-    let mut charcount: usize = 0;
+    let mut char_begin: usize = 0;
+    let mut bytes_begin: usize = 0;
+    let mut char_count: usize = 0;
 
     if token.mask == Mask::None { //don't process a token that already got marked in the mask
         //iterate over all characters, returning the byte position with each
         for (char_idx, (bytes_idx, _)) in token.text.char_indices().enumerate() {
-            charcount += 1;
+            char_count += 1;
             let (matched_bytes, matched_chars, set_mask): (usize, usize, Mask) = test_substr(&token.text[bytes_idx..]);
             if matched_chars > 0 {
-                if charbegin < char_idx {
+                if char_begin < char_idx {
                     //add previous token
+                    let trimmed_text = token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)].trim_end();
+                    let trimmed_text_len = trimmed_text.chars().count();
                     tokens.push(TokenRef {
-                        text: &token.text[bytesbegin..bytesbegin + (bytes_idx - bytesbegin)],
-                        offset: Offset { begin: token.offset.begin + charbegin as OffsetSize, end: token.offset.begin + (charbegin + matched_chars) as OffsetSize },
+                        text: trimmed_text,
+                        offset: Offset { begin: token.offset.begin + char_begin as OffsetSize, end: token.offset.begin + (char_begin + trimmed_text_len) as OffsetSize },
                         mask: Mask::None,
                     });
                 }
@@ -303,24 +305,24 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
                     });
                 }
                 //reset
-                charbegin = char_idx + matched_chars;
-                bytesbegin = bytes_idx + matched_bytes;
+                char_begin = char_idx + matched_chars;
+                bytes_begin = bytes_idx + matched_bytes;
             }
         }
     }
-    if bytesbegin < token.text.len() {
+    if bytes_begin < token.text.len() {
         //add last buffered token if there is anything left
-        if charcount == 0 {
-            charcount = token.text.chars().count();
+        let bytes_idx = token.text.len();
+        let trimmed_text = token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)].trim_end();
+        if char_count == 0 {
+            char_count = trimmed_text.chars().count();
         }
-        let bytesidx = token.text.len();
         tokens.push(TokenRef {
-            text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
-            offset: Offset { begin: token.offset.begin + charbegin as OffsetSize, end: token.offset.begin + charcount as OffsetSize },
+            text: trimmed_text,
+            offset: Offset { begin: token.offset.begin + char_begin as OffsetSize, end: token.offset.begin + char_count as OffsetSize },
             mask: Mask::None,
         });
     }
-    println!("{:?}", tokens);
     tokens
 }
 
@@ -692,11 +694,15 @@ pub fn bpe_fix_mask(mut tokens: Vec<Token>, exact_offsets: bool) -> Vec<Token> {
     tokens
 }
 
-pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks: &BpePairVocab, cache: &RefCell<HashMap<String, Vec<Token>>>) -> Vec<Token>
+pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks: &BpePairVocab, cache: &RefCell<HashMap<String, Vec<Token>>>, as_bytes: bool) -> Vec<Token>
     where F: Fn(TokenRef, &BpePairVocab, bool) -> Vec<Token>
 {
     let mut tokens: Vec<Token> = Vec::new();
-    let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
+    let text: String = if as_bytes {
+        token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect()
+    } else {
+        token.text.to_owned()
+    };
     let cached: bool = match cache.borrow().get(&text) {
         Some(cached_tokens) => {
             tokens.extend(cached_tokens.clone().into_iter().map(|mut t| {
@@ -840,11 +846,11 @@ mod tests {
         let test_tuples = [
             (
                 "Sentence with [MASK] token.",
-                vec!("Sentence with ", "[MASK]", " token.")
+                vec!("Sentence with", "[MASK]", " token.")
             ),
             (
                 "[CLS]Sentence with [MASK] token.",
-                vec!("[CLS]", "Sentence with ", "[MASK]", " token.")
+                vec!("[CLS]", "Sentence with", "[MASK]", " token.")
             ),
             (
                 "[CLS]",
@@ -852,11 +858,11 @@ mod tests {
             ),
             (
                 "[CLS] [PAD]",
-                vec!("[CLS]", " ", "[PAD]")
+                vec!("[CLS]", "", "[PAD]")
             ),
             (
                 "[CLS]       [PAD]",
-                vec!("[CLS]", "       ", "[PAD]")
+                vec!("[CLS]", "", "[PAD]")
             ),
             (
                 "asdf[CLS]",
@@ -872,7 +878,7 @@ mod tests {
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                vec!("[UNK]", "中华人民共和国 ", "[PAD]", " asdf")
+                vec!("[UNK]", "中华人民共和国", "[PAD]", " asdf")
             ),
         ];
 

@@ -63,13 +63,12 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
                         token.text = token.text.to_lowercase();
                     }
                 }
-
                 split_on_regex(token.token_ref(), &self.regex_pattern).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.token_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache)
+                    split_on_bpe_pairs(token.token_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
                 } else {
                     vec!(token)
                 }

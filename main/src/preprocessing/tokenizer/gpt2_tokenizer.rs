@@ -74,7 +74,7 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
             .flatten()
             .map(|token: Token| {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.token_ref(), bpe, (&self.bpe_ranks).as_ref(), &self.cache)
+                    split_on_bpe_pairs(token.token_ref(), bpe, (&self.bpe_ranks).as_ref(), &self.cache, true)
                 } else {
                     vec!(token)
                 }

@@ -53,7 +53,7 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         let tokens: Vec<Token> = self.base_tokenizer.tokenize_to_tokens(initial_token).into_iter().map(|token| {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                split_on_bpe_pairs(token.token_ref(), openai_gpt_bpe, (&self.bpe_ranks).as_ref(), &self.cache)
+                split_on_bpe_pairs(token.token_ref(), openai_gpt_bpe, (&self.bpe_ranks).as_ref(), &self.cache, true)
             } else {
                 vec!(token)
             }
