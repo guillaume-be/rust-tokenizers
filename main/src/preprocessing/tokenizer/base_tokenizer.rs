@@ -15,7 +15,7 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, split_on_special_tokens, clean_text, truncate_sequences};
 use std::sync::Arc;
-use std::borrow::{ToOwned};
+use std::borrow::ToOwned;
 use std::convert::AsRef;
 use rayon::prelude::*;
 use itertools::Itertools;
@@ -61,8 +61,8 @@ pub enum Mask {
     InexactBegin,
     ///This is a a subtoken that a part of a larger token, the offsets, however, refer to the entire token rather than to the part. All subtokens in the sequence will refer to the same offsets. This is a continuation token in such a sequence.
     InexactContinuation,
-    ///The token is out of vocabulary, it is unknown by the tokeniser and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
-    Unknown
+    ///The token is out of vocabulary, it is unknown by the tokenizer and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
+    Unknown,
 }
 
 impl Default for Mask {
@@ -82,8 +82,8 @@ pub struct TokenRef<'a> {
 impl<'a> TokenRef<'a> {
     pub fn new(text: &'a str) -> TokenRef<'a> {
         TokenRef {
-            text: text,
-            offset: Offset { begin: 0, end: text.chars().count() as u32},
+            text,
+            offset: Offset { begin: 0, end: text.chars().count() as u32 },
             mask: Mask::None,
         }
     }
@@ -92,7 +92,7 @@ impl<'a> TokenRef<'a> {
         Token {
             text: self.text.to_owned(),
             offset: self.offset,
-            mask: self.mask
+            mask: self.mask,
         }
     }
 }
@@ -130,32 +130,31 @@ pub struct Token {
 }
 
 
-
 impl Token {
     pub fn new(text: String) -> Token {
-        let textsize: OffsetSize = text.chars().count() as OffsetSize;
+        let text_size: OffsetSize = text.chars().count() as OffsetSize;
         Token {
-            text: text,
-            offset: Offset { begin: 0, end: textsize },
+            text,
+            offset: Offset { begin: 0, end: text_size },
             mask: Mask::None,
         }
     }
 
-    pub fn token_ref<'a>(&'a self) -> TokenRef<'a> { //this is still ugly and should probably be done using Borrow or AsRef in some way
+    pub fn token_ref(&self) -> TokenRef { //this is still ugly and should probably be done using Borrow or AsRef in some way
         TokenRef {
             text: self.text.as_str(),
             offset: self.offset.clone(),
-            mask: self.mask.clone()
+            mask: self.mask.clone(),
         }
     }
 }
 
 impl Offset {
-    pub fn new(begin: OffsetSize,end: OffsetSize) -> Offset {
+    pub fn new(begin: OffsetSize, end: OffsetSize) -> Offset {
         Offset { begin, end }
     }
 
-    pub fn to_option(self) -> Option<Offset> {
+    pub fn into_option(self) -> Option<Offset> {
         if self.end > self.begin {
             Some(self)
         } else {
@@ -197,13 +196,16 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a string, return offset information
-    fn tokenize_with_offsets<'a>(&self, text: &'a str) -> (Vec<String>,Vec<Offset>,Vec<Mask>) {
+    fn tokenize_with_offsets<'a>(&self, text: &'a str) -> (Vec<String>, Vec<Offset>, Vec<Mask>) {
+        if text.trim().is_empty() {
+            return (vec!(), vec!(), vec!())
+        }
         let initial_token: TokenRef<'a> = TokenRef::new(text);
         self.tokenize_to_tokens(initial_token).into_iter().map(|token| (token.text, token.offset, token.mask)).unzip_n_vec()
     }
 
     ///Tokenize a text, returns a vector of tokens (contains offset information and more)
-    fn tokenize_to_tokens<'a>(&self, text: TokenRef<'a>) -> Vec<Token>;
+    fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token>;
 
     ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of vectors of strings.
     ///Use `tokenize_list_with_offsets` if you also want offset information.
@@ -215,7 +217,7 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of pairs consists of a vector of tokens and a list of offset information.
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>,Vec<Offset>,Vec<Mask>)> {
+    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Offset>, Vec<Mask>)> {
         text_list.
             into_iter().
             map(|text| self.tokenize_with_offsets(text)).
@@ -250,14 +252,14 @@ pub trait Tokenizer<T: Vocab> {
             token_mask,
             token_mask_2,
             overflowing_tokens, _overflowing_offsets) = truncate_sequences(token_ids_1,
-                                                         token_ids_2,
-                                                         token_offsets,
-                                                         token_offsets_2,
-                                                         token_mask,
-                                                         token_mask_2,
-                                                         num_truncated_tokens,
-                                                         truncation_strategy,
-                                                         stride).unwrap();
+                                                                           token_ids_2,
+                                                                           token_offsets,
+                                                                           token_offsets_2,
+                                                                           token_mask,
+                                                                           token_mask_2,
+                                                                           num_truncated_tokens,
+                                                                           truncation_strategy,
+                                                                           stride).unwrap();
 
         let (token_ids, segment_ids, special_tokens_mask, token_offsets, token_mask) = self.build_input_with_special_tokens(token_ids_1, token_ids_2, token_offsets, token_offsets_2, token_mask, token_mask_2);
 
@@ -352,7 +354,7 @@ pub trait Tokenizer<T: Vocab> {
     fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>, offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>, mut mask: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Mask>) {
         let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
         let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
-        let mut offsets: Vec<Option<Offset>> = offsets_1.into_iter().map(|offset| offset.to_option() ).collect();
+        let mut offsets: Vec<Option<Offset>> = offsets_1.into_iter().map(|offset| offset.into_option()).collect();
         let output = match tokens_2 {
             Some(tokens) => {
                 let length = tokens.len();
@@ -360,7 +362,7 @@ pub trait Tokenizer<T: Vocab> {
                 special_tokens_mask.extend(vec![0; length]);
                 tokens_1.extend(tokens);
                 if let Some(offsets_2) = offsets_2 {
-                    offsets.extend(offsets_2.into_iter().map(|offset| offset.to_option()).collect::<Vec<Option<Offset>>>());
+                    offsets.extend(offsets_2.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
                 } else {
                     offsets.extend(vec![None; length]);
                 }
@@ -384,7 +386,7 @@ pub trait MultiThreadedTokenizer<T: Vocab>
         Tokenizer::<T>::vocab(self)
     }
 
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>,Vec<Offset>,Vec<Mask>)> {
+    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Offset>, Vec<Mask>)> {
         text_list.
             par_iter().
             map(|text| self.tokenize_with_offsets(text)).
@@ -443,7 +445,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
         &self.vocab
     }
 
-    fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
+    fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         //split on whitespace
         let tokens: Vec<Token> = whitespace_tokenize(initial_token).into_iter()
             .map(|token| {
@@ -466,7 +468,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
                 let mut token = Token {
                     text: clean_text(token.text, true),
                     offset: token.offset,
-                    mask: token.mask
+                    mask: token.mask,
                 };
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
@@ -482,8 +484,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
             .collect();
 
         tokens
-   }
-
+    }
 }
 
 impl<T: Vocab + Sync + Send> MultiThreadedTokenizer<T> for BaseTokenizer<T> {}
@@ -539,51 +540,51 @@ mod tests {
             (
                 "Sentence with [MASK] token.",
                 (vec!("sentence", "with", "[MASK]", "token", "."),
-                 vec!(Offset::new(0,8), Offset::new(9,13), Offset::new(14,20), Offset::new(21,26), Offset::new(26,27)),
+                 vec!(Offset::new(0, 8), Offset::new(9, 13), Offset::new(14, 20), Offset::new(21, 26), Offset::new(26, 27)),
                  vec!(Mask::None, Mask::None, Mask::Special, Mask::None, Mask::Punctuation))
             ),
             (
                 "[CLS]",
                 (vec!("[CLS]"),
-                 vec!(Offset::new(0,5)),
+                 vec!(Offset::new(0, 5)),
                  vec!(Mask::Special))
             ),
             (
                 "[CLS] [PAD]",
                 (vec!("[CLS]", "[PAD]"),
-                 vec!(Offset::new(0,5), Offset::new(6,11)),
+                 vec!(Offset::new(0, 5), Offset::new(6, 11)),
                  vec!(Mask::Special, Mask::Special))
             ),
             (
                 "[CLS]       [PAD]",
                 (vec!("[CLS]", "[PAD]"),
-                 vec!(Offset::new(0,5), Offset::new(12,17)),
+                 vec!(Offset::new(0, 5), Offset::new(12, 17)),
                  vec!(Mask::Special, Mask::Special))
             ),
             (
                 "asdf",
                 (vec!("asdf"),
-                 vec!(Offset::new(0,4)),
+                 vec!(Offset::new(0, 4)),
                  vec!(Mask::None))
             ),
             (
                 "",
-                (vec!(),vec!(),vec!()),
+                (vec!(), vec!(), vec!()),
             ),
             (
                 "Allons, Flipote, allons; que d'eux je me délivre.",
                 (vec!("allons", ",", "flipote", ",", "allons", ";", "que", "d", "\'", "eux", "je", "me", "delivre", "."),
                  vec!(
                      Offset { begin: 0, end: 6 }, Offset { begin: 6, end: 7 }, Offset { begin: 8, end: 15 }, Offset { begin: 15, end: 16 }, Offset { begin: 17, end: 23 }, Offset { begin: 23, end: 24 }, Offset { begin: 25, end: 28 }, Offset { begin: 29, end: 30 }, Offset { begin: 30, end: 31 }, Offset { begin: 31, end: 34 }, Offset { begin: 35, end: 37 }, Offset { begin: 38, end: 40 }, Offset { begin: 41, end: 48 }, Offset { begin: 48, end: 49 }
-                     ),
-                 vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation)  ),
+                 ),
+                 vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation)),
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
                 (vec!("[UNK]", "中", "华", "人", "民", "共", "和", "国", "[PAD]", "asdf"),
                  vec!(Offset { begin: 0, end: 5 }, Offset { begin: 5, end: 6 }, Offset { begin: 6, end: 7 }, Offset { begin: 7, end: 8 }, Offset { begin: 8, end: 9 }, Offset { begin: 9, end: 10 }, Offset { begin: 10, end: 11 }, Offset { begin: 11, end: 12 }, Offset { begin: 13, end: 18 }, Offset { begin: 19, end: 23 }),
                  vec!(Mask::Unknown, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::Special, Mask::None)
-                 ),
+                ),
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -591,7 +592,7 @@ mod tests {
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
             let (tokens, offsets, mask) = base_tokenizer.tokenize_with_offsets(*source_text);
-            let tokens: Vec<&str> = tokens.iter().map(|t|t.as_str()).collect();
+            let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(offsets, expected_result.1);
             assert_eq!(mask, expected_result.2);
@@ -599,7 +600,7 @@ mod tests {
 
         let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
         for ((_, expected_result), (tokens, offsets, mask)) in test_tuples.iter().zip(results.iter()) {
-            let tokens: Vec<&str> = tokens.iter().map(|t|t.as_str()).collect();
+            let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
             assert_eq!(*mask, expected_result.2);
@@ -607,7 +608,7 @@ mod tests {
 
         let results = MultiThreadedTokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
         for ((_, expected_result), (tokens, offsets, mask)) in test_tuples.iter().zip(results.iter()) {
-            let tokens: Vec<&str> = tokens.iter().map(|t|t.as_str()).collect();
+            let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
             assert_eq!(*mask, expected_result.2);
@@ -623,44 +624,44 @@ mod tests {
             (
                 "Sentence with [MASK] token.",
                 (vec!("Sentence", "with", "[MASK]", "token", "."),
-                 vec!(Offset::new(0,8), Offset::new(9,13), Offset::new(14,20), Offset::new(21,26), Offset::new(26,27)),
+                 vec!(Offset::new(0, 8), Offset::new(9, 13), Offset::new(14, 20), Offset::new(21, 26), Offset::new(26, 27)),
                  vec!(Mask::None, Mask::None, Mask::Special, Mask::None, Mask::Punctuation))
             ),
             (
                 "[CLS]",
                 (vec!("[CLS]"),
-                vec!(Offset::new(0,5)),
-                vec!(Mask::Special))
+                 vec!(Offset::new(0, 5)),
+                 vec!(Mask::Special))
             ),
             (
                 "[CLS] [PAD]",
                 (vec!("[CLS]", "[PAD]"),
-                 vec!(Offset::new(0,5), Offset::new(6,11)),
+                 vec!(Offset::new(0, 5), Offset::new(6, 11)),
                  vec!(Mask::Special, Mask::Special))
             ),
             (
                 "[CLS]       [PAD]",
                 (vec!("[CLS]", "[PAD]"),
-                 vec!(Offset::new(0,5), Offset::new(12,17)),
+                 vec!(Offset::new(0, 5), Offset::new(12, 17)),
                  vec!(Mask::Special, Mask::Special))
             ),
             (
                 "aSdF",
                 (vec!("aSdF"),
-                 vec!(Offset::new(0,4)),
+                 vec!(Offset::new(0, 4)),
                  vec!(Mask::None))
             ),
             (
                 "",
-                (vec!(),vec!(),vec!())
+                (vec!(), vec!(), vec!())
             ),
             (
                 "Allons, Flipote, allons; que d'eux je me délivre.",
                 (vec!("Allons", ",", "Flipote", ",", "allons", ";", "que", "d", "\'", "eux", "je", "me", "delivre", "."),
                  vec!(
                      Offset { begin: 0, end: 6 }, Offset { begin: 6, end: 7 }, Offset { begin: 8, end: 15 }, Offset { begin: 15, end: 16 }, Offset { begin: 17, end: 23 }, Offset { begin: 23, end: 24 }, Offset { begin: 25, end: 28 }, Offset { begin: 29, end: 30 }, Offset { begin: 30, end: 31 }, Offset { begin: 31, end: 34 }, Offset { begin: 35, end: 37 }, Offset { begin: 38, end: 40 }, Offset { begin: 41, end: 48 }, Offset { begin: 48, end: 49 }
-                     ),
-                 vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation)  ),
+                 ),
+                 vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation)),
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
@@ -674,7 +675,7 @@ mod tests {
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
             let (tokens, offsets, mask) = base_tokenizer.tokenize_with_offsets(*source_text);
-            let tokens: Vec<&str> = tokens.iter().map(|t|t.as_str()).collect();
+            let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(offsets, expected_result.1);
             assert_eq!(mask, expected_result.2);
@@ -682,7 +683,7 @@ mod tests {
 
         let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
         for ((_, expected_result), (tokens, offsets, mask)) in test_tuples.iter().zip(results.iter()) {
-            let tokens: Vec<&str> = tokens.iter().map(|t|t.as_str()).collect();
+            let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
             assert_eq!(*mask, expected_result.2);
@@ -690,7 +691,7 @@ mod tests {
 
         let results = MultiThreadedTokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
         for ((_, expected_result), (tokens, offsets, mask)) in test_tuples.iter().zip(results.iter()) {
-            let tokens: Vec<&str> = tokens.iter().map(|t|t.as_str()).collect();
+            let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
             assert_eq!(*mask, expected_result.2);
@@ -733,22 +734,29 @@ mod tests {
         let test_tuples = [
             (
                 "hello world!",
-                TokenizedInput { token_ids: vec!(0, 1, 3), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(Some(Offset::new(0,5)),Some(Offset::new(6,11)),Some(Offset::new(11,12))), mask: vec!(Mask::None, Mask::None, Mask::Punctuation) }
+                TokenizedInput { token_ids: vec!(0, 1, 3), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(Some(Offset::new(0, 5)), Some(Offset::new(6, 11)), Some(Offset::new(11, 12))), mask: vec!(Mask::None, Mask::None, Mask::Punctuation) }
             ),
             (
                 "hello, unaffable world!",
-                TokenizedInput { token_ids: vec!(0, 2, 2, 1, 3), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(Some(Offset::new(0,5)), Some(Offset::new(5,6)), Some(Offset::new(7,16)), Some(Offset::new(17,22)), Some(Offset::new(22,23))), mask: vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::None,  Mask::Punctuation)}
+                TokenizedInput { token_ids: vec!(0, 2, 2, 1, 3), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(Some(Offset::new(0, 5)), Some(Offset::new(5, 6)), Some(Offset::new(7, 16)), Some(Offset::new(17, 22)), Some(Offset::new(22, 23))), mask: vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation) }
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                TokenizedInput { token_ids: vec!(2, 7, 8, 9, 2, 2, 2, 2, 10, 2), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets:
-vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 19, end: 23 })), mask:
-                vec!(Mask::Unknown, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::Special, Mask::None),
+                TokenizedInput {
+                    token_ids: vec!(2, 7, 8, 9, 2, 2, 2, 2, 10, 2),
+                    segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets:
+                    vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 19, end: 23 })),
+                    mask:
+                    vec!(Mask::Unknown, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::Special, Mask::None),
                 }
             ),
             (
                 "[UNK] a ! c ! e ! g ! i ! [PAD] a ! c ! e ! g ! i !",
-                TokenizedInput { token_ids: vec!(2, 2, 3, 2, 3, 2, 3, 2, 3, 2), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(3, 10, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3), num_truncated_tokens: 12, token_offsets: vec!( Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 12, end: 13 }), Some(Offset { begin: 14, end: 15 }), Some(Offset { begin: 16, end: 17 }), Some(Offset { begin: 18, end: 19 }), Some(Offset { begin: 20, end: 21 }), Some(Offset { begin: 22, end: 23 }) ), mask: vec!(Mask::Unknown, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None) }
+                TokenizedInput { token_ids: vec!(2, 2, 3, 2, 3, 2, 3, 2, 3, 2), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(3, 10, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3), num_truncated_tokens: 12, token_offsets: vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 12, end: 13 }), Some(Offset { begin: 14, end: 15 }), Some(Offset { begin: 16, end: 17 }), Some(Offset { begin: 18, end: 19 }), Some(Offset { begin: 20, end: 21 }), Some(Offset { begin: 22, end: 23 })), mask: vec!(Mask::Unknown, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None) }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -774,33 +782,51 @@ vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(
 //            No truncation required
             (
                 ("hello world!", "This is the second sentence"),
-                TokenizedInput { token_ids: vec!(0, 1, 3, 2, 2, 2, 2, 2), segment_ids: vec!(0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(Some(Offset::new(0,5)),Some(Offset::new(6,11)),Some(Offset::new(11,12)),Some(Offset::new(0,4)), Some(Offset::new(5,7)), Some(Offset::new(8,11)), Some(Offset::new(12,18)), Some(Offset::new(19,27)) ), mask: vec!(Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None) }
+                TokenizedInput { token_ids: vec!(0, 1, 3, 2, 2, 2, 2, 2), segment_ids: vec!(0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(Some(Offset::new(0, 5)), Some(Offset::new(6, 11)), Some(Offset::new(11, 12)), Some(Offset::new(0, 4)), Some(Offset::new(5, 7)), Some(Offset::new(8, 11)), Some(Offset::new(12, 18)), Some(Offset::new(19, 27))), mask: vec!(Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None) }
             ),
 //            Truncation of sentence 2 (longest)
             (
                 ("hello world!", "!This is the second sentence!!!"),
-                TokenizedInput { token_ids: vec!(0, 1, 3, 3, 2, 2, 2, 2, 2, 3), segment_ids: vec!(0, 0, 0, 1, 1, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 2, token_offsets: vec!(
-                 Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 5 }), Some(Offset { begin: 6, end: 8 }), Some(Offset { begin: 9, end: 12 }), Some(Offset { begin: 13, end: 19 }), Some(Offset { begin: 20, end: 28 }), Some(Offset { begin: 28, end: 29 })
-                ),
-                mask: vec!(Mask::None, Mask::None, Mask::Punctuation, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation)
+                TokenizedInput {
+                    token_ids: vec!(0, 1, 3, 3, 2, 2, 2, 2, 2, 3),
+                    segment_ids: vec!(0, 0, 0, 1, 1, 1, 1, 1, 1, 1),
+                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 2,
+                    token_offsets: vec!(
+                        Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 5 }), Some(Offset { begin: 6, end: 8 }), Some(Offset { begin: 9, end: 12 }), Some(Offset { begin: 13, end: 19 }), Some(Offset { begin: 20, end: 28 }), Some(Offset { begin: 28, end: 29 })
+                    ),
+                    mask: vec!(Mask::None, Mask::None, Mask::Punctuation, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation),
                 }
             ),
 //            Truncation of sentence 1 (longest)
             (
                 ("[UNK] hello  hello  hello  hello  hello  hello  hello  hello  hello  hello  hello", "!!!"),
-                TokenizedInput { token_ids: vec!(2, 0, 0, 0, 0, 0, 0, 3, 3, 3), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(0, 0, 0, 0, 0), num_truncated_tokens: 5, token_offsets: vec!(
-                Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 20, end: 25 }), Some(Offset { begin: 27, end: 32 }), Some(Offset { begin: 34, end: 39 }), Some(Offset { begin: 41, end: 46 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 })
+                TokenizedInput {
+                    token_ids: vec!(2, 0, 0, 0, 0, 0, 0, 3, 3, 3),
+                    segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 1, 1, 1),
+                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    overflowing_tokens: vec!(0, 0, 0, 0, 0),
+                    num_truncated_tokens: 5,
+                    token_offsets: vec!(
+                        Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 20, end: 25 }), Some(Offset { begin: 27, end: 32 }), Some(Offset { begin: 34, end: 39 }), Some(Offset { begin: 41, end: 46 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 })
                     ),
-            mask: vec!(Mask::Unknown, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation)
+                    mask: vec!(Mask::Unknown, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation),
                 }
             ),
 //            Truncation of both sentences (longest)
             (
                 ("[UNK] hello  hello  hello  hello  hello", "!!!!!!!!"),
-                TokenizedInput { token_ids: vec!(2, 0, 0, 0, 0, 3, 3, 3, 3, 3), segment_ids: vec!(0, 0, 0, 0, 0, 1, 1, 1, 1, 1), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(0), num_truncated_tokens: 4, token_offsets: vec!(
-                Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 20, end: 25 }), Some(Offset { begin: 27, end: 32 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 }), Some(Offset { begin: 3, end: 4 }), Some(Offset { begin: 4, end: 5 })
+                TokenizedInput {
+                    token_ids: vec!(2, 0, 0, 0, 0, 3, 3, 3, 3, 3),
+                    segment_ids: vec!(0, 0, 0, 0, 0, 1, 1, 1, 1, 1),
+                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    overflowing_tokens: vec!(0),
+                    num_truncated_tokens: 4,
+                    token_offsets: vec!(
+                        Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 20, end: 25 }), Some(Offset { begin: 27, end: 32 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 }), Some(Offset { begin: 3, end: 4 }), Some(Offset { begin: 4, end: 5 })
                     ),
-            mask: vec!(Mask::Unknown, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation)
+                    mask: vec!(Mask::Unknown, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation),
                 }
             )
         ];
@@ -811,7 +837,7 @@ vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(
         for (source_text, expected_result) in test_tuples.iter() {
             let tokenized_input = base_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0);
             assert_eq!(tokenized_input.token_ids.len(), tokenized_input.token_offsets.len(), "Offsets and tokens must have same length");
-            assert_eq!(tokenized_input , *expected_result, "Testing results");
+            assert_eq!(tokenized_input, *expected_result, "Testing results");
         }
         assert_eq!(Tokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
         assert_eq!(MultiThreadedTokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);

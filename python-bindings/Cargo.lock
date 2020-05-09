@@ -493,6 +493,7 @@ dependencies = [
  "regex",
  "serde_json",
  "unicode-normalization",
+ "unzip-n",
 ]
 
 [[package]]
@@ -637,6 +638,17 @@ name = "unindent"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63f18aa3b0e35fed5a0048f029558b1518095ffe2a0a31fb87c93dece93a4993"
+
+[[package]]
+name = "unzip-n"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54fa470494748d4eebf690b29ba856eee8c2281111ea8c20ca018a2dfa33f3d5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "version_check"
