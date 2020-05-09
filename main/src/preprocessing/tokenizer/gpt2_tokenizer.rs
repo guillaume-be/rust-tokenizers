@@ -15,7 +15,7 @@ use crate::Gpt2Vocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset, Token, TokenRef, Mask};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, split_on_regex_with_lookahead, split_on_bpe_pairs};
+use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, split_on_regex_with_lookahead, split_on_bpe_pairs, fix_mask};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -57,7 +57,7 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
     }
 
     fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
-        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
+        let tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
             .map(|token| {
                 // v-- this is where the token gets owned, all steps above handle TokenRefs (dealing with &str)
@@ -78,16 +78,7 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
             .flatten()
             .collect();
 
-        //fix mask
-        if !tokens.is_empty() {
-            for i in 1..(tokens.len() - 1) {
-                if tokens[i].mask == Mask::InexactBegin && tokens[i-1].mask == Mask::InexactBegin {
-                    tokens[i-1].mask = Mask::None;
-                }
-            }
-        }
-
-        tokens
+        fix_mask(tokens)
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {

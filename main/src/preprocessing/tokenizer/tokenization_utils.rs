@@ -742,6 +742,25 @@ pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks
 
 }
 
+
+pub fn fix_mask(mut tokens: Vec<Token>) -> Vec<Token> {
+    //fix mask
+    if !tokens.is_empty() {
+        if tokens.len() == 1 {
+            if tokens[0].mask == Mask::InexactBegin && tokens[0].mask == Mask::Begin {
+                tokens[0].mask = Mask::None;
+            }
+        } else {
+            for i in 1..tokens.len() - 1 {
+                if ((tokens[i].mask == Mask::InexactBegin || tokens[i].mask == Mask::Begin)) && ((tokens[i-1].mask == Mask::InexactBegin) || (tokens[i-1].mask == Mask::Begin)) {
+                    tokens[i-1].mask = Mask::None;
+                }
+            }
+        }
+    }
+    tokens
+}
+
 //==============================
 // Unit tests
 //==============================

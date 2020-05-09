@@ -15,7 +15,7 @@ use crate::RobertaVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer,Offset,Token,TokenRef,Mask};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace, split_on_regex_with_lookahead, split_on_bpe_pairs};
+use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace, split_on_regex_with_lookahead, split_on_bpe_pairs, fix_mask};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -68,7 +68,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         } else {
             false
         };
-        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token.token_ref(), self.vocab.as_ref())
+        let tokens: Vec<Token> = split_on_special_tokens(initial_token.token_ref(), self.vocab.as_ref())
             .into_iter()
             .map(|token| {
                 let mut token = token.owned_token();
@@ -99,16 +99,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
                 token
             }).collect();
 
-        //fix mask
-        if !tokens.is_empty() {
-            for i in 1..tokens.len() - 1 {
-                if tokens[i].mask == Mask::InexactBegin && tokens[i-1].mask == Mask::InexactBegin {
-                    tokens[i-1].mask = Mask::None;
-                }
-            }
-        }
-
-        tokens
+        fix_mask(tokens)
     }
 
     fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>, offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>, mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Mask>) {

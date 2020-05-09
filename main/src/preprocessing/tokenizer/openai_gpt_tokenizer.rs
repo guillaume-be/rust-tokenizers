@@ -15,7 +15,7 @@ use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer, Offset, Mask, Token, TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe};
+use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe, fix_mask};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -50,7 +50,7 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     }
 
     fn tokenize_to_tokens<'a>(&self, initial_token: TokenRef<'a>) -> Vec<Token> {
-        let mut tokens: Vec<Token> = self.base_tokenizer.tokenize_to_tokens(initial_token).into_iter().map(|token| {
+        let tokens: Vec<Token> = self.base_tokenizer.tokenize_to_tokens(initial_token).into_iter().map(|token| {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
                 split_on_bpe_pairs(token.token_ref(), openai_gpt_bpe, &self.bpe_ranks, &self.cache)
             } else {
@@ -58,15 +58,7 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
             }
         }).flatten().collect();
 
-        //fix mask
-        if !tokens.is_empty() {
-            for i in 1..tokens.len() - 1 {
-                if tokens[i].mask == Mask::InexactBegin && tokens[i-1].mask == Mask::InexactBegin {
-                    tokens[i-1].mask = Mask::None;
-                }
-            }
-        }
-        tokens
+        fix_mask(tokens)
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
