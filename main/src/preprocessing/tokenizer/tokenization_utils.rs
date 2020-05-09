@@ -608,14 +608,8 @@ pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<
     }
 }
 
-pub fn ctrl_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token> {
-    let mut sub_tokens: Vec<Token> = token.text.chars().enumerate().map(|(i,chr)|
-        Token {
-            text: chr.to_string(),
-            offset: token.offset.clone(),
-            //offset: Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),   //this will not work because we work on a byte sequence here that may not have a clear alignment with the original token anymore
-            mask: Mask::InexactContinuation,
-        }).collect();
+pub fn ctrl_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab, exact_offsets: bool) -> Vec<Token> {
+    let mut sub_tokens = bpe_get_subtokens(token, exact_offsets);
 
     if !sub_tokens.is_empty() {
         sub_tokens.last_mut().unwrap().text += "</w>";
@@ -633,27 +627,17 @@ pub fn ctrl_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token>
     for (i, token) in output.0.iter_mut().enumerate() {
         if i < length - 1 {
             token.text += "@@";
-            assert_eq!(token.mask, Mask::InexactContinuation);
         } else if i == length - 1 {
             //strip the last </w> suffix again, we only needed it for group_common_pairs
             token.text = token.text.trim_end_matches("</w>").to_owned();
         }
     }
 
-    if let Some(first_token)  = output.0.get_mut(0) {
-        first_token.mask = Mask::InexactBegin;
-    }
-
-    output.0
+    bpe_fix_mask(output.0, exact_offsets)
 }
 
-pub fn openai_gpt_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token> {
-    let mut sub_tokens: Vec<Token> = token.text.chars().enumerate().map(|(i,chr)|
-        Token {
-            text: chr.to_string(),
-            offset: Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),
-            mask: Mask::InexactContinuation,
-        }).collect();
+pub fn openai_gpt_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab, exact_offsets: bool) -> Vec<Token> {
+    let mut sub_tokens = bpe_get_subtokens(token, exact_offsets);
 
     //the addition of </w> is basically the only difference between this function and the default bpe:
     if !sub_tokens.is_empty() {
@@ -668,24 +652,12 @@ pub fn openai_gpt_bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<
         }
     }
 
-    if let Some(first_token)  = output.0.get_mut(0) {
-        first_token.mask = Mask::InexactBegin;
-    }
-
-    output.0
+    bpe_fix_mask(output.0, exact_offsets)
 }
 
-pub fn bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token> {
-    //eprintln!("DEBUG bpe initial token: {:?}",token );
-    let sub_tokens: Vec<Token> = token.text.chars().enumerate().map(|(i,chr)|
-        Token {
-            text: chr.to_string(),
-            offset: token.offset.clone(),
-            mask: Mask::InexactContinuation,
-        }).collect();
-
-    //eprintln!("DEBUG bpe initial subtokens: {:?}",sub_tokens );
-
+///Default bpe function, as called by Roberta and GPT2
+pub fn bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab, exact_offsets: bool) -> Vec<Token> {
+    let sub_tokens = bpe_get_subtokens(token, exact_offsets);
     let mut output = (sub_tokens, false);
     loop {
         output = group_common_pairs(output.0, &bpe_ranks);
@@ -694,15 +666,37 @@ pub fn bpe<'a>(token: TokenRef<'a>, bpe_ranks: &BpePairVocab) -> Vec<Token> {
         }
     }
 
-    if let Some(first_token)  = output.0.get_mut(0) {
-        first_token.mask = Mask::InexactBegin;
-    }
+    bpe_fix_mask(output.0, exact_offsets)
+}
 
-    output.0
+///Split the token into per-character subtokens prior for byte-pair encoding
+pub fn bpe_get_subtokens<'a>(token: TokenRef<'a>, exact_offsets: bool) -> Vec<Token> {
+    token.text.chars().enumerate().map(|(i,chr)|
+        Token {
+            text: chr.to_string(),
+            offset: match exact_offsets {
+                true => Offset::new( token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),
+                false => token.offset.clone()
+            },
+            mask: match exact_offsets {
+                true => Mask::Continuation,
+                false => Mask::InexactContinuation,
+            }
+        }).collect()
+}
+
+pub fn bpe_fix_mask(mut tokens: Vec<Token>, exact_offsets: bool) -> Vec<Token> {
+    if let Some(first_token)  = tokens.get_mut(0) {
+        first_token.mask = match exact_offsets {
+            true => Mask::Begin,
+            false => Mask::InexactBegin
+        }
+    }
+    tokens
 }
 
 pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks: &BpePairVocab, cache: &RefCell<HashMap<String, Vec<Token>>>) -> Vec<Token>
-    where F: Fn(TokenRef,&BpePairVocab) -> Vec<Token>
+    where F: Fn(TokenRef,&BpePairVocab, bool) -> Vec<Token>
 {
     let mut tokens: Vec<Token> = Vec::new();
     let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
@@ -720,14 +714,18 @@ pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks
         None => false
     };
     if !cached {
+        //check if we there is a one to one mapping between the original text and the byte-text
+        //(for now we just check if sizes are equal, could be improved)
+        let exact_offsets: bool = text.chars().count() == token.text.chars().count();
+
         let bpe_output: Vec<Token> = bpe_function(TokenRef {
             text: text.as_str(),
             offset: Offset { //we reset the offset, so we can cache
                 begin: 0,
                 end: token.offset.end - token.offset.begin
             },
-            mask: Mask::None
-        }, bpe_ranks);
+            mask: Mask::None //will be overwritten anyway
+        }, bpe_ranks, exact_offsets);
         cache.borrow_mut().insert(text.to_owned(), bpe_output.clone());
         tokens.extend(bpe_output.into_iter().map(|mut t| {
             //the tokens from the bpe_output have 0-based offsets, adapt the offset
@@ -1657,7 +1655,54 @@ mod tests {
     }
 
     #[test]
-    fn test_bpe() {
+    fn test_bpe_exact() {
+//        Given
+        let bpe_pairs = generate_bpe_pair_vocab();
+
+        let test_tuples = [
+            (
+                "hello",
+                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Begin }, //OUT
+                      Token { text: "ell@@".to_owned(), offset: Offset::new(1,4), mask: Mask::Continuation },
+                      Token { text: "o".to_owned(), offset: Offset::new(4,5), mask: Mask::Continuation })
+            ),
+            (
+                "hellllo",
+                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Begin }, //OUT
+                      Token { text: "ell@@".to_owned(), offset: Offset::new(1,4), mask: Mask::Continuation },
+                      Token { text: "ll@@".to_owned(), offset: Offset::new(4,6), mask: Mask::Continuation },
+                      Token { text: "o".to_owned(), offset: Offset::new(6,7), mask: Mask::Continuation })
+            ),
+            (
+                "helo",
+                vec!(Token { text: "h@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Begin }, //OUT
+                      Token { text: "el@@".to_owned(), offset: Offset::new(1,3), mask: Mask::Continuation },
+                      Token { text: "o".to_owned(), offset: Offset::new(3,4), mask: Mask::Continuation })
+            ),
+            (
+                "42",
+                vec!(Token { text: "4@@".to_owned(), offset: Offset::new(0,1), mask: Mask::Begin }, //OUT
+                      Token { text: "2".to_owned(), offset: Offset::new(1,2), mask: Mask::Continuation })
+            ),
+            (
+                "1",
+                vec!(Token { text: "1".to_owned(), offset: Offset::new(0,1), mask: Mask::Begin }), //OUT (mask is corrected to None in a later stage)
+            ),
+            (
+                "",
+                vec!(), //OUT (differs from original test that outputted a single EMPTY token!)
+            ),
+        ];
+
+//        When & Then
+        for (input, expected_output) in &test_tuples {
+            let input: TokenRef = TokenRef { text: input, offset: Offset::new(0, input.chars().count() as OffsetSize), mask: Mask::None };
+            assert_eq!(ctrl_bpe(input, &bpe_pairs, true), *expected_output);
+        }
+    }
+
+    #[test]
+    fn test_bpe_inexact() {
 //        Given
         let bpe_pairs = generate_bpe_pair_vocab();
 
@@ -1688,7 +1733,7 @@ mod tests {
             ),
             (
                 "1",
-                vec!(Token { text: "1".to_owned(), offset: Offset::new(0,1), mask: Mask::InexactBegin }), //OUT
+                vec!(Token { text: "1".to_owned(), offset: Offset::new(0,1), mask: Mask::InexactBegin }), //OUT (mask is correct to None in a later stage)
             ),
             (
                 "",
@@ -1699,7 +1744,7 @@ mod tests {
 //        When & Then
         for (input, expected_output) in &test_tuples {
             let input: TokenRef = TokenRef { text: input, offset: Offset::new(0, input.chars().count() as OffsetSize), mask: Mask::None };
-            assert_eq!(ctrl_bpe(input, &bpe_pairs), *expected_output);
+            assert_eq!(ctrl_bpe(input, &bpe_pairs, false), *expected_output);
         }
     }
 }

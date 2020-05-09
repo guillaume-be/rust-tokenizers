@@ -227,7 +227,7 @@ mod tests {
                 TokenizedInput { token_ids: vec!(4, 8, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(
                     Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 })
                     ),
-                    mask: vec!(Mask::None, Mask::InexactBegin, Mask::InexactContinuation)
+                    mask: vec!(Mask::None, Mask::Begin, Mask::Continuation)
                 }
             ),
             (

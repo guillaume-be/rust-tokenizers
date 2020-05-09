@@ -201,7 +201,7 @@ mod tests {
                 "the earth",
                 TokenizedInput { token_ids: vec!(8, 10, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0,
                  token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 6 }), Some(Offset { begin: 6, end: 9 })),
-                 mask: vec!(Mask::None, Mask::InexactBegin, Mask::InexactContinuation),
+                 mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
                 }
             ),
             (

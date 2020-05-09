@@ -229,8 +229,8 @@ mod tests {
             (
                 "The Earth",
                 vec!("Ġthe", "Ġear", "th"),
-                vec!( Offset { begin: 0, end: 3 }, Offset { begin: 3, end: 9 }, Offset { begin: 3, end: 9 } ),
-                vec!(Mask::None, Mask::InexactBegin, Mask::InexactContinuation)
+                vec!( Offset { begin: 0, end: 3 }, Offset { begin: 3, end: 7 }, Offset { begin: 7, end: 9 } ),
+                vec!(Mask::None, Mask::Begin, Mask::Continuation)
             ),
             (
                 "",
@@ -269,8 +269,8 @@ mod tests {
             (
                 "The Earth",
                 vec!("Ġ", "T", "he", "Ġ", "E", "a", "r", "th"),
-                vec!(Offset { begin: 0, end: 3 }, Offset { begin: 0, end: 3 }, Offset { begin: 0, end: 3 }, Offset { begin: 3, end: 9 }, Offset { begin: 3, end: 9 }, Offset { begin: 3, end: 9 }, Offset { begin: 3, end: 9 }, Offset { begin: 3, end: 9 }),
-                vec!(Mask::InexactBegin, Mask::InexactContinuation, Mask::InexactContinuation, Mask::InexactBegin, Mask::InexactContinuation, Mask::InexactContinuation,Mask::InexactContinuation, Mask::InexactContinuation)
+                vec!(Offset { begin: 0, end: 0 }, Offset { begin: 0, end: 1 }, Offset { begin: 1, end: 3 }, Offset { begin: 3, end: 4 }, Offset { begin: 4, end: 5 }, Offset { begin: 5, end: 6 }, Offset { begin: 6, end: 7 }, Offset { begin: 7, end: 9 }), //note: first inserted whitespace has offset (0,0), which will map to Option::None in further encoding
+                vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Begin, Mask::Continuation, Mask::Continuation,Mask::Continuation, Mask::Continuation)
             ),
             (
                 "",
@@ -311,9 +311,9 @@ mod tests {
             (
                 "the earth",
                 TokenizedInput { token_ids: vec!(8, 4, 12, 13, 9), segment_ids: vec!(0, 0, 0, 0, 0), special_tokens_mask: vec!(1, 0, 0, 0, 1), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(
-                    None, Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 9 }), Some(Offset { begin: 3, end: 9 }), None
+                    None, Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 }), None
                     ),
-                mask: vec!(Mask::Special, Mask::None, Mask::InexactBegin, Mask::InexactContinuation, Mask::Special)
+                mask: vec!(Mask::Special, Mask::None, Mask::Begin, Mask::Continuation, Mask::Special)
                 }
             ),
             (
