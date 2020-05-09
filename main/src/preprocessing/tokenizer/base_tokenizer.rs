@@ -15,8 +15,6 @@
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, split_on_special_tokens, clean_text, truncate_sequences};
 use std::sync::Arc;
-use std::borrow::ToOwned;
-use std::convert::AsRef;
 use rayon::prelude::*;
 use itertools::Itertools;
 use unzip_n::unzip_n;
@@ -96,12 +94,8 @@ impl<'a> TokenRef<'a> {
         }
     }
 
-    pub fn owned_token(self) -> Token { //this is still ugly and should probably be done using Borrow or AsRef in some way
-        Token {
-            text: self.text.to_owned(),
-            offset: self.offset,
-            mask: self.mask,
-        }
+    pub fn to_owned(self) -> Token { //not a real implementation of ToOwned because that can't work in the current setup
+        Token::from(self)
     }
 
 }
@@ -134,28 +128,37 @@ impl TokenTrait for Token {
     }
 }
 
-/*
-impl<'a> ToOwned for TokenRef<'a> {
-    type Owned = Token;
-    fn to_owned(&self) -> Self::Owned {
-        Token {
-            text: self.text.to_owned(),
-            offset: self.offset,
-            mask: self.mask,
+impl<'a> From<&'a Token> for TokenRef<'a> {
+    fn from(other: &'a Token) -> Self {
+        TokenRef {
+            text: other.text.as_str(),
+            offset: other.offset.clone(),
+            mask: other.mask,
         }
     }
 }
 
-impl<'a> Borrow<TokenRef<'a>> for Token {
-    fn borrow(&'a self)  -> &'a TokenRef<'a> {
-        TokenRef {
-            text: &self.text,
-            offset: self.offset,
-            mask: self.mask
+impl<'a> From<&'a str> for TokenRef<'a> {
+    fn from(text: &'a str) -> Self {
+        TokenRef::new(text)
+    }
+}
+
+impl From<&str> for Token {
+    fn from(text: &str) -> Self {
+        Token::new(text.to_owned())
+    }
+}
+
+impl<'a> From<TokenRef<'a>> for Token {
+    fn from(other: TokenRef<'a>) -> Self {
+        Token {
+            text: other.text.to_owned(),
+            offset: other.offset,
+            mask: other.mask,
         }
     }
 }
-*/
 
 #[derive(Debug, PartialEq, Clone)]
 ///A token that references the original text
@@ -177,12 +180,8 @@ impl Token {
         }
     }
 
-    pub fn token_ref(&self) -> TokenRef { //this is still ugly and should probably be done using Borrow or AsRef in some way
-        TokenRef {
-            text: self.text.as_str(),
-            offset: self.offset.clone(),
-            mask: self.mask.clone(),
-        }
+    pub fn as_ref(&self) -> TokenRef { //not a real implementation of AsRef because we do something slightly different
+        TokenRef::from(self)
     }
 }
 

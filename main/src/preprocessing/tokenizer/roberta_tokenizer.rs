@@ -61,7 +61,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         if initial_token.text.len() == 0 {
             return vec!();
         }
-        let mut initial_token: Token = initial_token.owned_token();
+        let mut initial_token: Token = initial_token.to_owned();
         let added_whitespace = if !is_whitespace(&initial_token.text.chars().next().unwrap()) {
             //text should always start with an initial whitespace
             initial_token.text.insert(0, ' ');
@@ -69,10 +69,10 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         } else {
             false
         };
-        let tokens: Vec<Token> = split_on_special_tokens(initial_token.token_ref(), self.vocab.as_ref())
+        let tokens: Vec<Token> = split_on_special_tokens(initial_token.as_ref(), self.vocab.as_ref())
             .into_iter()
             .map(|token| {
-                let mut token = token.owned_token();
+                let mut token = token.to_owned();
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
@@ -80,12 +80,12 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
                     }
                 }
 
-                split_on_regex_with_lookahead(token.token_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
+                split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.token_ref(), bpe, &self.bpe_ranks, &self.cache, true)
+                    split_on_bpe_pairs(token.as_ref(), bpe, &self.bpe_ranks, &self.cache, true)
                 } else {
                     vec!(token)
                 }

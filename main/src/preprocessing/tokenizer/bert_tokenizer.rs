@@ -46,7 +46,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         //the base tokenizers does most of the work, we simply add a wordpiece tokenizer on top
         self.base_tokenizer.tokenize_to_tokens(initial_token).into_iter().map(|token| {
-            tokenize_wordpiece(token.token_ref(), self.vocab.as_ref(), 100)
+            tokenize_wordpiece(token.as_ref(), self.vocab.as_ref(), 100)
         }).flatten().collect()
     }
 

@@ -56,19 +56,19 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         let tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
             .map(|token| {
-                let mut token = token.owned_token();
+                let mut token = token.to_owned();
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
                         token.text = token.text.to_lowercase();
                     }
                 }
-                split_on_regex(token.token_ref(), &self.regex_pattern).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
+                split_on_regex(token.as_ref(), &self.regex_pattern).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.token_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
+                    split_on_bpe_pairs(token.as_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
                 } else {
                     vec!(token)
                 }

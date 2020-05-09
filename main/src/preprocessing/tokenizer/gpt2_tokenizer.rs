@@ -62,19 +62,19 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
             .into_iter()
             .map(|token| {
                 // v-- this is where the token gets owned, all steps above handle TokenRefs (dealing with &str)
-                let mut token = token.owned_token();
+                let mut token = token.to_owned();
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
                         token.text = token.text.to_lowercase();
                     }
                 }
-                split_on_regex_with_lookahead(token.token_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.owned_token()).collect::<Vec<Token>>()
+                split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.token_ref(), bpe, (&self.bpe_ranks).as_ref(), &self.cache, true)
+                    split_on_bpe_pairs(token.as_ref(), bpe, (&self.bpe_ranks).as_ref(), &self.cache, true)
                 } else {
                     vec!(token)
                 }
