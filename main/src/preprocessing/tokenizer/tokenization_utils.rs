@@ -516,7 +516,7 @@ fn truncate_with_overflow(sequence: &mut Vec<i64>, offsets: &mut Vec<Offset>, ma
         Vec::new()
     };
     if !mask.is_empty() {
-        mask.split_off(cutoff);
+        mask.truncate(cutoff);
     }
     let window_len = min(sequence.len(), stride);
     if window_len > 0 {
@@ -1377,32 +1377,32 @@ mod tests {
 //            Baseline
             (
                 (5, &TruncationStrategy::LongestFirst, 0),
-                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (10..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (10..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            With stride = 2
             (
                 (5, &TruncationStrategy::LongestFirst, 2),
-                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (8..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (8..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            Maximum value for only sentence 1 to be affected
             (
                 (7, &TruncationStrategy::LongestFirst, 2),
-                Ok(((0..8).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (6..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..8).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (6..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            Both sentences affected
             (
                 (10, &TruncationStrategy::LongestFirst, 2),
-                Ok(((0..7).collect::<Vec<i64>>(), Some((42..49).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (5..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..7).collect::<Vec<i64>>(), Some((42..49).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (5..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            Truncate entire sentence 1
             (
                 (15 + 8, &TruncationStrategy::LongestFirst, 2),
-                Ok(((0..0).collect::<Vec<i64>>(), Some((42..43).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (0..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..0).collect::<Vec<i64>>(), Some((42..43).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (0..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            Truncate both sentences entirely
             (
                 (15 + 9, &TruncationStrategy::LongestFirst, 2),
-                Ok(((0..0).collect::<Vec<i64>>(), Some((42..42).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (0..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..0).collect::<Vec<i64>>(), Some((42..42).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (0..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            Request truncation amount greater than combined length
             (
@@ -1412,12 +1412,12 @@ mod tests {
 //            No truncation
             (
                 (0, &TruncationStrategy::LongestFirst, 2),
-                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (15..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (15..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            No truncation requested, none needed
             (
                 (0, &TruncationStrategy::DoNotTruncate, 0),
-                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (15..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (15..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            No truncation requested, but needed
             (
@@ -1447,17 +1447,17 @@ mod tests {
 //            Baseline
             (
                 (5, &TruncationStrategy::OnlyFirst, 0),
-                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (10..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (10..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            With stride = 2
             (
                 (5, &TruncationStrategy::OnlyFirst, 2),
-                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (8..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..10).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (8..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            Truncate entire sentence 1
             (
                 (15, &TruncationStrategy::OnlyFirst, 2),
-                Ok(((0..0).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (0..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..0).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (0..15).collect::<Vec<i64>>(), vec!()))
             ),
 //            Request truncation amount greater than sentence 1
             (
@@ -1467,7 +1467,7 @@ mod tests {
 //            No truncation
             (
                 (0, &TruncationStrategy::OnlyFirst, 2),
-                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (15..15).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (15..15).collect::<Vec<i64>>(), vec!()))
             ),
         ];
 
@@ -1490,17 +1490,17 @@ mod tests {
 //            Baseline
             (
                 (5, &TruncationStrategy::OnlySecond, 0),
-                Ok(((0..15).collect::<Vec<i64>>(), Some((42..46).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (46..51).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..46).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (46..51).collect::<Vec<i64>>(), vec!()))
             ),
 //            With stride = 2
             (
                 (5, &TruncationStrategy::OnlySecond, 2),
-                Ok(((0..15).collect::<Vec<i64>>(), Some((42..46).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (44..51).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..46).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (44..51).collect::<Vec<i64>>(), vec!()))
             ),
 //            Truncate entire sentence 2
             (
                 (9, &TruncationStrategy::OnlySecond, 2),
-                Ok(((0..15).collect::<Vec<i64>>(), Some((42..42).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (42..51).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..42).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (42..51).collect::<Vec<i64>>(), vec!()))
             ),
 //            Request truncation amount greater than sentence 1
             (
@@ -1510,7 +1510,7 @@ mod tests {
 //            No truncation
             (
                 (0, &TruncationStrategy::OnlySecond, 2),
-                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (42..42).collect::<Vec<i64>>(), vec![]))
+                Ok(((0..15).collect::<Vec<i64>>(), Some((42..51).collect::<Vec<i64>>()), vec!(), None, vec!(), None, (42..42).collect::<Vec<i64>>(), vec!()))
             ),
         ];
 

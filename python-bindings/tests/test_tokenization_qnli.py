@@ -37,7 +37,8 @@ class TestTokenizationQNLI:
 
     def test_tokenization_bert(self):
         # Given
-        self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True,
+        self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
+                                                            do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
@@ -71,7 +72,8 @@ class TestTokenizationQNLI:
 
     def test_tokenization_distilbert(self):
         # Given
-        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased', do_lower_case=False,
+        self.base_tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-cased',
+                                                                  do_lower_case=False,
                                                                   cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-cased']),
@@ -104,10 +106,11 @@ class TestTokenizationQNLI:
     def get_token_diff(self, rust_tokens, python_tokens):
         last_index = 1
         first_index = 0
-        while rust_tokens[first_index] == python_tokens[first_index]:
+        max_index = min(len(rust_tokens), len(python_tokens))
+        while rust_tokens[first_index] == python_tokens[first_index] and first_index < max_index - 1:
             first_index += 1
         first_index -= 1
-        while rust_tokens[-last_index] == python_tokens[-last_index]:
+        while rust_tokens[-last_index] == python_tokens[-last_index] and first_index < max_index - 1:
             last_index += 1
         last_index += 1
         python_last_index = len(python_tokens) + last_index

@@ -324,7 +324,7 @@ pub trait Tokenizer<T: Vocab> {
             .replace(" ,", ",")
             .replace(" ' ", "'")
             .replace(" n't", "n't")
-            .replace(" 'm'", "'m")
+            .replace(" 'm", "'m")
             .replace(" do not", " don't")
             .replace(" 's", "'s")
             .replace(" 've", "'ve")
@@ -481,6 +481,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
                 }
                 token
             })
+            .filter(|token| !token.text.is_empty())
             .collect();
 
         tokens
