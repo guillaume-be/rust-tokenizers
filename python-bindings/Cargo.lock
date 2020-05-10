@@ -484,7 +484,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers"
-version = "2.0.5"
+version = "3.0.0"
 dependencies = [
  "csv",
  "itertools",
@@ -498,7 +498,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers_python"
-version = "1.0.0"
+version = "3.0.0"
 dependencies = [
  "pyo3",
  "rust_tokenizers",
