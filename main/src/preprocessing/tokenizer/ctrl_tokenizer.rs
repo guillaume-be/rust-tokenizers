@@ -1,6 +1,7 @@
 // Copyright 2018 Salesforce
 // Copyright 2018 The HuggingFace Inc. team.
-// Copyright 2019 Guillaume Becquin
+// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2020 Maarten van Gompel
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,20 +14,19 @@
 
 use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::Tokenizer;
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Mask, Token, TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens};
+use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens, split_on_regex, split_on_bpe_pairs, fix_mask};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use regex::Regex;
-use itertools::Itertools;
 
 
 pub struct CtrlTokenizer {
     vocab: Rc<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<String>>>,
+    cache: RefCell<HashMap<String, Vec<Token>>>,
     regex_pattern: Regex,
     lower_case: bool,
 }
@@ -52,41 +52,31 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize(&self, text: &str) -> Vec<String> {
-        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
-        let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
-        let temp_text = temp_text
+    fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
+        let tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
-            .map(|v| if self.lower_case { v.to_lowercase() } else { v.to_owned() })
-            .collect_vec();
-
-        for text in temp_text {
-            if !self.vocab.special_values.contains_key(text.as_str()) {
-                for word in self.regex_pattern.find_iter(text.as_ref()) {
-                    let cached: bool = match self.cache.borrow().get(word.as_str()) {
-                        Some(value) => {
-                            tokenized_text.extend(value.clone());
-                            true
-                        }
-                        None => false
-                    };
-                    if !cached {
-                        let bpe_output = ctrl_bpe(word.as_str(), self.bpe_ranks.as_ref());
-                        self.cache.borrow_mut().insert(word.as_str().to_owned(), bpe_output.clone());
-                        tokenized_text.extend(bpe_output);
+            .map(|token| {
+                let mut token = token.to_owned();
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    //apply the necessary transformations to the actual tokens (unless it's a special value)
+                    if self.lower_case {
+                        token.text = token.text.to_lowercase();
                     }
-                };
-            } else {
-                tokenized_text.push(text);
-            }
-        }
-        tokenized_text
-    }
+                }
+                split_on_regex(token.as_ref(), &self.regex_pattern).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
+            })
+            .flatten()
+            .map(|token: Token| {
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    split_on_bpe_pairs(token.as_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
+                } else {
+                    vec!(token)
+                }
+            })
+            .flatten()
+            .collect();
 
-    /// Note: For CTRL this functions returns true for  tokens are in fact followed by a continuation
-    /// token (CTRL would split `World` into `Wo@@` and `rld`)
-    fn is_continuation_token(&self, token: &str) -> bool {
-        token.ends_with("@@")
+        fix_mask(tokens)
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -99,8 +89,9 @@ mod tests {
     use super::*;
     use crate::OpenAiGptVocab;
     use std::collections::HashMap;
-    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput, Offset};
     use crate::preprocessing::vocab::base_vocab::swap_key_values;
+    use itertools::Itertools;
 
     fn generate_test_vocab() -> OpenAiGptVocab {
         let values: HashMap<String, i64> = [
@@ -160,11 +151,11 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<unk>")
+                vec!()
             ),
             (
                 " \n ",
-                vec!("<unk>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -199,11 +190,11 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<unk>")
+                vec!()
             ),
             (
                 " \n ",
-                vec!("<unk>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -227,15 +218,39 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(4, 6, 2, 5, 6, 1), segment_ids: vec!(0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput {
+                    token_ids: vec!(4, 6, 2, 5, 6, 1),
+                    segment_ids: vec!(0, 0, 0, 0, 0, 0),
+                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 })),
+                    mask: vec!(Mask::None, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation),
+                }
             ),
             (
                 "Hello, world!",
-                TokenizedInput { token_ids: vec!(6, 6, 6, 8, 6, 6, 8, 5, 6, 6, 6), segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput {
+                    token_ids: vec!(6, 6, 6, 8, 6, 6, 8, 5, 6, 6, 6),
+                    segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 4 }), Some(Offset { begin: 4, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 12, end: 13 })),
+                    mask: vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation),
+                }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput {
+                    token_ids: vec!(),
+                    segment_ids: vec!(),
+                    special_tokens_mask: vec!(),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(),
+                    mask: vec!(),
+                }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -297,40 +312,5 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
-    }
-
-    #[test]
-    fn test_is_continuation_token() {
-//        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
-        let ctrl_tokenizer: CtrlTokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
-        let test_tuples = [
-            (
-                "Hello",
-                false,
-            ),
-            (
-                "Una@@",
-                true,
-            ),
-            (
-                "ffa@@",
-                true,
-            ),
-            (
-                "ble",
-                false,
-            ),
-            (
-                "",
-                false,
-            )
-        ];
-
-//        When & Then
-        for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.is_continuation_token(source_ids), *expected_result);
-        }
     }
 }

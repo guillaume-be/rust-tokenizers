@@ -33,6 +33,8 @@ impl Gpt2Vocab {
 impl Vocab for Gpt2Vocab {
     fn unknown_value() -> &'static str { "<|endoftext|>" }
 
+    fn get_unknown_value(&self) -> &'static str { "<|endoftext|>" }
+
     fn values(&self) -> &HashMap<String, i64> {
         &self.values
     }

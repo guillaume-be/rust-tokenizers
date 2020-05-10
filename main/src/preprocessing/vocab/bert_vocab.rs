@@ -16,10 +16,21 @@ use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
 use std::process;
 
 pub struct BertVocab {
+    ///A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
+
+    ///A mapping of token IDs to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
+
+    ///The string to use for unknown (out of vocabulary) tokens
     pub unknown_value: &'static str,
+
+    ///A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
+    ///values), special values typically include things like BOS/EOS markers, class markers, mask
+    ///markers and padding markers
     pub special_values: HashMap<String, i64>,
+
+    ///A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
 }
 
@@ -32,6 +43,8 @@ impl BertVocab {
 
 impl Vocab for BertVocab {
     fn unknown_value() -> &'static str { "[UNK]" }
+
+    fn get_unknown_value(&self) -> &'static str { "[UNK]" }
 
     fn values(&self) -> &HashMap<String, i64> {
         &self.values

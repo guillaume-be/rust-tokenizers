@@ -1,6 +1,7 @@
 // Copyright 2018 The Open AI Team Authors
 // Copyright 2018 The HuggingFace Inc. team.
-// Copyright 2019 Guillaume Becquin
+// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2020 Maarten van Gompel
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,9 +14,9 @@
 
 use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer, Mask, Token, TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{split_on_special_tokens, openai_gpt_bpe};
+use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe, fix_mask};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -25,20 +26,20 @@ pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<String>>>,
+    cache: RefCell<HashMap<String, Vec<Token>>>,
 }
 
 impl OpenAiGptTokenizer {
     pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> OpenAiGptTokenizer {
         let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path));
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case);
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
         let cache = RefCell::new(HashMap::new());
         OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks, cache }
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Arc<OpenAiGptVocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> OpenAiGptTokenizer {
-        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case);
+        let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let cache = RefCell::new(HashMap::new());
         OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks: merges, cache }
     }
@@ -49,38 +50,16 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
         self.vocab.as_ref()
     }
 
-    fn tokenize(&self, text: &str) -> Vec<String> {
-        let mut tokenized_text: Vec<String> = Vec::with_capacity(text.len());
-        let temp_text = split_on_special_tokens(text, self.vocab.as_ref());
-
-        for text in temp_text {
-            if !self.vocab.special_values.contains_key(text) {
-                let sub_words: Vec<String> = self.base_tokenizer.tokenize(text);
-
-                for word in sub_words {
-                    let cached: bool = match self.cache.borrow().get(&word) {
-                        Some(value) => {
-                            tokenized_text.extend(value.clone());
-                            true
-                        }
-                        None => false
-                    };
-                    if !cached {
-                        let bpe_output = openai_gpt_bpe(&word, &self.bpe_ranks);
-                        self.cache.borrow_mut().insert(word.to_owned(), bpe_output.clone());
-                        tokenized_text.extend(bpe_output);
-                    }
-                };
+    fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
+        let tokens: Vec<Token> = self.base_tokenizer.tokenize_to_tokens(initial_token).into_iter().map(|token| {
+            if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                split_on_bpe_pairs(token.as_ref(), openai_gpt_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
             } else {
-                tokenized_text.push(text.to_owned());
+                vec!(token)
             }
-        }
-        tokenized_text
-    }
-    /// Note: For OpenAI GPT this functions returns true for tokens are in fact followed by a continuation
-    /// token (would split `World` into `Wo` and `rld</w>`)
-    fn is_continuation_token(&self, token: &str) -> bool {
-        !token.ends_with("</w>") & !token.is_empty()
+        }).flatten().collect();
+
+        fix_mask(tokens)
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -93,7 +72,7 @@ mod tests {
     use super::*;
     use crate::OpenAiGptVocab;
     use std::collections::HashMap;
-    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput};
+    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput, Offset};
     use crate::preprocessing::vocab::base_vocab::swap_key_values;
     use itertools::Itertools;
 
@@ -156,11 +135,11 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<unk>")
+                vec!()
             ),
             (
                 " \n ",
-                vec!("<unk>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -191,11 +170,11 @@ mod tests {
             ),
             (
                 " ",
-                vec!("<unk>")
+                vec!()
             ),
             (
                 " \n ",
-                vec!("<unk>")
+                vec!()
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -220,15 +199,39 @@ mod tests {
         let test_tuples = [
             (
                 "the earth",
-                TokenizedInput { token_ids: vec!(8, 10, 9), segment_ids: vec!(0, 0, 0), special_tokens_mask: vec!(0, 0, 0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput {
+                    token_ids: vec!(8, 10, 9),
+                    segment_ids: vec!(0, 0, 0),
+                    special_tokens_mask: vec!(0, 0, 0),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 6 }), Some(Offset { begin: 6, end: 9 })),
+                    mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
+                }
             ),
             (
                 " ",
-                TokenizedInput { token_ids: vec!(6), segment_ids: vec!(0), special_tokens_mask: vec!(0), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput {
+                    token_ids: vec!(),
+                    segment_ids: vec!(),
+                    special_tokens_mask: vec!(),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(),
+                    mask: vec!(),
+                }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0 }
+                TokenizedInput {
+                    token_ids: vec!(),
+                    segment_ids: vec!(),
+                    special_tokens_mask: vec!(),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(),
+                    mask: vec!(),
+                }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -265,40 +268,5 @@ mod tests {
                        *expected_result);
         }
         assert_eq!(Tokenizer::decode_list(&openai_gpt_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
-    }
-
-    #[test]
-    fn test_is_continuation_token() {
-//        Given
-        let vocab = Arc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
-        let openai_gpt_tokenizer: OpenAiGptTokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
-        let test_tuples = [
-            (
-                "Hello</w>",
-                false,
-            ),
-            (
-                "Una",
-                true,
-            ),
-            (
-                "ffa",
-                true,
-            ),
-            (
-                "ble</w>",
-                false,
-            ),
-            (
-                "",
-                false,
-            )
-        ];
-
-//        When & Then
-        for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(openai_gpt_tokenizer.is_continuation_token(source_ids), *expected_result);
-        }
     }
 }

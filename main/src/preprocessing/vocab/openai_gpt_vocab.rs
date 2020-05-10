@@ -28,6 +28,8 @@ pub struct OpenAiGptVocab {
 impl Vocab for OpenAiGptVocab {
     fn unknown_value() -> &'static str { "<unk>" }
 
+    fn get_unknown_value(&self) -> &'static str { "<unk>" }
+
     fn values(&self) -> &HashMap<String, i64> {
         &self.values
     }
