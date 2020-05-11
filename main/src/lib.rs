@@ -25,4 +25,3 @@ pub use crate::preprocessing::tokenizer::roberta_tokenizer::RobertaTokenizer;
 pub use crate::preprocessing::tokenizer::openai_gpt_tokenizer::OpenAiGptTokenizer;
 
 #[macro_use] extern crate lazy_static;
-extern crate unzip_n;
