@@ -17,9 +17,7 @@ use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_cjk_chars, wh
 use std::sync::Arc;
 use rayon::prelude::*;
 use itertools::Itertools;
-use unzip_n::unzip_n;
-
-unzip_n!(3);
+use serde::{Serialize, Deserialize};
 
 pub enum TruncationStrategy {
     LongestFirst,
@@ -30,14 +28,14 @@ pub enum TruncationStrategy {
 
 pub type OffsetSize = u32;
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 ///Offset information (in unicode points) to relate a token back to its original input string
 pub struct Offset {
     pub begin: OffsetSize,
     pub end: OffsetSize,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub enum Mask {
     ///The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.
     None,
@@ -97,7 +95,6 @@ impl<'a> TokenRef<'a> {
     pub fn to_owned(self) -> Token { //not a real implementation of ToOwned because that can't work in the current setup
         Token::from(self)
     }
-
 }
 
 impl<'a> TokenTrait for TokenRef<'a> {
@@ -234,10 +231,20 @@ pub trait Tokenizer<T: Vocab> {
     ///Tokenize a string, return offset information
     fn tokenize_with_offsets<'a>(&self, text: &'a str) -> (Vec<String>, Vec<Offset>, Vec<Mask>) {
         if text.trim().is_empty() {
-            return (vec!(), vec!(), vec!())
+            return (vec!(), vec!(), vec!());
         }
         let initial_token: TokenRef<'a> = TokenRef::new(text);
-        self.tokenize_to_tokens(initial_token).into_iter().map(|token| (token.text, token.offset, token.mask)).unzip_n_vec()
+        let tokens = self.tokenize_to_tokens(initial_token);
+        let length = tokens.len();
+        let mut texts = Vec::with_capacity(length);
+        let mut offsets = Vec::with_capacity(length);
+        let mut masks = Vec::with_capacity(length);
+        for token in tokens {
+            texts.push(token.text);
+            offsets.push(token.offset);
+            masks.push(token.mask);
+        };
+        (texts, offsets, masks)
     }
 
     ///Tokenize a text, returns a vector of tokens (contains offset information and more)
