@@ -161,7 +161,7 @@ impl<'a> From<TokenRef<'a>> for Token {
 ///
 /// This iterator loops over collections of tokens (i.e. things that implement `TokenTrait`)
 /// and groups all subtokens that belong together (forming a word or something similar).
-pub struct ConsolidatedTokenIterator<'a,T>
+pub struct ConsolidatedTokenIterator<'a, T>
     where T: TokenTrait
 {
     pub tokens: &'a Vec<T>,
@@ -169,20 +169,20 @@ pub struct ConsolidatedTokenIterator<'a,T>
     pub cursor: usize,
 }
 
-impl<'a,T> ConsolidatedTokenIterator<'a,T>
+impl<'a, T> ConsolidatedTokenIterator<'a, T>
     where T: TokenTrait {
     pub fn new(tokens: &'a Vec<T>) -> Self {
         ConsolidatedTokenIterator {
-            tokens: tokens,
+            tokens,
             begin: 0,
-            cursor: 0
+            cursor: 0,
         }
     }
 }
 
-impl<'a,T> Iterator for ConsolidatedTokenIterator<'a,T>
+impl<'a, T> Iterator for ConsolidatedTokenIterator<'a, T>
     where T: TokenTrait {
-        type Item = &'a[T];
+    type Item = &'a [T];
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -196,6 +196,7 @@ impl<'a,T> Iterator for ConsolidatedTokenIterator<'a,T>
                         return Some(sub_tokens);
                     }
                 }
+                self.cursor += 1;
             } else {
                 //we are at past the last item, return remaining buffer
                 if self.begin < self.cursor {
@@ -208,7 +209,6 @@ impl<'a,T> Iterator for ConsolidatedTokenIterator<'a,T>
                     return None;
                 }
             }
-            self.cursor += 1;
         }
     }
 }
@@ -220,26 +220,27 @@ impl<'a,T> Iterator for ConsolidatedTokenIterator<'a,T>
 /// grouping subtokens into words.
 ///
 /// ```no_run
-/// let Vec<Token> = vec!(); //add some tokens
+/// use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::{Token, ConsolidatableTokens};
+/// let tokens: Vec<Token> = vec!(); //add some tokens
 /// for (wordcount, word_tokens) in tokens.iter_consolidate_tokens().enumerate() {
 ///       eprintln!("word #{} - {:?}", wordcount+1, word_tokens);
 /// }
 /// ```
 pub trait ConsolidatableTokens<T>
     where T: TokenTrait {
-   fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<T>;
+    fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<T>;
 }
 
 impl ConsolidatableTokens<Token> for Vec<Token> {
-   fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<Token> {
-       ConsolidatedTokenIterator::new(self)
-   }
+    fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<Token> {
+        ConsolidatedTokenIterator::new(self)
+    }
 }
 
 impl<'a> ConsolidatableTokens<TokenRef<'a>> for Vec<TokenRef<'a>> {
-   fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<TokenRef<'a>> {
-       ConsolidatedTokenIterator::new(self)
-   }
+    fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<TokenRef<'a>> {
+        ConsolidatedTokenIterator::new(self)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -1074,10 +1075,10 @@ mod tests {
     #[test]
     fn test_consolidated_token_iterator() {
         let tokens = vec!(
-            Token { text: "he".to_owned(), offset: Offset::new(0,2), mask:  Mask::Begin },
-            Token { text: "llo".to_owned(), offset: Offset::new(2,5), mask: Mask::Continuation },
-            Token { text: "world".to_owned(), offset: Offset::new(6,11), mask: Mask::None },
-            Token { text: "!".to_owned(), offset: Offset::new(11,12), mask: Mask::Punctuation },
+            Token { text: "he".to_owned(), offset: Offset::new(0, 2), mask: Mask::Begin },
+            Token { text: "llo".to_owned(), offset: Offset::new(2, 5), mask: Mask::Continuation },
+            Token { text: "world".to_owned(), offset: Offset::new(6, 11), mask: Mask::None },
+            Token { text: "!".to_owned(), offset: Offset::new(11, 12), mask: Mask::Punctuation },
         );
 
 
