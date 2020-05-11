@@ -157,6 +157,91 @@ impl<'a> From<TokenRef<'a>> for Token {
     }
 }
 
+/// # ConsolidatedTokenIterator
+///
+/// This iterator loops over collections of tokens (i.e. things that implement `TokenTrait`)
+/// and groups all subtokens that belong together (forming a word or something similar).
+pub struct ConsolidatedTokenIterator<'a,T>
+    where T: TokenTrait
+{
+    pub tokens: &'a Vec<T>,
+    pub begin: usize,
+    pub cursor: usize,
+}
+
+impl<'a,T> ConsolidatedTokenIterator<'a,T>
+    where T: TokenTrait {
+    pub fn new(tokens: &'a Vec<T>) -> Self {
+        ConsolidatedTokenIterator {
+            tokens: tokens,
+            begin: 0,
+            cursor: 0
+        }
+    }
+}
+
+impl<'a,T> Iterator for ConsolidatedTokenIterator<'a,T>
+    where T: TokenTrait {
+        type Item = &'a[T];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(sub_token) = self.tokens.get(self.cursor) {
+                if (sub_token.mask() != Mask::Continuation) & (sub_token.mask() != Mask::InexactContinuation) {
+                    //return the previous buffer of subtokens (no copies!)
+                    if self.cursor > self.begin {
+                        let sub_tokens = &self.tokens[self.begin..self.cursor];
+                        self.begin = self.cursor;
+                        self.cursor += 1;
+                        return Some(sub_tokens);
+                    }
+                }
+            } else {
+                //we are at past the last item, return remaining buffer
+                if self.begin < self.cursor {
+                    let sub_tokens = &self.tokens[self.begin..self.cursor];
+                    self.cursor += 1;
+                    self.begin = self.cursor;
+                    return Some(sub_tokens);
+                } else {
+                    //nothing in buffer, we're done
+                    return None;
+                }
+            }
+            self.cursor += 1;
+        }
+    }
+}
+
+/// # ConsolidatableTokens
+///
+/// This trait can be implemented for collections of tokens (i.e. things that implement `TokenTrait`)
+/// and instantiates an iterator to quickly iterate over the tokens in consolidated form, e.g.
+/// grouping subtokens into words.
+///
+/// ```no_run
+/// let Vec<Token> = vec!(); //add some tokens
+/// for (wordcount, word_tokens) in tokens.iter_consolidate_tokens().enumerate() {
+///       eprintln!("word #{} - {:?}", wordcount+1, word_tokens);
+/// }
+/// ```
+pub trait ConsolidatableTokens<T>
+    where T: TokenTrait {
+   fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<T>;
+}
+
+impl ConsolidatableTokens<Token> for Vec<Token> {
+   fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<Token> {
+       ConsolidatedTokenIterator::new(self)
+   }
+}
+
+impl<'a> ConsolidatableTokens<TokenRef<'a>> for Vec<TokenRef<'a>> {
+   fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<TokenRef<'a>> {
+       ConsolidatedTokenIterator::new(self)
+   }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 ///A token that references the original text
 ///An owned token
@@ -984,5 +1069,23 @@ mod tests {
         }
         assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
         assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+    }
+
+    #[test]
+    fn test_consolidated_token_iterator() {
+        let tokens = vec!(
+            Token { text: "he".to_owned(), offset: Offset::new(0,2), mask:  Mask::Begin },
+            Token { text: "llo".to_owned(), offset: Offset::new(2,5), mask: Mask::Continuation },
+            Token { text: "world".to_owned(), offset: Offset::new(6,11), mask: Mask::None },
+            Token { text: "!".to_owned(), offset: Offset::new(11,12), mask: Mask::Punctuation },
+        );
+
+
+        let mut iter = tokens.iter_consolidate_tokens();
+        assert_eq!(iter.next(), Some(&tokens[0..2]));
+        assert_eq!(iter.next(), Some(&tokens[2..3]));
+        assert_eq!(iter.next(), Some(&tokens[3..4]));
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next(), None); //calling it more times after ending should always keep returning None
     }
 }
