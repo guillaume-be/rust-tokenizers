@@ -137,15 +137,28 @@ pub fn whitespace_tokenize(token: TokenRef) -> Vec<TokenRef> {
 
 
 ///Remove diacritics
-pub fn strip_accents(text: String) -> String {
-    let mut decomposed_string: String = String::with_capacity(text.capacity());
-    for character in text.chars() {
-        decompose_canonical(character, |c| if !ACCENT_MARKERS.contains(&(c as u32)) {
-            decomposed_string.push(c)
+pub fn strip_accents(token: &mut Token) {
+    let mut decomposed_string: String = String::with_capacity(token.text.capacity());
+    let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(token.text.capacity());
+    let mut char_counter = 0 as OffsetSize;
+    for character in token.text.chars() {
+        decompose_canonical(character, |c| {
+            if !ACCENT_MARKERS.contains(&(c as u32)) {
+                decomposed_string.push(c);
+                character_mapping.push(char_counter);
+            }
+            char_counter += 1;
         });
     }
-    decomposed_string
+    token.text = decomposed_string;
+    token.reference_offsets = character_mapping.iter_mut().map(|v| *v + token.reference_offsets[0]).collect()
 }
+
+//ToDo: implement lowercase keeping track of the character offsets
+//ToDo: check if carrying the offset throughout the pipeline is still required, or just populate at the end
+//ToDo: implement clean_text keeping track of the character offsets
+//ToDo: check if the vector of offsets should be containing optional values
+//ToDO: fix unit tests and re-run integration tests
 
 
 ///Split a token on punctuation

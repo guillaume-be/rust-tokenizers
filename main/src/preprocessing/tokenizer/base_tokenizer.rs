@@ -382,7 +382,7 @@ pub trait Tokenizer<T: Vocab> {
                 (None, None, None, None, 0, None)
             }
         };
-        let (additional_tokens, _, _, _, _additional_offsets, _additional_mask) = self.build_input_with_special_tokens(vec!(), pair, vec!(), Some(vec!()), vec!(), Some(vec!()),vec!(), Some(vec!()));
+        let (additional_tokens, _, _, _, _additional_offsets, _additional_mask) = self.build_input_with_special_tokens(vec!(), pair, vec!(), Some(vec!()), vec!(), Some(vec!()), vec!(), Some(vec!()));
         let total_len = len_1 + len_2 + additional_tokens.len();
         let num_truncated_tokens = if total_len > max_len { total_len - max_len } else { 0 };
         let (token_ids_1,
@@ -408,9 +408,18 @@ pub trait Tokenizer<T: Vocab> {
         let (token_ids,
             segment_ids,
             special_tokens_mask,
-            token_offsets,
+            _,
             reference_offsets,
             token_mask) = self.build_input_with_special_tokens(token_ids_1, token_ids_2, token_offsets, token_offsets_2, original_positions, original_positions_2, token_mask, token_mask_2);
+
+        let token_offsets = reference_offsets
+            .iter()
+            .map(|v| if !v.is_empty() {
+                Some(Offset { begin: *v.first().unwrap(), end: *v.last().unwrap() + 1 })
+            } else {
+                None
+            })
+            .collect();
 
         TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens, token_offsets, reference_offsets, mask: token_mask }
     }
@@ -633,7 +642,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
                         token.text = token.text.to_lowercase();
                     }
                     if self.strip_accents {
-                        token.text = strip_accents(token.text);
+                        strip_accents(&mut token);
                     }
                 }
                 token
