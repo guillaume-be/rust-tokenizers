@@ -14,7 +14,7 @@
 
 use crate::RobertaVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Offset, Token, TokenRef, Mask};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Offset, Token, TokenRef, Mask, OffsetSize};
 use std::collections::HashMap;
 use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace, split_on_regex_with_lookahead, split_on_bpe_pairs, fix_mask};
 use std::rc::Rc;
@@ -120,11 +120,15 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         String::from_utf8_lossy(&tokens).to_string()
     }
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>, offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>, mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Mask>) {
+    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
+                                       offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>,
+                                       original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
+                                       mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
         let mut output: Vec<i64> = vec!();
         let mut token_segment_ids: Vec<i8> = vec!();
         let mut special_tokens_mask: Vec<i8> = vec!();
         let mut offsets: Vec<Option<Offset>> = vec!();
+        let mut original_offsets: Vec<Vec<OffsetSize>> = vec!();
         let mut mask: Vec<Mask> = vec!();
         special_tokens_mask.push(1);
         special_tokens_mask.extend(vec![0; tokens_1.len()]);
@@ -136,6 +140,9 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         offsets.push(None);
         offsets.extend(offsets_1.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
         offsets.push(None);
+        original_offsets.push(vec!());
+        original_offsets.extend(original_offsets_1);
+        original_offsets.push(vec!());
         mask.push(Mask::Special);
         mask.extend(mask_1);
         mask.push(Mask::Special);
@@ -154,7 +161,11 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             } else {
                 offsets.extend(vec![None; length]);
             }
+            if let Some(add_original_offsets) = original_offsets_2 {
+                original_offsets.extend(add_original_offsets);
+            }
             offsets.push(None);
+            original_offsets.push(vec!());
             if let Some(mask_2) = mask_2 {
                 mask.extend(mask_2)
             } else {
@@ -162,7 +173,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             }
             mask.push(Mask::Special);
         }
-        (output, token_segment_ids, special_tokens_mask, offsets, mask)
+        (output, token_segment_ids, special_tokens_mask, offsets, original_offsets, mask)
     }
 }
 

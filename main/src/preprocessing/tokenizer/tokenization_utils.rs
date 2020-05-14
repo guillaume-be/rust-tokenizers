@@ -174,6 +174,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
                     tokens.push(TokenRef {
                         text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
                         offset: Offset { begin: token.offset.begin + charbegin as OffsetSize, end: token.offset.begin + charidx as OffsetSize },
+                        reference_offsets: token.reference_offsets[charbegin..charidx].to_vec(),
                         mask: Mask::None,
                     });
                 }
@@ -182,6 +183,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
                     tokens.push(TokenRef {
                         text: &token.text[bytesidx..bytesidx + c.len_utf8()],
                         offset: Offset { begin: token.offset.begin + charidx as OffsetSize, end: token.offset.begin + charidx as OffsetSize + 1 },
+                        reference_offsets: token.reference_offsets[charidx..charidx + 1].to_vec(),
                         mask: set_mask,
                     });
                 }
@@ -203,6 +205,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
         tokens.push(TokenRef {
             text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
             offset: Offset { begin: token.offset.begin + charbegin as OffsetSize, end: token.offset.begin + charcount as OffsetSize },
+            reference_offsets: token.reference_offsets[charbegin..charcount].to_vec(),
             mask: Mask::None,
         });
     }
@@ -225,6 +228,7 @@ pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead:
             splits.push(TokenRef {
                 text: splittext,
                 offset: Offset::new(token.offset.begin + beginchar as OffsetSize, token.offset.begin + endchar as OffsetSize),
+                reference_offsets: token.reference_offsets[beginchar..endchar].to_vec(),
                 mask: Mask::None,
             });
             beginbyte = endbyte;
@@ -233,6 +237,7 @@ pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead:
         splits.push(TokenRef {
             text: &token.text[beginbyte..],
             offset: Offset::new(token.offset.begin + beginchar as OffsetSize, token.offset.begin + token.text.chars().count() as OffsetSize),
+            reference_offsets: token.reference_offsets[beginchar..token.text.chars().count()].to_vec(),
             mask: Mask::None,
         });
 
@@ -259,6 +264,7 @@ pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> 
         tokens.push(TokenRef {
             text: hit.as_str(),
             offset: Offset::new(beginchar as OffsetSize, endchar as OffsetSize),
+            reference_offsets: token.reference_offsets[beginchar..endchar].to_vec(),
             mask: Mask::None,
         });
         beginchar = endchar;
@@ -293,6 +299,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
                     tokens.push(TokenRef {
                         text: trimmed_text,
                         offset: Offset { begin: token.offset.begin + char_begin as OffsetSize, end: token.offset.begin + (char_begin + trimmed_text_len) as OffsetSize },
+                        reference_offsets: token.reference_offsets[char_begin..(char_begin + trimmed_text_len)].to_vec(),
                         mask: Mask::None,
                     });
                 }
@@ -301,6 +308,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
                     tokens.push(TokenRef {
                         text: &token.text[bytes_idx..bytes_idx + matched_bytes],
                         offset: Offset { begin: token.offset.begin + char_idx as OffsetSize, end: token.offset.begin + (char_idx + matched_chars) as OffsetSize },
+                        reference_offsets: token.reference_offsets[char_idx..(char_idx + matched_chars)].to_vec(),
                         mask: set_mask,
                     });
                 }
@@ -320,6 +328,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
         tokens.push(TokenRef {
             text: trimmed_text,
             offset: Offset { begin: token.offset.begin + char_begin as OffsetSize, end: token.offset.begin + char_count as OffsetSize },
+            reference_offsets: token.reference_offsets[char_begin..char_count].to_vec(),
             mask: Mask::None,
         });
     }
@@ -336,6 +345,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
         tokens.push(Token {
             text: BertVocab::unknown_value().to_owned(),
             offset: token.offset.clone(),
+            reference_offsets: token.reference_offsets.to_vec(),
             mask: Mask::Unknown,
         });
     } else {
@@ -360,7 +370,12 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
                     substr = format!("##{}", substr);
                 }
                 if vocab.values().contains_key(&substr) {
-                    tokens.push(Token { text: substr, offset: suboffset, mask: if start > 0 { Mask::Continuation } else { token.mask } });
+                    tokens.push(Token {
+                        text: substr,
+                        offset: suboffset,
+                        reference_offsets: token.reference_offsets[pos_begin..(pos_begin + char_length)].to_vec(),
+                        mask: if start > 0 { Mask::Continuation } else { token.mask },
+                    });
                     is_unk = false;
                     break;
                 }
@@ -371,6 +386,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
                 return vec!(Token {
                     text: BertVocab::unknown_value().to_owned(),
                     offset: token.offset.clone(),
+                    reference_offsets: token.reference_offsets.to_vec(),
                     mask: Mask::Unknown,
                 });
             }
@@ -416,11 +432,17 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
 ///
 pub fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
                           mut offsets_1: Vec<Offset>, mut offsets_2: Option<Vec<Offset>>,
+                          mut original_positions_1: Vec<Vec<OffsetSize>>, mut original_positions_2: Option<Vec<Vec<OffsetSize>>>,
                           mut mask_1: Vec<Mask>, mut mask_2: Option<Vec<Mask>>,
                           num_tokens_to_remove: usize, truncation_strategy: &TruncationStrategy, stride: usize)
-                          -> Result<(Vec<i64>, Option<Vec<i64>>, Vec<Offset>, Option<Vec<Offset>>, Vec<Mask>, Option<Vec<Mask>>, Vec<i64>, Vec<Offset>), Box<dyn Error>> {
+                          -> Result<(Vec<i64>, Option<Vec<i64>>,
+                                     Vec<Offset>, Option<Vec<Offset>>,
+                                     Vec<Vec<OffsetSize>>, Option<Vec<Vec<OffsetSize>>>,
+                                     Vec<Mask>, Option<Vec<Mask>>, Vec<i64>, Vec<Offset>), Box<dyn Error>> {
     if num_tokens_to_remove == 0 {
-        Ok((tokens_1, tokens_2, offsets_1, offsets_2, mask_1, mask_2, Vec::new(), Vec::new()))
+        Ok((tokens_1, tokens_2, offsets_1, offsets_2,
+            original_positions_1, original_positions_2,
+            mask_1, mask_2, Vec::new(), Vec::new()))
     } else {
         match tokens_2 {
             Some(mut tokens_2) => {
@@ -435,6 +457,7 @@ pub fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
                                     if !offsets_1.is_empty() {
                                         overflow_offsets.insert(0, offsets_1.pop().unwrap());
                                     }
+                                    original_positions_1.pop();
                                     if !mask_1.is_empty() {
                                         mask_1.pop();
                                     }
@@ -443,6 +466,10 @@ pub fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
                                     offsets_2 = offsets_2.map(|mut offsets_2| {
                                         offsets_2.pop();
                                         offsets_2
+                                    });
+                                    original_positions_2 = original_positions_2.map(|mut original_positions_2| {
+                                        original_positions_2.pop();
+                                        original_positions_2
                                     });
                                     mask_2 = mask_2.map(|mut mask_2| {
                                         mask_2.pop();
@@ -459,23 +486,23 @@ pub fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
                                     overflow_offsets.splice(0..0, offset_slice.iter().cloned());
                                 }
                             }
-                            Ok((tokens_1, Some(tokens_2), offsets_1, offsets_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
+                            Ok((tokens_1, Some(tokens_2), offsets_1, offsets_2, original_positions_1, original_positions_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
                         } else {
                             Err("Combined sequence length too short for requested truncation amount".into())
                         }
                     }
                     TruncationStrategy::OnlyFirst => {
                         if tokens_1.len() >= num_tokens_to_remove {
-                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(&mut tokens_1, offsets_1.as_mut(), mask_1.as_mut(), num_tokens_to_remove, stride);
-                            Ok((tokens_1, Some(tokens_2), offsets_1, offsets_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
+                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(&mut tokens_1, offsets_1.as_mut(), original_positions_1.as_mut(), mask_1.as_mut(), num_tokens_to_remove, stride);
+                            Ok((tokens_1, Some(tokens_2), offsets_1, offsets_2, original_positions_1, original_positions_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
                         } else {
                             Err("First sequence too short for first only truncation".into())
                         }
                     }
                     TruncationStrategy::OnlySecond => {
                         if tokens_2.len() >= num_tokens_to_remove {
-                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(&mut tokens_2, offsets_2.as_mut().unwrap_or(&mut vec!()), mask_2.as_mut().unwrap_or(&mut vec!()), num_tokens_to_remove, stride);
-                            Ok((tokens_1, Some(tokens_2), offsets_1, offsets_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
+                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(&mut tokens_2, offsets_2.as_mut().unwrap_or(&mut vec!()), original_positions_2.as_mut().unwrap_or(&mut vec!()), mask_2.as_mut().unwrap_or(&mut vec!()), num_tokens_to_remove, stride);
+                            Ok((tokens_1, Some(tokens_2), offsets_1, offsets_2, original_positions_1, original_positions_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
                         } else {
                             Err("Second sequence too short for second only truncation".into())
                         }
@@ -487,8 +514,8 @@ pub fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
                 if tokens_1.len() >= num_tokens_to_remove {
                     match truncation_strategy {
                         TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
-                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(&mut tokens_1, &mut offsets_1, &mut mask_1, num_tokens_to_remove, stride);
-                            Ok((tokens_1, None, offsets_1, offsets_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
+                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(&mut tokens_1, &mut offsets_1, &mut original_positions_1, &mut mask_1, num_tokens_to_remove, stride);
+                            Ok((tokens_1, None, offsets_1, offsets_2, original_positions_1, original_positions_2, mask_1, mask_2, overflow_tokens, overflow_offsets))
                         }
                         TruncationStrategy::OnlySecond => Err("Invalid truncation strategy for single sentence truncation".into()),
                         TruncationStrategy::DoNotTruncate => Err("Truncation needed but no truncation requested".into())
@@ -501,7 +528,7 @@ pub fn truncate_sequences(mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
     }
 }
 
-fn truncate_with_overflow(sequence: &mut Vec<i64>, offsets: &mut Vec<Offset>, mask: &mut Vec<Mask>, num_tokens_to_remove: usize, stride: usize) -> (Vec<i64>, Vec<Offset>) {
+fn truncate_with_overflow(sequence: &mut Vec<i64>, offsets: &mut Vec<Offset>, original_positions: &mut Vec<Vec<OffsetSize>>, mask: &mut Vec<Mask>, num_tokens_to_remove: usize, stride: usize) -> (Vec<i64>, Vec<Offset>) {
     if !offsets.is_empty() {
         assert_eq!(sequence.len(), offsets.len());
     }
@@ -517,6 +544,7 @@ fn truncate_with_overflow(sequence: &mut Vec<i64>, offsets: &mut Vec<Offset>, ma
     };
     if !mask.is_empty() {
         mask.truncate(cutoff);
+        original_positions.truncate(cutoff);
     }
     let window_len = min(sequence.len(), stride);
     if window_len > 0 {
@@ -578,6 +606,10 @@ pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<
                             begin: tokens[i].offset.begin,
                             end: tokens[i + 1].offset.end,
                         },
+                        reference_offsets: [
+                            tokens[i].reference_offsets.as_slice(),
+                            tokens[i + 1].reference_offsets.as_slice()
+                        ].concat(),
                         mask: tokens[i].mask,
                     });
                     i += 2;
@@ -585,6 +617,7 @@ pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<
                     temp_sub_tokens.push(Token {
                         text: bigram.byte_1.clone(),
                         offset: tokens[i].offset.clone(),
+                        reference_offsets: tokens[i].reference_offsets.to_vec(),
                         mask: tokens[i].mask,
                     });
                     i += 1;
@@ -593,6 +626,7 @@ pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<
                 temp_sub_tokens.push(Token {
                     text: bigram.byte_1.clone(),
                     offset: tokens[i].offset.clone(),
+                    reference_offsets: tokens[i].reference_offsets.to_vec(),
                     mask: tokens[i].mask,
                 });
                 i += 1;
@@ -677,6 +711,10 @@ pub fn bpe_get_subtokens(token: TokenRef, exact_offsets: bool) -> Vec<Token> {
                 true => Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),
                 false => token.offset.clone()
             },
+            reference_offsets: match exact_offsets {
+                true => token.reference_offsets[i..i + 1].to_vec(),
+                false => token.reference_offsets.to_vec()
+            },
             mask: match exact_offsets {
                 true => Mask::Continuation,
                 false => Mask::InexactContinuation,
@@ -727,6 +765,7 @@ pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks
                 begin: 0,
                 end: token.offset.end - token.offset.begin,
             },
+            reference_offsets: vec!(),
             mask: Mask::None, //will be overwritten anyway
         }, bpe_ranks, exact_offsets);
         cache.borrow_mut().insert(text.to_owned(), bpe_output.clone());

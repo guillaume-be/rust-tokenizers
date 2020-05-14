@@ -80,14 +80,17 @@ pub trait TokenTrait {
 pub struct TokenRef<'a> {
     pub text: &'a str,
     pub offset: Offset,
+    pub reference_offsets: Vec<OffsetSize>,
     pub mask: Mask,
 }
 
 impl<'a> TokenRef<'a> {
     pub fn new(text: &'a str) -> TokenRef<'a> {
+        let text_size: OffsetSize = text.chars().count() as OffsetSize;
         TokenRef {
             text,
-            offset: Offset { begin: 0, end: text.chars().count() as u32 },
+            offset: Offset { begin: 0, end: text_size },
+            reference_offsets: (0..text_size).collect::<Vec<OffsetSize>>(),
             mask: Mask::None,
         }
     }
@@ -130,6 +133,7 @@ impl<'a> From<&'a Token> for TokenRef<'a> {
         TokenRef {
             text: other.text.as_str(),
             offset: other.offset.clone(),
+            reference_offsets: other.reference_offsets.clone(),
             mask: other.mask,
         }
     }
@@ -152,6 +156,7 @@ impl<'a> From<TokenRef<'a>> for Token {
         Token {
             text: other.text.to_owned(),
             offset: other.offset,
+            reference_offsets: other.reference_offsets.to_vec(),
             mask: other.mask,
         }
     }
@@ -249,6 +254,7 @@ impl<'a> ConsolidatableTokens<TokenRef<'a>> for Vec<TokenRef<'a>> {
 pub struct Token {
     pub text: String,
     pub offset: Offset,
+    pub reference_offsets: Vec<OffsetSize>,
     pub mask: Mask,
 }
 
@@ -259,6 +265,7 @@ impl Token {
         Token {
             text,
             offset: Offset { begin: 0, end: text_size },
+            reference_offsets: (0..text_size).collect(),
             mask: Mask::None,
         }
     }
@@ -300,6 +307,8 @@ pub struct TokenizedInput {
     ///original source are registered as None.
     pub token_offsets: Vec<Option<Offset>>,
 
+    pub reference_offsets: Vec<Vec<OffsetSize>>,
+
     ///Masks tokens so you can see what type of token something is. This vector has the same length
     ///as token_ids (and also makes special_tokens_mask redundant).
     pub mask: Vec<Mask>,
@@ -315,22 +324,24 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a string, return offset information
-    fn tokenize_with_offsets<'a>(&self, text: &'a str) -> (Vec<String>, Vec<Offset>, Vec<Mask>) {
+    fn tokenize_with_offsets<'a>(&self, text: &'a str) -> (Vec<String>, Vec<Offset>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
         if text.trim().is_empty() {
-            return (vec!(), vec!(), vec!());
+            return (vec!(), vec!(), vec!(), vec!());
         }
         let initial_token: TokenRef<'a> = TokenRef::new(text);
         let tokens = self.tokenize_to_tokens(initial_token);
         let length = tokens.len();
         let mut texts = Vec::with_capacity(length);
         let mut offsets = Vec::with_capacity(length);
+        let mut original_positions = Vec::with_capacity(length);
         let mut masks = Vec::with_capacity(length);
         for token in tokens {
             texts.push(token.text);
             offsets.push(token.offset);
+            original_positions.push(token.reference_offsets);
             masks.push(token.mask);
         };
-        (texts, offsets, masks)
+        (texts, offsets, original_positions, masks)
     }
 
     ///Tokenize a text, returns a vector of tokens (contains offset information and more)
@@ -346,7 +357,7 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of pairs consists of a vector of tokens and a list of offset information.
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Offset>, Vec<Mask>)> {
+    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Offset>, Vec<Vec<OffsetSize>>, Vec<Mask>)> {
         text_list.
             into_iter().
             map(|text| self.tokenize_with_offsets(text)).
@@ -358,41 +369,50 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> TokenizedInput {
-        let (token_strings, token_offsets, token_mask) = self.tokenize_with_offsets(text_1);
+        let (token_strings, token_offsets, original_positions, token_mask) = self.tokenize_with_offsets(text_1);
         let token_ids_1 = self.convert_tokens_to_ids(&token_strings);
         let len_1 = token_ids_1.len();
-        let (token_ids_2, token_offsets_2, token_mask_2, len_2, pair) = {
+        let (token_ids_2, token_offsets_2, original_positions_2, token_mask_2, len_2, pair) = {
             if let Some(text) = text_2 {
-                let (token_strings_2, token_offsets_2, token_mask_2) = self.tokenize_with_offsets(text);
+                let (token_strings_2, token_offsets_2, original_positions_2, token_mask_2) = self.tokenize_with_offsets(text);
                 let token_ids_2: Vec<i64> = self.convert_tokens_to_ids(&token_strings_2);
                 let len_2 = token_ids_2.len();
-                (Some(token_ids_2), Some(token_offsets_2), Some(token_mask_2), len_2, Some(vec!()))
+                (Some(token_ids_2), Some(token_offsets_2), Some(original_positions_2), Some(token_mask_2), len_2, Some(vec!()))
             } else {
-                (None, None, None, 0, None)
+                (None, None, None, None, 0, None)
             }
         };
-        let (additional_tokens, _, _, _additional_offsets, _additional_mask) = self.build_input_with_special_tokens(vec!(), pair, vec!(), Some(vec!()), vec!(), Some(vec!()));
+        let (additional_tokens, _, _, _, _additional_offsets, _additional_mask) = self.build_input_with_special_tokens(vec!(), pair, vec!(), Some(vec!()), vec!(), Some(vec!()),vec!(), Some(vec!()));
         let total_len = len_1 + len_2 + additional_tokens.len();
         let num_truncated_tokens = if total_len > max_len { total_len - max_len } else { 0 };
         let (token_ids_1,
             token_ids_2,
             token_offsets,
             token_offsets_2,
+            original_positions,
+            original_positions_2,
             token_mask,
             token_mask_2,
             overflowing_tokens, _overflowing_offsets) = truncate_sequences(token_ids_1,
                                                                            token_ids_2,
                                                                            token_offsets,
                                                                            token_offsets_2,
+                                                                           original_positions,
+                                                                           original_positions_2,
                                                                            token_mask,
                                                                            token_mask_2,
                                                                            num_truncated_tokens,
                                                                            truncation_strategy,
                                                                            stride).unwrap();
 
-        let (token_ids, segment_ids, special_tokens_mask, token_offsets, token_mask) = self.build_input_with_special_tokens(token_ids_1, token_ids_2, token_offsets, token_offsets_2, token_mask, token_mask_2);
+        let (token_ids,
+            segment_ids,
+            special_tokens_mask,
+            token_offsets,
+            reference_offsets,
+            token_mask) = self.build_input_with_special_tokens(token_ids_1, token_ids_2, token_offsets, token_offsets_2, original_positions, original_positions_2, token_mask, token_mask_2);
 
-        TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens, token_offsets, mask: token_mask }
+        TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens, token_offsets, reference_offsets, mask: token_mask }
     }
 
     fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
@@ -480,10 +500,14 @@ pub trait Tokenizer<T: Vocab> {
     ///  * special token mask
     ///  * offsets (as a vector of `Option<Offset>` because some added markers may not have associated offsets
     ///  * token mask
-    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>, offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>, mut mask: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Mask>) {
+    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
+                                       offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>,
+                                       original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
+                                       mut mask: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
         let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
         let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
         let mut offsets: Vec<Option<Offset>> = offsets_1.into_iter().map(|offset| offset.into_option()).collect();
+        let mut original_offsets: Vec<Vec<OffsetSize>> = original_offsets_1;
         let output = match tokens_2 {
             Some(tokens) => {
                 let length = tokens.len();
@@ -495,6 +519,9 @@ pub trait Tokenizer<T: Vocab> {
                 } else {
                     offsets.extend(vec![None; length]);
                 }
+                if let Some(original_offset_2) = original_offsets_2 {
+                    original_offsets.extend(original_offset_2)
+                }
                 if let Some(mask_2) = mask_2 {
                     mask.extend(mask_2)
                 } else {
@@ -504,7 +531,7 @@ pub trait Tokenizer<T: Vocab> {
             }
             None => tokens_1
         };
-        (output, token_segment_ids, special_tokens_mask, offsets, mask)
+        (output, token_segment_ids, special_tokens_mask, offsets, original_offsets, mask)
     }
 }
 
@@ -515,7 +542,7 @@ pub trait MultiThreadedTokenizer<T: Vocab>
         Tokenizer::<T>::vocab(self)
     }
 
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Offset>, Vec<Mask>)> {
+    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Offset>, Vec<Vec<OffsetSize>>, Vec<Mask>)> {
         text_list.
             par_iter().
             map(|text| self.tokenize_with_offsets(text)).
@@ -597,6 +624,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
                 let mut token = Token {
                     text: clean_text(token.text, true),
                     offset: token.offset,
+                    reference_offsets: token.reference_offsets.to_vec(),
                     mask: token.mask,
                 };
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
