@@ -29,19 +29,26 @@ use crate::preprocessing::vocab::bpe_vocab::{BpePairRef, BpePairVocab};
 
 
 ///Cleans text by removing control characters and normalizing whitespace
-pub fn clean_text(text: &str, strict: bool) -> String {
-    let mut output = String::new();
-    for character in text.chars() {
+pub fn clean_text(token: &mut Token, strict: bool) {
+    let capacity = token.text.capacity();
+    let mut cleaned_string = String::with_capacity(capacity);
+    let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
+    for (character, position) in token.text.chars().zip(token.reference_offsets.iter()) {
         if is_control(&character, strict) || character == '\x00' || character == REPLACEMENT_CHARACTER {
             continue;
         }
         if is_whitespace(&character) {
-            output.push(' ');
+            cleaned_string.push(' ');
+            character_mapping.push(*position);
         } else {
-            output.push(character);
+            cleaned_string.push(character);
+            character_mapping.push(*position);
         }
     }
-    output
+    token.text = cleaned_string;
+    token.reference_offsets = character_mapping;
+    token.offset.begin = *token.reference_offsets.first().unwrap();
+    token.offset.end = *token.reference_offsets.last().unwrap();
 }
 
 ///Split a text on special tokens (like BOS/EOS/UNK markers), depending on the vocabulary
@@ -137,8 +144,9 @@ pub fn whitespace_tokenize(token: TokenRef) -> Vec<TokenRef> {
 
 ///Remove diacritics
 pub fn lowercase(token: &mut Token) {
-    let mut lower_cased_string: String = String::with_capacity(token.text.capacity());
-    let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(token.text.capacity());
+    let capacity = token.text.capacity();
+    let mut lower_cased_string: String = String::with_capacity(capacity);
+    let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
     for (character, position) in token.text.chars().zip(token.reference_offsets.iter()) {
         for c in character.to_lowercase() {
             lower_cased_string.push(c);
@@ -154,8 +162,9 @@ pub fn lowercase(token: &mut Token) {
 
 ///Remove diacritics
 pub fn strip_accents(token: &mut Token) {
-    let mut decomposed_string: String = String::with_capacity(token.text.capacity());
-    let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(token.text.capacity());
+    let capacity = token.text.capacity();
+    let mut decomposed_string: String = String::with_capacity(capacity);
+    let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
     for (character, position) in token.text.chars().zip(token.reference_offsets.iter()) {
         decompose_canonical(character, |c| {
             if !ACCENT_MARKERS.contains(&(c as u32)) {
@@ -171,7 +180,6 @@ pub fn strip_accents(token: &mut Token) {
 }
 
 //ToDo: check if carrying the offset throughout the pipeline is still required, or just populate at the end
-//ToDo: implement clean_text keeping track of the character offsets
 //ToDo: check if the vector of offsets should be containing optional values
 //ToDO: fix unit tests and re-run integration tests
 
