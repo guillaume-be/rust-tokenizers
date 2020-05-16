@@ -35,6 +35,7 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
     for (character, position) in token.text.chars().zip(token.reference_offsets.iter()) {
         if is_control(&character, strict) || character == '\x00' || character == REPLACEMENT_CHARACTER {
+            character_mapping.push(*position);
             continue;
         }
         if is_whitespace(&character) {
@@ -47,8 +48,8 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     }
     token.text = cleaned_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token.reference_offsets.first().unwrap();
-    token.offset.end = *token.reference_offsets.last().unwrap();
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0 as OffsetSize));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize));
 }
 
 ///Split a text on special tokens (like BOS/EOS/UNK markers), depending on the vocabulary
@@ -155,8 +156,8 @@ pub fn lowercase(token: &mut Token) {
     }
     token.text = lower_cased_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token.reference_offsets.first().unwrap();
-    token.offset.end = *token.reference_offsets.last().unwrap();
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0 as OffsetSize));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize));
 }
 
 
@@ -175,8 +176,8 @@ pub fn strip_accents(token: &mut Token) {
     }
     token.text = decomposed_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token.reference_offsets.first().unwrap();
-    token.offset.end = *token.reference_offsets.last().unwrap();
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0 as OffsetSize));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize));
 }
 
 //ToDo: check if carrying the offset throughout the pipeline is still required, or just populate at the end
