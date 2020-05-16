@@ -147,6 +147,7 @@ pub fn lowercase(token: &mut Token) {
     }
     token.text = lower_cased_string;
     token.reference_offsets = character_mapping;
+    token.offset.begin = *token.reference_offsets.first().unwrap();
     token.offset.end = *token.reference_offsets.last().unwrap();
 }
 
@@ -164,10 +165,11 @@ pub fn strip_accents(token: &mut Token) {
         });
     }
     token.text = decomposed_string;
-    token.reference_offsets = character_mapping
+    token.reference_offsets = character_mapping;
+    token.offset.begin = *token.reference_offsets.first().unwrap();
+    token.offset.end = *token.reference_offsets.last().unwrap();
 }
 
-//ToDo: implement lowercase keeping track of the character offsets
 //ToDo: check if carrying the offset throughout the pipeline is still required, or just populate at the end
 //ToDo: implement clean_text keeping track of the character offsets
 //ToDo: check if the vector of offsets should be containing optional values
