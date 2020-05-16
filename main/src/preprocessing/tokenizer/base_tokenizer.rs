@@ -18,6 +18,7 @@ use std::sync::Arc;
 use rayon::prelude::*;
 use itertools::Itertools;
 use serde::{Serialize, Deserialize};
+use crate::tokenization_utils::lowercase;
 
 pub enum TruncationStrategy {
     LongestFirst,
@@ -639,7 +640,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
-                        token.text = token.text.to_lowercase();
+                        lowercase(&mut token);
                     }
                     if self.strip_accents {
                         strip_accents(&mut token);
