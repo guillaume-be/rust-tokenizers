@@ -22,7 +22,7 @@ from transformers import OpenAIGPTTokenizer
 from rust_tokenizers import PyOpenAiGptTokenizer
 
 
-class TestBenchmarkBert:
+class TestBenchmarkGpt:
     def setup_class(self):
         self.processor = Sst2Processor()
         self.test_dir = Path(tempfile.mkdtemp())

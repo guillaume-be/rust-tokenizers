@@ -246,36 +246,39 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
 
 pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead: &Regex, pattern_tokenization: &Regex) -> Vec<TokenRef<'a>> {
     if token.mask == Mask::None {
-        let mut sub_words: Vec<TokenRef<'a>> = vec!();
-        let mut splits: Vec<TokenRef<'a>> = vec!();
+        let mut sub_words: Vec<&str> = vec!();
+        let mut splits: Vec<&str> = vec!();
 
-        let mut beginbyte: usize = 0;
-        let mut endbyte: usize;
-        let mut beginchar: usize = 0; //chars
-        let mut endchar: usize;
+        let mut i: usize = 0;
+        let mut end_byte: usize;
         for hit in pattern_lookahead.find_iter(token.text) {
-            endbyte = hit.end() - 1 - hit.as_str().chars().last().unwrap().len_utf8();
-            let splittext = &token.text[beginbyte..endbyte];
-            endchar = beginchar + splittext.chars().count();
-            splits.push(TokenRef {
-                text: splittext,
-                offset: Offset::new(token.offset.begin + beginchar as OffsetSize, token.offset.begin + endchar as OffsetSize),
-                reference_offsets: token.reference_offsets[beginchar..endchar].to_vec(),
-                mask: Mask::None,
-            });
-            beginbyte = endbyte;
-            beginchar = endchar;
+            end_byte = hit.end() - 1 - hit.as_str().chars().last().unwrap().len_utf8();
+            splits.push(&token.text[i..end_byte]);
+            i = end_byte;
         }
-        splits.push(TokenRef {
-            text: &token.text[beginbyte..],
-            offset: Offset::new(token.offset.begin + beginchar as OffsetSize, token.offset.begin + token.text.chars().count() as OffsetSize),
-            reference_offsets: token.reference_offsets[beginchar..token.text.chars().count()].to_vec(),
-            mask: Mask::None,
-        });
+        splits.push(&token.text[i..]);
+
         for sub_word in splits {
-            sub_words.extend(split_on_regex(sub_word, pattern_tokenization))
+            for hit in pattern_tokenization.find_iter(sub_word) {
+                sub_words.push(hit.as_str());
+            }
         }
-        sub_words
+
+        let mut output_tokens: Vec<TokenRef> = Vec::with_capacity(sub_words.len());
+        let mut begin_char: usize = 0;
+        let mut end_char: usize;
+        for sub_word in sub_words {
+            end_char = begin_char + sub_word.chars().count();
+            output_tokens.push(TokenRef {
+                text: sub_word,
+                offset: Offset::new(token.offset.begin + begin_char as OffsetSize, token.offset.begin + end_char as OffsetSize),
+                reference_offsets: token.reference_offsets[begin_char..end_char].to_vec(),
+                mask: Default::default()
+            });
+            begin_char = end_char;
+        }
+
+        output_tokens
     } else {
         vec!(token)
     }

@@ -22,7 +22,7 @@ from transformers import GPT2Tokenizer
 from rust_tokenizers import PyGpt2Tokenizer
 
 
-class TestBenchmarkBert:
+class TestBenchmarkGpt2:
     def setup_class(self):
         self.processor = Sst2Processor()
         self.test_dir = Path(tempfile.mkdtemp())

@@ -53,33 +53,26 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
-        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
+        let mut tokens = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
-            .map(|token| {
-                let mut token = token.to_owned();
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    //apply the necessary transformations to the actual tokens (unless it's a special value)
-                    if self.lower_case {
-                        lowercase(&mut token);
-                    }
-                    split_on_regex(token.as_ref(), &self.regex_pattern).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
-                } else {
-                    vec!(token)
-                }
-            })
-            .flatten()
-            .map(|token: Token| {
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.as_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
-                } else {
-                    vec!(token)
-                }
-            })
-            .flatten()
-            .collect();
+            .map(|token| token.to_owned())
+            .collect::<Vec<Token>>();
+        let mut sub_tokens = Vec::new();
 
-        fix_mask(&mut tokens);
-        tokens
+        for token in tokens.iter_mut() {
+            if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                if self.lower_case {
+                    lowercase(&mut token.to_owned());
+                }
+                for token in split_on_regex(token.as_ref(), &self.regex_pattern) {
+                    sub_tokens.extend(split_on_bpe_pairs(token, ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false));
+                }
+            } else {
+                sub_tokens.push(token.clone());
+            }
+        }
+        fix_mask(&mut sub_tokens);
+        sub_tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {

@@ -24,6 +24,7 @@ use regex::Regex;
 use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
 use std::iter::Iterator;
 use itertools::Itertools;
+use crate::tokenization_utils::lowercase;
 
 pub struct RobertaTokenizer {
     vocab: Rc<RobertaVocab>,
@@ -62,51 +63,32 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             return vec!();
         }
         let mut initial_token: Token = initial_token.to_owned();
-        let added_whitespace = if !is_whitespace(&initial_token.text.chars().next().unwrap()) {
+        if !is_whitespace(&initial_token.text.chars().next().unwrap()) {
             //text should always start with an initial whitespace
             initial_token.text.insert(0, ' ');
             initial_token.reference_offsets.insert(0, 0);
-            true
-        } else {
-            false
         };
         let mut tokens: Vec<Token> = split_on_special_tokens(initial_token.as_ref(), self.vocab.as_ref())
             .into_iter()
-            .map(|token| {
-                let mut token = token.to_owned();
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    //apply the necessary transformations to the actual tokens (unless it's a special value)
-                    if self.lower_case {
-                        token.text = token.text.to_lowercase();
-                    }
-                }
+            .map(|token| token.to_owned())
+            .collect::<Vec<Token>>();
 
-                split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
-            })
-            .flatten()
-            .map(|token: Token| {
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.as_ref(), bpe, &self.bpe_ranks, &self.cache, true)
-                } else {
-                    vec!(token)
+        let mut sub_tokens = Vec::new();
+        for token in tokens.iter_mut() {
+            if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                if self.lower_case {
+                    lowercase(token);
                 }
-            })
-            .flatten()
-            .map(|mut token: Token| {
-                if added_whitespace {
-                    //remove the added whitespace from the offsets
-                    if token.offset.begin == 0 {
-                        token.offset.end -= 1;
-                    } else {
-                        token.offset.begin -= 1;
-                        token.offset.end -= 1;
-                    }
+                for token in split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization) {
+                    sub_tokens.extend(split_on_bpe_pairs(token, bpe, &self.bpe_ranks, &self.cache, true));
                 }
-                token
-            }).collect();
+            } else {
+                sub_tokens.push(token.clone());
+            }
+        }
 
-        fix_mask(&mut tokens);
-        tokens
+        fix_mask(&mut sub_tokens);
+        sub_tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {

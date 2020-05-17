@@ -153,7 +153,7 @@ impl<'a> From<TokenRef<'a>> for Token {
         Token {
             text: other.text.to_owned(),
             offset: other.offset,
-            reference_offsets: other.reference_offsets.to_vec(),
+            reference_offsets: other.reference_offsets,
             mask: other.mask,
         }
     }

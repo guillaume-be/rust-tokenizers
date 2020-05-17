@@ -18,11 +18,11 @@ from zipfile import ZipFile
 import requests
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
-from transformers import RobertaTokenizer
-from rust_tokenizers import PyRobertaTokenizer
+from transformers import CTRLTokenizer
+from rust_tokenizers import PyCtrlTokenizer
 
 
-class TestBenchmarkRoberta:
+class TestBenchmarkCtrl:
     def setup_class(self):
         self.processor = Sst2Processor()
         self.test_dir = Path(tempfile.mkdtemp())
@@ -32,26 +32,26 @@ class TestBenchmarkRoberta:
         with ZipFile(self.test_dir / 'SST-2.zip', 'r') as zipObj:
             zipObj.extractall(self.test_dir)
         self.examples = self.processor.get_train_examples(self.test_dir / 'SST-2')
-        self.base_tokenizer = RobertaTokenizer.from_pretrained('roberta-base',
-                                                               do_lower_case=False,
-                                                               cache_dir=self.test_dir)
-        self.rust_tokenizer = PyRobertaTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['roberta-base']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base']),
+        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl',
+                                                            do_lower_case=False,
+                                                            cache_dir=self.test_dir)
+        self.rust_tokenizer = PyCtrlTokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['ctrl']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl']),
             do_lower_case=False)
 
     def setup_python_tokenizer(self):
-        self.base_tokenizer = RobertaTokenizer.from_pretrained('roberta-base',
-                                                               do_lower_case=False,
-                                                               cache_dir=self.test_dir)
+        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl',
+                                                            do_lower_case=False,
+                                                            cache_dir=self.test_dir)
 
     def setup_rust_tokenizer(self):
-        self.rust_tokenizer = PyRobertaTokenizer(
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['roberta-base']),
-            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base']),
+        self.rust_tokenizer = PyCtrlTokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['ctrl']),
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['ctrl']),
             do_lower_case=False)
 
-    def python_roberta_tokenizer(self):
+    def python_ctrl_tokenizer(self):
         output_baseline = []
         for example in self.examples:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
@@ -60,7 +60,7 @@ class TestBenchmarkRoberta:
                                                                    return_special_tokens_mask=True,
                                                                    max_length=128))
 
-    def rust_roberta_tokenizer_single_threaded(self):
+    def rust_ctrl_tokenizer_single_threaded(self):
         output_baseline = []
         for example in self.examples:
             output_baseline.append(self.rust_tokenizer.encode(example.text_a,
@@ -68,19 +68,19 @@ class TestBenchmarkRoberta:
                                                               truncation_strategy='longest_first',
                                                               stride=0))
 
-    def rust_roberta_tokenizer_multi_threaded(self):
+    def rust_ctrl_tokenizer_multi_threaded(self):
         self.rust_tokenizer.encode_list([example.text_a for example in self.examples],
                                         max_len=128,
                                         truncation_strategy='longest_first',
                                         stride=0)
 
-    def test_python_roberta_tokenizer_single_threaded(self, benchmark):
-        benchmark.pedantic(self.python_roberta_tokenizer, setup=self.setup_python_tokenizer, iterations=1, rounds=3)
+    def test_python_ctrl_tokenizer_single_threaded(self, benchmark):
+        benchmark.pedantic(self.python_ctrl_tokenizer, setup=self.setup_python_tokenizer, iterations=1, rounds=3)
 
-    def test_rust_roberta_tokenizer_single_threaded(self, benchmark):
-        benchmark.pedantic(self.rust_roberta_tokenizer_single_threaded, setup=self.setup_rust_tokenizer, iterations=1,
+    def test_rust_ctrl_tokenizer_single_threaded(self, benchmark):
+        benchmark.pedantic(self.rust_ctrl_tokenizer_single_threaded, setup=self.setup_rust_tokenizer, iterations=1,
                            rounds=3)
 
-    def test_rust_roberta_tokenizer_multi_threaded(self, benchmark):
-        benchmark.pedantic(self.rust_roberta_tokenizer_multi_threaded, setup=self.setup_rust_tokenizer, iterations=1,
+    def test_rust_ctrl_tokenizer_multi_threaded(self, benchmark):
+        benchmark.pedantic(self.rust_ctrl_tokenizer_multi_threaded, setup=self.setup_rust_tokenizer, iterations=1,
                            rounds=3)
