@@ -26,7 +26,7 @@ use regex::Regex;
 pub struct CtrlTokenizer {
     vocab: Rc<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<Token>>>,
+    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
     regex_pattern: Regex,
     lower_case: bool,
 }

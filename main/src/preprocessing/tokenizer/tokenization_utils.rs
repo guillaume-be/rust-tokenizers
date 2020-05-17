@@ -180,11 +180,6 @@ pub fn strip_accents(token: &mut Token) {
     token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize)) + 1;
 }
 
-//ToDo: check if carrying the offset throughout the pipeline is still required, or just populate at the end
-//ToDo: check if the vector of offsets should be containing optional values
-//ToDO: fix unit tests and re-run integration tests
-
-
 ///Split a token on punctuation
 pub fn split_on_punct(token: TokenRef) -> Vec<TokenRef> {
     split_on_char(token, is_punctuation, true, Mask::Punctuation)
@@ -277,11 +272,9 @@ pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead:
             reference_offsets: token.reference_offsets[beginchar..token.text.chars().count()].to_vec(),
             mask: Mask::None,
         });
-
         for sub_word in splits {
             sub_words.extend(split_on_regex(sub_word, pattern_tokenization))
         }
-
         sub_words
     } else {
         vec!(token)
@@ -602,8 +595,8 @@ pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePairRef>> {
     }
 }
 
-pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<Token>, bool) {
-    if let Some(pairs) = get_pairs(&tokens.iter().map(|token| token.text.clone()).collect()) {
+pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec<String>, bool) {
+    if let Some(pairs) = get_pairs(&tokens) {
         let bigram = pairs.iter().min_by_key(|pair|
             match bpe_ranks.byte_pair_to_id(pair) {
                 Some(&rank) => rank,
@@ -612,11 +605,11 @@ pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<
         if bpe_ranks.byte_pair_to_id(bigram).is_none() {
             return (tokens, true);
         }
-        let mut temp_sub_tokens: Vec<Token> = Vec::with_capacity(tokens.len());
+        let mut temp_sub_tokens: Vec<String> = Vec::with_capacity(tokens.len());
         let mut i = 0;
 
         while i < tokens.len() {
-            let j = if let Some(index) = &tokens[i..].iter().position(|r| r.text.as_str() == bigram.byte_1) {
+            let j = if let Some(index) = &tokens[i..].iter().position(|r| r == bigram.byte_1) {
                 index + i
             } else {
                 temp_sub_tokens.extend_from_slice(&tokens[i..]);
@@ -624,40 +617,19 @@ pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<
             };
             temp_sub_tokens.extend_from_slice(&tokens[i..j]);
             i = j;
-            if (&tokens[i].text.as_str() == bigram.byte_1) & (i < tokens.len() - 1) {
-                if &tokens[i + 1].text.as_str() == bigram.byte_2 {
+            if (&tokens[i] == bigram.byte_1) & (i < tokens.len() - 1) {
+                if &tokens[i + 1] == bigram.byte_2 {
                     let mut combined_bytes = String::with_capacity(bigram.byte_1.len() + bigram.byte_2.len());
                     combined_bytes.push_str(bigram.byte_1.as_str());
                     combined_bytes.push_str(bigram.byte_2.as_str());
-                    temp_sub_tokens.push(Token {
-                        text: combined_bytes,
-                        offset: Offset { //offset always references the original situation! Not the modified one!
-                            begin: tokens[i].offset.begin,
-                            end: tokens[i + 1].offset.end,
-                        },
-                        reference_offsets: [
-                            tokens[i].reference_offsets.as_slice(),
-                            tokens[i + 1].reference_offsets.as_slice()
-                        ].concat(),
-                        mask: tokens[i].mask,
-                    });
+                    temp_sub_tokens.push(combined_bytes);
                     i += 2;
                 } else {
-                    temp_sub_tokens.push(Token {
-                        text: bigram.byte_1.clone(),
-                        offset: tokens[i].offset.clone(),
-                        reference_offsets: tokens[i].reference_offsets.to_vec(),
-                        mask: tokens[i].mask,
-                    });
+                    temp_sub_tokens.push(bigram.byte_1.clone());
                     i += 1;
                 }
             } else {
-                temp_sub_tokens.push(Token {
-                    text: bigram.byte_1.clone(),
-                    offset: tokens[i].offset.clone(),
-                    reference_offsets: tokens[i].reference_offsets.to_vec(),
-                    mask: tokens[i].mask,
-                });
+                temp_sub_tokens.push(bigram.byte_1.clone());
                 i += 1;
             }
         }
@@ -670,11 +642,11 @@ pub fn group_common_pairs(tokens: Vec<Token>, bpe_ranks: &BpePairVocab) -> (Vec<
     }
 }
 
-pub fn ctrl_bpe(token: TokenRef, bpe_ranks: &BpePairVocab) -> Vec<Token> {
-    let mut sub_tokens = bpe_get_subtokens(token);
+pub fn ctrl_bpe(token: &str, bpe_ranks: &BpePairVocab) -> (Vec<String>, Vec<usize>) {
+    let mut sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
 
     if !sub_tokens.is_empty() {
-        sub_tokens.last_mut().unwrap().text += "</w>";
+        sub_tokens.last_mut().unwrap().push_str("</w>");
     };
 
     let mut output = (sub_tokens, false);
@@ -688,21 +660,22 @@ pub fn ctrl_bpe(token: TokenRef, bpe_ranks: &BpePairVocab) -> Vec<Token> {
     let length = output.0.len();
     for (i, token) in output.0.iter_mut().enumerate() {
         if i < length - 1 {
-            token.text += "@@";
+            token.push_str("@@");
         } else if i == length - 1 {
             //strip the last </w> suffix again, we only needed it for group_common_pairs
-            token.text = token.text.trim_end_matches("</w>").to_owned();
+            *token = token.trim_end_matches("</w>").to_owned();
         }
     }
-    bpe_fix_mask(output.0)
+    let char_counts = output.0.iter().map(|v| v.trim_end_matches("@@").chars().count()).collect();
+    (output.0, char_counts)
 }
 
-pub fn openai_gpt_bpe(token: TokenRef, bpe_ranks: &BpePairVocab) -> Vec<Token> {
-    let mut sub_tokens = bpe_get_subtokens(token);
+pub fn openai_gpt_bpe(token: &str, bpe_ranks: &BpePairVocab) -> (Vec<String>, Vec<usize>) {
+    let mut sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
 
     //the addition of </w> is basically the only difference between this function and the default bpe:
     if !sub_tokens.is_empty() {
-        sub_tokens.last_mut().unwrap().text += "</w>";
+        sub_tokens.last_mut().unwrap().push_str("</w>");
     };
 
     let mut output = (sub_tokens, false);
@@ -712,13 +685,14 @@ pub fn openai_gpt_bpe(token: TokenRef, bpe_ranks: &BpePairVocab) -> Vec<Token> {
             break;
         }
     }
-
-    bpe_fix_mask(output.0)
+    let char_counts = output.0.iter().map(|v| v.trim_end_matches("</w>").chars().count()).collect();
+    (output.0, char_counts)
 }
 
 ///Default bpe function, as called by Roberta and GPT2
-pub fn bpe(token: TokenRef, bpe_ranks: &BpePairVocab) -> Vec<Token> {
-    let sub_tokens = bpe_get_subtokens(token);
+pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> (Vec<String>, Vec<usize>) {
+    let sub_tokens = token.chars().map(|v| v.to_string()).collect::<Vec<String>>();
+
     let mut output = (sub_tokens, false);
     loop {
         output = group_common_pairs(output.0, &bpe_ranks);
@@ -726,21 +700,8 @@ pub fn bpe(token: TokenRef, bpe_ranks: &BpePairVocab) -> Vec<Token> {
             break;
         }
     }
-
-    bpe_fix_mask(output.0)
-}
-
-///Split the token into per-character subtokens prior for byte-pair encoding
-pub fn bpe_get_subtokens(token: TokenRef) -> Vec<Token> {
-    token.text.chars().enumerate().map(|(i, chr)|
-        {
-            Token {
-                text: chr.to_string(),
-                offset: Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),
-                reference_offsets: token.reference_offsets[i..i + 1].to_vec(),
-                mask: Mask::Continuation,
-            }
-        }).collect()
+    let char_counts = output.0.iter().map(|v| v.chars().count()).collect();
+    (output.0, char_counts)
 }
 
 fn bytes_offsets(text: &str) -> Vec<usize> {
@@ -756,54 +717,48 @@ fn bytes_offsets(text: &str) -> Vec<usize> {
 pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>,
                                  bpe_function: F,
                                  bpe_ranks: &BpePairVocab,
-                                 cache: &RefCell<HashMap<String, Vec<Token>>>,
+                                 cache: &RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
                                  as_bytes: bool) -> Vec<Token>
-    where F: Fn(TokenRef, &BpePairVocab) -> Vec<Token>
+    where F: Fn(&str, &BpePairVocab) -> (Vec<String>, Vec<usize>)
 {
     let mut tokens: Vec<Token> = Vec::new();
+    let text: String;
     let (text, reference_offsets) = if as_bytes {
         let reference_offsets = bytes_offsets(token.text).iter().map(|&pos| token.reference_offsets[pos]).collect();
-        let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
-        (text, reference_offsets)
+        text = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
+        (text.as_str(), reference_offsets)
     } else {
-        (token.text.to_owned(), token.reference_offsets.clone())
+        (token.text, token.reference_offsets)
     };
-    let cached: bool = match cache.borrow().get(&text) {
-        Some(cached_tokens) => {
-            tokens.extend(cached_tokens.clone().into_iter().map(|mut t| {
-                //the tokens from the cache have 0-based offsets, adapt the offset
-                //according to the input offset
-                t.reference_offsets = reference_offsets[t.offset.begin as usize..t.offset.end as usize].to_vec();
-                t.offset.begin += token.offset.begin;
-                t.offset.end += token.offset.begin;
-                t
-            }).collect::<Vec<Token>>());
+    let cached: bool = match cache.borrow().get(text) {
+        Some((cached_tokens, char_counts)) => {
+            let mut start = 0;
+            for (idx, (sub_token, &char_count)) in cached_tokens.iter().zip(char_counts.iter()).enumerate() {
+                tokens.push(Token {
+                    text: sub_token.clone(),
+                    offset: Offset { begin: token.offset.begin + start, end: token.offset.begin + start + char_count as OffsetSize },
+                    reference_offsets: reference_offsets[start as usize..start as usize + char_count].to_vec(),
+                    mask: { if cached_tokens.len() > 1 { if idx == 0 { Mask::Begin } else { Mask::Continuation } } else { Mask::None } },
+                });
+                start = start + char_count as OffsetSize;
+            }
             true
         }
         None => false
     };
     if !cached {
-        //check if we there is a one to one mapping between the original text and the byte-text
-        //(for now we just check if sizes are equal, could be improved)
-
-        let bpe_output: Vec<Token> = bpe_function(TokenRef {
-            text: text.as_str(),
-            offset: Offset { //we reset the offset, so we can cache
-                begin: 0,
-                end: token.offset.end - token.offset.begin,
-            },
-            reference_offsets: (0..reference_offsets.len() as OffsetSize).collect(),
-            mask: Mask::None, //will be overwritten anyway
-        }, bpe_ranks);
-        cache.borrow_mut().insert(text.to_owned(), bpe_output.clone());
-        tokens.extend(bpe_output.into_iter().map(|mut t| {
-            //the tokens from the bpe_output have 0-based offsets, adapt the offset
-            //according to the input offset
-            t.reference_offsets = reference_offsets[t.offset.begin as usize..t.offset.end as usize].to_vec();
-            t.offset.begin += token.offset.begin;
-            t.offset.end += token.offset.begin;
-            t
-        }).collect::<Vec<Token>>())
+        let (bpe_output, char_counts) = bpe_function(text, bpe_ranks);
+        cache.borrow_mut().insert(text.to_owned(), (bpe_output.clone(), char_counts.clone()));
+        let mut start = 0;
+        for (idx, (sub_token, &char_count)) in bpe_output.iter().zip(char_counts.iter()).enumerate() {
+            tokens.push(Token {
+                text: sub_token.clone(),
+                offset: Offset { begin: token.offset.begin + start, end: token.offset.begin + start + char_count as OffsetSize },
+                reference_offsets: reference_offsets[start as usize..start as usize + char_count].to_vec(),
+                mask: { if bpe_output.len() > 1 { if idx == 0 { Mask::Begin } else { Mask::Continuation } } else { Mask::None } },
+            });
+            start = start + char_count as OffsetSize;
+        }
     }
     tokens
 }
@@ -819,18 +774,6 @@ pub fn fix_mask(tokens: &mut Vec<Token>) {
     }
 }
 
-pub fn bpe_fix_mask(mut tokens: Vec<Token>) -> Vec<Token> {
-    if tokens.len() > 1 {
-        if let Some(first_token) = tokens.get_mut(0) {
-            first_token.mask = Mask::Begin;
-        };
-    } else {
-        if let Some(first_token) = tokens.get_mut(0) {
-            first_token.mask = Mask::None;
-        };
-    };
-    tokens
-}
 
 //==============================
 // Unit tests

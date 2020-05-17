@@ -26,7 +26,7 @@ pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<Token>>>,
+    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
 }
 
 impl OpenAiGptTokenizer {

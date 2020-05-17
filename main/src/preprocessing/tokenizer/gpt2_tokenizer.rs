@@ -29,7 +29,7 @@ use crate::tokenization_utils::lowercase;
 pub struct Gpt2Tokenizer {
     vocab: Rc<Gpt2Vocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<Token>>>,
+    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
     pattern_lookahead: Regex,
     pattern_tokenization: Regex,
     lower_case: bool,
