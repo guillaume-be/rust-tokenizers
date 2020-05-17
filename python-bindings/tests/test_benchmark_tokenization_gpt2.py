@@ -75,12 +75,12 @@ class TestBenchmarkBert:
                                         stride=0)
 
     def test_python_gpt2_tokenizer_single_threaded(self, benchmark):
-        benchmark.pedantic(self.python_gpt2_tokenizer, setup=self.setup_python_tokenizer, iterations=1, rounds=3)
+        benchmark.pedantic(self.python_gpt2_tokenizer, setup=self.setup_python_tokenizer, iterations=1, rounds=1)
 
     def test_rust_gpt2_tokenizer_single_threaded(self, benchmark):
         benchmark.pedantic(self.rust_gpt2_tokenizer_single_threaded, setup=self.setup_rust_tokenizer, iterations=1,
-                           rounds=3)
+                           rounds=1)
 
     def test_rust_gpt2_tokenizer_multi_threaded(self, benchmark):
         benchmark.pedantic(self.rust_gpt2_tokenizer_multi_threaded, setup=self.setup_rust_tokenizer, iterations=1,
-                           rounds=3)
+                           rounds=1)

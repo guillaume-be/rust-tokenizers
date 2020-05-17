@@ -743,32 +743,27 @@ pub fn bpe_get_subtokens(token: TokenRef) -> Vec<Token> {
         }).collect()
 }
 
-fn string_to_bytes(text: &str) -> Vec<(usize, &char)> {
-    text
-        .chars()
-        .enumerate()
-        .map(|(char_idx, c)|
-            c.to_string()
-                .as_bytes()
-                .iter()
-                .map(|v| (char_idx, BYTES_TO_UNICODE.get(&v).unwrap()))
-                .collect::<Vec<(usize, &char)>>())
-        .flatten()
-        .collect()
+fn bytes_offsets(text: &str) -> Vec<usize> {
+    let mut offsets = Vec::with_capacity(text.len());
+    for (char_idx, character) in text.chars().enumerate() {
+        for _ in 0..character.len_utf8() {
+            offsets.push(char_idx)
+        }
+    }
+    offsets
 }
 
-pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks: &BpePairVocab, cache: &RefCell<HashMap<String, Vec<Token>>>, as_bytes: bool) -> Vec<Token>
+pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>,
+                                 bpe_function: F,
+                                 bpe_ranks: &BpePairVocab,
+                                 cache: &RefCell<HashMap<String, Vec<Token>>>,
+                                 as_bytes: bool) -> Vec<Token>
     where F: Fn(TokenRef, &BpePairVocab) -> Vec<Token>
 {
     let mut tokens: Vec<Token> = Vec::new();
     let (text, reference_offsets) = if as_bytes {
-        let position_bytes = string_to_bytes(token.text);
-        let mut text = String::new();
-        let mut reference_offsets: Vec<OffsetSize> = Vec::new();
-        for (pos, subtext) in position_bytes {
-            reference_offsets.push(token.reference_offsets[pos]);
-            text.push(*subtext);
-        }
+        let reference_offsets = bytes_offsets(token.text).iter().map(|&pos| token.reference_offsets[pos]).collect();
+        let text: String = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
         (text, reference_offsets)
     } else {
         (token.text.to_owned(), token.reference_offsets.clone())
