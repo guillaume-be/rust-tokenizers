@@ -16,7 +16,7 @@ use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Mask, Token, TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens, split_on_regex, split_on_bpe_pairs, fix_mask};
+use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens, split_on_regex, split_on_bpe_pairs, fix_mask, lowercase};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -60,10 +60,12 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
-                        token.text = token.text.to_lowercase();
+                        lowercase(&mut token);
                     }
+                    split_on_regex(token.as_ref(), &self.regex_pattern).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
+                } else {
+                    vec!(token)
                 }
-                split_on_regex(token.as_ref(), &self.regex_pattern).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {
