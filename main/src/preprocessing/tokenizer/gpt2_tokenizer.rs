@@ -24,6 +24,7 @@ use regex::Regex;
 use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
 use std::iter::Iterator;
 use itertools::Itertools;
+use crate::tokenization_utils::lowercase;
 
 pub struct Gpt2Tokenizer {
     vocab: Rc<Gpt2Vocab>,
@@ -66,10 +67,13 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
-                        token.text = token.text.to_lowercase();
+                        lowercase(&mut token);
                     }
                 }
-                split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
+                split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization)
+                    .into_iter()
+                    .map(|token| token.to_owned())
+                    .collect::<Vec<Token>>()
             })
             .flatten()
             .map(|token: Token| {

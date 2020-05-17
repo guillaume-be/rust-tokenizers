@@ -54,10 +54,6 @@ pub enum Mask {
     Continuation,
     ///the token is the start of a token but not finished yet. All but the last subtoken in the a token sequence carry this mask. This is the reverse of Mask::Continuation.
     Unfinished,
-    ///This is a a subtoken that a part of a larger token, the offsets, however, refer to the entire token rather than to the part. All subtokens in the sequence will refer to the same offsets. This is the first token in such a sequence.
-    InexactBegin,
-    ///This is a a subtoken that a part of a larger token, the offsets, however, refer to the entire token rather than to the part. All subtokens in the sequence will refer to the same offsets. This is a continuation token in such a sequence.
-    InexactContinuation,
     ///The token is out of vocabulary, it is unknown by the tokenizer and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
     Unknown,
 }
@@ -193,7 +189,7 @@ impl<'a, T> Iterator for ConsolidatedTokenIterator<'a, T>
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             if let Some(sub_token) = self.tokens.get(self.cursor) {
-                if (sub_token.mask() != Mask::Continuation) & (sub_token.mask() != Mask::InexactContinuation) {
+                if sub_token.mask() != Mask::Continuation {
                     //return the previous buffer of subtokens (no copies!)
                     if self.cursor > self.begin {
                         let sub_tokens = &self.tokens[self.begin..self.cursor];
