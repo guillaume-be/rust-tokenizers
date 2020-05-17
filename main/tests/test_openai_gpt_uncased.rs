@@ -114,12 +114,12 @@ fn test_openai_gpt_tokenization() {
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
 
         let original_sentence_chars: Vec<char> = original_strings[_idx].chars().collect();
-        for offset in &predicted.token_offsets {
+        for (idx, offset) in predicted.token_offsets.iter().enumerate() {
             match offset {
                 Some(offset) => {
                     let (start_char, end_char) = (offset.begin as usize, offset.end as usize);
                     let text: String = original_sentence_chars[start_char..end_char].iter().collect();
-                    println!("{:?} -  {}", offset, text)
+                    println!("{:<2?} | {:<10} | {:<10} | {:<10?}", offset, text, openai_gpt_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false), predicted.mask[idx])
                 }
                 None => continue
             }

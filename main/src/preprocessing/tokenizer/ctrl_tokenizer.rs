@@ -53,7 +53,7 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
-        let tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
+        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
             .map(|token| {
                 let mut token = token.to_owned();
@@ -76,7 +76,8 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
             .flatten()
             .collect();
 
-        fix_mask(tokens)
+        fix_mask(&mut tokens);
+        tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {

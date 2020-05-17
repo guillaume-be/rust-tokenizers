@@ -69,7 +69,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         } else {
             false
         };
-        let tokens: Vec<Token> = split_on_special_tokens(initial_token.as_ref(), self.vocab.as_ref())
+        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token.as_ref(), self.vocab.as_ref())
             .into_iter()
             .map(|token| {
                 let mut token = token.to_owned();
@@ -104,7 +104,8 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
                 token
             }).collect();
 
-        fix_mask(tokens)
+        fix_mask(&mut tokens);
+        tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {

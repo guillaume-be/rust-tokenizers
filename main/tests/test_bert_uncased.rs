@@ -109,18 +109,17 @@ fn test_bert_tokenization() {
                                             0);
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
-
-//        let original_sentence_chars: Vec<char> = original_strings[_idx].chars().collect();
-//        for offset in &predicted.token_offsets {
-//            match offset {
-//                Some(offset) => {
-//                    let (start_char, end_char) = (offset.begin as usize, offset.end as usize);
-//                    let text: String = original_sentence_chars[start_char..end_char].iter().collect();
-//                    println!("{:?} -  {}", offset, text)
-//                }
-//                None => continue
-//            }
-//        };
+        let original_sentence_chars: Vec<char> = original_strings[_idx].chars().collect();
+        for (idx, offset) in predicted.token_offsets.iter().enumerate() {
+            match offset {
+                Some(offset) => {
+                    let (start_char, end_char) = (offset.begin as usize, offset.end as usize);
+                    let text: String = original_sentence_chars[start_char..end_char].iter().collect();
+                    println!("{:<2?} | {:<10} | {:<10} | {:<10?}", offset, text, bert_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false), predicted.mask[idx])
+                }
+                None => continue
+            }
+        };
 
         assert_eq!(predicted.token_ids, expected.token_ids);
         assert_eq!(predicted.special_tokens_mask, expected.special_tokens_mask);

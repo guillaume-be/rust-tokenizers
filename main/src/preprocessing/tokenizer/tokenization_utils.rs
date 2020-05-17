@@ -430,13 +430,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
         }
 
         //fix the mask, set Mask::Begin where a sequence of continuations is introduced
-        for i in 1..(tokens.len() - 1) {
-            if tokens[i].mask == Mask::Continuation && tokens[i - 1].mask == Mask::None {
-                if let Some(token) = tokens.get_mut(i - 1) {
-                    token.mask = Mask::Begin;
-                }
-            }
-        }
+        fix_mask(&mut tokens);
     }
 
     tokens
@@ -700,7 +694,6 @@ pub fn ctrl_bpe(token: TokenRef, bpe_ranks: &BpePairVocab) -> Vec<Token> {
             token.text = token.text.trim_end_matches("</w>").to_owned();
         }
     }
-
     bpe_fix_mask(output.0)
 }
 
@@ -745,16 +738,9 @@ pub fn bpe_get_subtokens(token: TokenRef) -> Vec<Token> {
                 text: chr.to_string(),
                 offset: Offset::new(token.offset.begin + i as OffsetSize, token.offset.begin + i as OffsetSize + 1),
                 reference_offsets: token.reference_offsets[i..i + 1].to_vec(),
-                mask: Mask::Continuation
+                mask: Mask::Continuation,
             }
         }).collect()
-}
-
-pub fn bpe_fix_mask(mut tokens: Vec<Token>) -> Vec<Token> {
-    if let Some(first_token) = tokens.get_mut(0) {
-        first_token.mask = Mask::Begin
-    };
-    tokens
 }
 
 fn string_to_bytes(text: &str) -> Vec<(usize, &char)> {
@@ -828,16 +814,26 @@ pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>, bpe_function: F, bpe_ranks
 }
 
 
-pub fn fix_mask(mut tokens: Vec<Token>) -> Vec<Token> {
-    if !tokens.is_empty() {
-        if tokens.len() != 1 {
-            for i in 1..tokens.len() - 1 {
-                if (tokens[i].mask == Mask::Begin) && (tokens[i - 1].mask == Mask::Begin) {
-                    tokens[i - 1].mask = Mask::None;
-                }
+pub fn fix_mask(tokens: &mut Vec<Token>) {
+    for i in 1..tokens.len() {
+        if tokens[i].mask == Mask::Continuation && tokens[i - 1].mask == Mask::None {
+            if let Some(token) = tokens.get_mut(i - 1) {
+                token.mask = Mask::Begin;
             }
         }
     }
+}
+
+pub fn bpe_fix_mask(mut tokens: Vec<Token>) -> Vec<Token> {
+    if tokens.len() > 1 {
+        if let Some(first_token) = tokens.get_mut(0) {
+            first_token.mask = Mask::Begin;
+        };
+    } else {
+        if let Some(first_token) = tokens.get_mut(0) {
+            first_token.mask = Mask::None;
+        };
+    };
     tokens
 }
 

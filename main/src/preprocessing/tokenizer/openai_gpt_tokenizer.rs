@@ -16,7 +16,7 @@ use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer, Mask, Token, TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe, fix_mask};
+use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -59,7 +59,7 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
             }
         }).flatten().collect();
 
-        fix_mask(tokens)
+        tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
