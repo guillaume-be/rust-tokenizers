@@ -65,6 +65,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         let added_whitespace = if !is_whitespace(&initial_token.text.chars().next().unwrap()) {
             //text should always start with an initial whitespace
             initial_token.text.insert(0, ' ');
+            initial_token.reference_offsets.insert(0, 0);
             true
         } else {
             false
