@@ -246,16 +246,36 @@ mod tests {
                     token_offsets: vec!(
                         Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 })
                     ),
+                    reference_offsets: vec!(vec!(0, 1, 2), vec!(3, 4, 5, 6), vec!(7, 8)),
                     mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
                 }
             ),
             (
                 " ",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(), mask: vec!() }
+                TokenizedInput {
+                    token_ids: vec!(),
+                    segment_ids: vec!(),
+                    special_tokens_mask: vec!(),
+                    overflowing_tokens:
+                    vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(),
+                    reference_offsets: vec!(),
+                    mask: vec!(),
+                }
             ),
             (
                 "",
-                TokenizedInput { token_ids: vec!(), segment_ids: vec!(), special_tokens_mask: vec!(), overflowing_tokens: vec!(), num_truncated_tokens: 0, token_offsets: vec!(), mask: vec!() }
+                TokenizedInput {
+                    token_ids: vec!(),
+                    segment_ids: vec!(),
+                    special_tokens_mask: vec!(),
+                    overflowing_tokens: vec!(),
+                    num_truncated_tokens: 0,
+                    token_offsets: vec!(),
+                    reference_offsets: vec!(),
+                    mask: vec!(),
+                }
             )
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

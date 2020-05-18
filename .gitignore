@@ -3,6 +3,7 @@ python-bindings/build
 python-bindings/dist
 python-bindings/*egg-info*
 python-bindings/tests/__pycache__*
+python-bindings/__pycache__*
 python-bindings/*eggs*
 python-bindings/target
 **/*.rs.bk

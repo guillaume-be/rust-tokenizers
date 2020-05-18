@@ -55,7 +55,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
     }
 
     fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
-                                       offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>,
+                                       offsets_1: Vec<Option<Offset>>, offsets_2: Option<Vec<Option<Offset>>>,
                                        original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
                                        mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
         let mut output: Vec<i64> = vec!();
@@ -72,7 +72,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         output.extend(tokens_1);
         output.push(self.vocab.token_to_id(BertVocab::sep_value()));
         offsets.push(None);
-        offsets.extend(offsets_1.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
+        offsets.extend(offsets_1);
         offsets.push(None);
         original_offsets.push(vec!());
         original_offsets.extend(original_offsets_1);
@@ -88,7 +88,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
             output.extend(add_tokens);
             output.push(self.vocab.token_to_id(BertVocab::sep_value()));
             if let Some(add_offsets) = offsets_2 {
-                offsets.extend(add_offsets.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
+                offsets.extend(add_offsets);
             } else {
                 offsets.extend(vec![None; length]);
             }
@@ -233,6 +233,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec![None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 11 }), Some(Offset { begin: 12, end: 17 }), Some(Offset { begin: 17, end: 18 }), None],
+                    reference_offsets: vec!(vec!(), vec!(0, 1, 2, 3, 4), vec!(5, 6, 7, 8, 9, 10), vec!(12, 13, 14, 15, 16), vec!(17), vec!()),
                     mask:
                     vec!(Mask::Special, Mask::None, Mask::Special, Mask::None, Mask::Punctuation, Mask::Special),
                 }
@@ -248,6 +249,7 @@ mod tests {
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 7, end: 10 }), Some(Offset { begin: 10, end: 13 }), Some(Offset { begin: 13, end: 16 }), Some(Offset { begin: 17, end: 22 }), Some(Offset { begin: 22, end: 23 }), None
                     ),
+                    reference_offsets: vec!(vec!(), vec!(0, 1, 2, 3, 4), vec!(5), vec!(7, 8, 9), vec!(10, 11, 12), vec!(13, 14, 15), vec!(17, 18, 19, 20, 21), vec!(22), vec!()),
                     mask: vec!(Mask::Special, Mask::None, Mask::Unknown, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::None, Mask::Punctuation, Mask::Special),
                 }
             ),
@@ -262,6 +264,7 @@ mod tests {
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 19, end: 23 }), None
                     ),
+                    reference_offsets: vec!(vec!(), vec!(0, 1, 2, 3, 4), vec!(5), vec!(6), vec!(7), vec!(8), vec!(9), vec!(10), vec!(11), vec!(13, 14, 15, 16, 17), vec!(19, 20, 21, 22), vec!()),
                     mask: vec!(Mask::Special, Mask::Unknown, Mask::CJK, Mask::CJK, Mask::CJK, Mask::Unknown, Mask::Unknown, Mask::Unknown, Mask::Unknown, Mask::Special, Mask::Unknown, Mask::Special),
                 }
             )
@@ -298,6 +301,7 @@ mod tests {
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), None, Some(Offset { begin: 0, end: 4 }), Some(Offset { begin: 5, end: 7 }), Some(Offset { begin: 8, end: 11 }), Some(Offset { begin: 12, end: 18 }), Some(Offset { begin: 19, end: 27 }), None
                     ),
+                    reference_offsets: vec!(vec!(), vec!(0, 1, 2, 3, 4), vec!(6, 7, 8, 9, 10), vec!(), vec!(0, 1, 2, 3), vec!(5, 6), vec!(8, 9, 10), vec!(12, 13, 14, 15, 16, 17), vec!(19, 20, 21, 22, 23, 24, 25, 26), vec!()),
                     mask: vec!(Mask::Special, Mask::None, Mask::None, Mask::Special, Mask::Unknown, Mask::Unknown, Mask::Unknown, Mask::Unknown, Mask::Unknown, Mask::Special),
                 }
             ),
@@ -313,6 +317,7 @@ mod tests {
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 5 }), Some(Offset { begin: 6, end: 8 }), Some(Offset { begin: 9, end: 12 }), Some(Offset { begin: 13, end: 19 }), None
                     ),
+                    reference_offsets: vec!(vec!(), vec!(0, 1, 2, 3, 4), vec!(6, 7, 8, 9, 10), vec!(), vec!(0), vec!(1, 2, 3, 4), vec!(6, 7), vec!(9, 10, 11), vec!(13, 14, 15, 16, 17, 18), vec!()),
                     mask: vec!(Mask::Special, Mask::None, Mask::None, Mask::Special, Mask::Punctuation, Mask::Unknown, Mask::Unknown, Mask::Unknown, Mask::Unknown, Mask::Special),
                 }
             ),
@@ -328,6 +333,7 @@ mod tests {
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 20, end: 25 }), None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 }), None
                     ),
+                    reference_offsets: vec!(vec!(), vec!(0, 1, 2, 3, 4), vec!(6, 7, 8, 9, 10), vec!(13, 14, 15, 16, 17), vec!(20, 21, 22, 23, 24), vec!(), vec!(0), vec!(1), vec!(2), vec!()),
                     mask: vec!(Mask::Special, Mask::Unknown, Mask::None, Mask::None, Mask::None, Mask::Special, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation, Mask::Special),
                 }
             ),
@@ -343,6 +349,7 @@ mod tests {
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 }), Some(Offset { begin: 3, end: 4 }), None
                     ),
+                    reference_offsets: vec!(vec!(), vec!(0, 1, 2, 3, 4), vec!(6, 7, 8, 9, 10), vec!(13, 14, 15, 16, 17), vec!(), vec!(0), vec!(1), vec!(2), vec!(3), vec!()),
                     mask: vec!(Mask::Special, Mask::Unknown, Mask::None, Mask::None, Mask::Special, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation, Mask::Punctuation, Mask::Special),
                 }
             )

@@ -21,7 +21,7 @@ fn test_ctrl_tokenization() {
 
     let original_strings = [
         "This is a sample sentence to be tokénized",
-        "Hello, y'all! How are you 😁 ?",
+        "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
         "İs th!s   𩸽 <unk> Ϻ Šœ  Uglj<unk>šić   dấu nặng",
         "   İs th!s    𩸽 Ϻ Šœ   Ugljšić  dấu nặng     ",
@@ -42,13 +42,14 @@ fn test_ctrl_tokenization() {
             mask: vec!(),
         },
         TokenizedInput {
-            token_ids: vec!(112698, 53871, 26000, 877, 29, 34, 246532, 415),
-            segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0),
-            special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0),
+            token_ids: vec!(192851, 162, 32, 57, 213, 113421, 13389, 246532, 415),
+            segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0),
             overflowing_tokens: vec!(),
             num_truncated_tokens: 0,
-            token_offsets: vec!(Some(Offset { begin: 0, end: 6 }), Some(Offset { begin: 7, end: 9 }), Some(Offset { begin: 9, end: 13 }), Some(Offset { begin: 14, end: 17 }),
-                                Some(Offset { begin: 18, end: 21 }), Some(Offset { begin: 22, end: 25 }), Some(Offset { begin: 26, end: 27 }), Some(Offset { begin: 28, end: 29 })),
+            token_offsets: vec!(Some(Offset { begin: 0, end: 9 }), Some(Offset { begin: 10, end: 13 }), Some(Offset { begin: 14, end: 18 }), Some(Offset { begin: 19, end: 23 }),
+                                Some(Offset { begin: 24, end: 27 }), Some(Offset { begin: 28, end: 33 }), Some(Offset { begin: 33, end: 37 }), Some(Offset { begin: 38, end: 39 }),
+                                Some(Offset { begin: 40, end: 41 })),
             reference_offsets: vec!(),
             mask: vec!(),
         },

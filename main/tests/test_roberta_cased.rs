@@ -21,7 +21,7 @@ fn test_roberta_tokenization() {
 
     let original_strings = [
         "This is a sample sentence to be tokénized",
-        "Hello, y'all! How are you 😁 ?",
+        "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
         "İs th!s   𩸽 </s> Ϻ Šœ  Uglj</s>šić   dấu nặng",
         "   İs th!s    𩸽 Ϻ Šœ   Ugljšić  dấu nặng     ",
@@ -43,14 +43,14 @@ fn test_roberta_tokenization() {
             mask: vec!(),
         },
         TokenizedInput {
-            token_ids: vec!(0, 20920, 6, 1423, 108, 1250, 328, 1336, 32, 47, 17841, 10172, 17487, 2),
+            token_ids: vec!(0, 39980, 2961, 141, 42, 40, 120, 19233, 1538, 8103, 10470, 10674, 17487, 2),
             segment_ids: vec!(),
             special_tokens_mask: vec!(),
             overflowing_tokens: vec!(),
             num_truncated_tokens: 0,
-            token_offsets: vec!(None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 8 }), Some(Offset { begin: 8, end: 9 }),
-                                Some(Offset { begin: 9, end: 12 }), Some(Offset { begin: 12, end: 13 }), Some(Offset { begin: 13, end: 17 }), Some(Offset { begin: 17, end: 21 }),
-                                Some(Offset { begin: 21, end: 25 }), Some(Offset { begin: 25, end: 27 }), Some(Offset { begin: 26, end: 27 }), Some(Offset { begin: 27, end: 29 }), None),
+            token_offsets: vec!(None, Some(Offset { begin: 0, end: 4 }), Some(Offset { begin: 4, end: 9 }), Some(Offset { begin: 9, end: 13 }), Some(Offset { begin: 13, end: 18 }),
+                                Some(Offset { begin: 18, end: 23 }), Some(Offset { begin: 23, end: 27 }), Some(Offset { begin: 27, end: 33 }), Some(Offset { begin: 33, end: 37 }),
+                                Some(Offset { begin: 37, end: 39 }), Some(Offset { begin: 38, end: 39 }), Some(Offset { begin: 38, end: 39 }), Some(Offset { begin: 39, end: 41 }), None),
             reference_offsets: vec!(),
             mask: vec!(),
         },

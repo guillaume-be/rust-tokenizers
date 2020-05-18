@@ -206,6 +206,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 6 }), Some(Offset { begin: 6, end: 9 })),
+                    reference_offsets: vec!(vec!(0, 1, 2), vec!(4, 5), vec!(6, 7, 8)),
                     mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
                 }
             ),
@@ -218,6 +219,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(),
+                    reference_offsets: vec!(),
                     mask: vec!(),
                 }
             ),
@@ -230,6 +232,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(),
+                    reference_offsets: vec!(),
                     mask: vec!(),
                 }
             )

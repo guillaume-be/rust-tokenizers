@@ -62,7 +62,7 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         for token in tokens.iter_mut() {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
                 if self.lower_case {
-                    lowercase(&mut token.to_owned());
+                    lowercase(token);
                 }
                 for token in split_on_regex(token.as_ref(), &self.regex_pattern) {
                     sub_tokens.extend(split_on_bpe_pairs(token, ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false));
@@ -221,6 +221,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 })),
+                    reference_offsets: vec!(vec!(0, 1, 2), vec!(4), vec!(5), vec!(6), vec!(7), vec!(8)),
                     mask: vec!(Mask::None, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation),
                 }
             ),
@@ -233,6 +234,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 4 }), Some(Offset { begin: 4, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 12, end: 13 })),
+                    reference_offsets: vec!(vec!(0), vec!(1), vec!(2, 3), vec!(4), vec!(5), vec!(7), vec!(8), vec!(9), vec!(10), vec!(11), vec!(12)),
                     mask: vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation),
                 }
             ),
@@ -245,6 +247,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(),
+                    reference_offsets: vec!(),
                     mask: vec!(),
                 }
             )
