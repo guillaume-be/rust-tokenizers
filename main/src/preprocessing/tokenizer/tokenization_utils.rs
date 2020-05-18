@@ -206,7 +206,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
                     tokens.push(TokenRef {
                         text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
                         offset: Offset { begin: token.offset.begin + charbegin as OffsetSize, end: token.offset.begin + charidx as OffsetSize },
-                        reference_offsets: token.reference_offsets[charbegin..charidx].to_vec(),
+                        reference_offsets: &token.reference_offsets[charbegin..charidx],
                         mask: Mask::None,
                     });
                 }
@@ -215,7 +215,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
                     tokens.push(TokenRef {
                         text: &token.text[bytesidx..bytesidx + c.len_utf8()],
                         offset: Offset { begin: token.offset.begin + charidx as OffsetSize, end: token.offset.begin + charidx as OffsetSize + 1 },
-                        reference_offsets: token.reference_offsets[charidx..charidx + 1].to_vec(),
+                        reference_offsets: &token.reference_offsets[charidx..charidx + 1],
                         mask: set_mask,
                     });
                 }
@@ -237,7 +237,7 @@ pub fn split_on_char<'a, F>(token: TokenRef<'a>, test_character: F, add_separato
         tokens.push(TokenRef {
             text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
             offset: Offset { begin: token.offset.begin + charbegin as OffsetSize, end: token.offset.begin + charcount as OffsetSize },
-            reference_offsets: token.reference_offsets[charbegin..charcount].to_vec(),
+            reference_offsets: &token.reference_offsets[charbegin..charcount],
             mask: Mask::None,
         });
     }
@@ -272,7 +272,7 @@ pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead:
             output_tokens.push(TokenRef {
                 text: sub_word,
                 offset: Offset::new(token.offset.begin + begin_char as OffsetSize, token.offset.begin + end_char as OffsetSize),
-                reference_offsets: token.reference_offsets[begin_char..end_char].to_vec(),
+                reference_offsets: &token.reference_offsets[begin_char..end_char],
                 mask: Default::default()
             });
             begin_char = end_char;
@@ -296,7 +296,7 @@ pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> 
         tokens.push(TokenRef {
             text: hit.as_str(),
             offset: Offset::new(token.offset.begin + begin_char as OffsetSize, token.offset.begin + end_char as OffsetSize),
-            reference_offsets: token.reference_offsets[begin_char..end_char].to_vec(),
+            reference_offsets: &token.reference_offsets[begin_char..end_char],
             mask: Mask::None,
         });
         begin_char = end_char;
@@ -331,7 +331,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
                     tokens.push(TokenRef {
                         text: trimmed_text,
                         offset: Offset { begin: token.offset.begin + char_begin as OffsetSize, end: token.offset.begin + (char_begin + trimmed_text_len) as OffsetSize },
-                        reference_offsets: token.reference_offsets[char_begin..(char_begin + trimmed_text_len)].to_vec(),
+                        reference_offsets: &token.reference_offsets[char_begin..(char_begin + trimmed_text_len)],
                         mask: Mask::None,
                     });
                 }
@@ -340,7 +340,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
                     tokens.push(TokenRef {
                         text: &token.text[bytes_idx..bytes_idx + matched_bytes],
                         offset: Offset { begin: token.offset.begin + char_idx as OffsetSize, end: token.offset.begin + (char_idx + matched_chars) as OffsetSize },
-                        reference_offsets: token.reference_offsets[char_idx..(char_idx + matched_chars)].to_vec(),
+                        reference_offsets: &token.reference_offsets[char_idx..(char_idx + matched_chars)],
                         mask: set_mask,
                     });
                 }
@@ -360,7 +360,7 @@ pub fn split_on_substr<'a, F>(token: TokenRef<'a>, test_substr: F, add_separator
         tokens.push(TokenRef {
             text: trimmed_text,
             offset: Offset { begin: token.offset.begin + char_begin as OffsetSize, end: token.offset.begin + char_count as OffsetSize },
-            reference_offsets: token.reference_offsets[char_begin..char_count].to_vec(),
+            reference_offsets: &token.reference_offsets[char_begin..char_count],
             mask: Mask::None,
         });
     }
@@ -375,7 +375,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
     if token.text.chars().count() > max_word_len {
         tokens.push(Token {
             text: BertVocab::unknown_value().to_owned(),
-            offset: token.offset.clone(),
+            offset: token.offset,
             reference_offsets: token.reference_offsets.to_vec(),
             mask: Mask::Unknown,
         });
@@ -416,7 +416,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
             if is_unk {
                 return vec!(Token {
                     text: BertVocab::unknown_value().to_owned(),
-                    offset: token.offset.clone(),
+                    offset: token.offset,
                     reference_offsets: token.reference_offsets.to_vec(),
                     mask: Mask::Unknown,
                 });
@@ -726,10 +726,11 @@ pub fn split_on_bpe_pairs<'a, F>(token: TokenRef<'a>,
 {
     let mut tokens: Vec<Token> = Vec::new();
     let text: String;
+    let reference_offsets_placeholder: Vec<OffsetSize>;
     let (text, reference_offsets) = if as_bytes {
-        let reference_offsets = bytes_offsets(token.text).iter().map(|&pos| token.reference_offsets[pos]).collect();
+        reference_offsets_placeholder = bytes_offsets(token.text).iter().map(|&pos| token.reference_offsets[pos]).collect();
         text = token.text.as_bytes().iter().map(|v| BYTES_TO_UNICODE.get(&v).unwrap()).collect();
-        (text.as_str(), reference_offsets)
+        (text.as_str(), reference_offsets_placeholder.as_slice())
     } else {
         (token.text, token.reference_offsets)
     };

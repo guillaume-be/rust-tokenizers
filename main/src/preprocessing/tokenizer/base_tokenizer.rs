@@ -77,17 +77,16 @@ pub trait TokenTrait {
 pub struct TokenRef<'a> {
     pub text: &'a str,
     pub offset: Offset,
-    pub reference_offsets: Vec<OffsetSize>,
+    pub reference_offsets: &'a [OffsetSize],
     pub mask: Mask,
 }
 
 impl<'a> TokenRef<'a> {
-    pub fn new(text: &'a str) -> TokenRef<'a> {
-        let text_size: OffsetSize = text.chars().count() as OffsetSize;
+    pub fn new(text: &'a str, offsets: &'a [OffsetSize]) -> TokenRef<'a> {
         TokenRef {
             text,
-            offset: Offset { begin: 0, end: text_size },
-            reference_offsets: (0..text_size).collect::<Vec<OffsetSize>>(),
+            offset: Offset { begin: 0, end: offsets.len() as OffsetSize },
+            reference_offsets: offsets,
             mask: Mask::None,
         }
     }
@@ -99,7 +98,7 @@ impl<'a> TokenRef<'a> {
 
 impl<'a> TokenTrait for TokenRef<'a> {
     fn offset(&self) -> Option<Offset> {
-        self.offset.clone().into_option()
+        self.offset.into_option()
     }
 
     fn mask(&self) -> Mask {
@@ -113,7 +112,7 @@ impl<'a> TokenTrait for TokenRef<'a> {
 
 impl TokenTrait for Token {
     fn offset(&self) -> Option<Offset> {
-        self.offset.clone().into_option()
+        self.offset.into_option()
     }
 
     fn mask(&self) -> Mask {
@@ -129,18 +128,13 @@ impl<'a> From<&'a Token> for TokenRef<'a> {
     fn from(other: &'a Token) -> Self {
         TokenRef {
             text: other.text.as_str(),
-            offset: other.offset.clone(),
-            reference_offsets: other.reference_offsets.clone(),
+            offset: other.offset,
+            reference_offsets: &other.reference_offsets,
             mask: other.mask,
         }
     }
 }
 
-impl<'a> From<&'a str> for TokenRef<'a> {
-    fn from(text: &'a str) -> Self {
-        TokenRef::new(text)
-    }
-}
 
 impl From<&str> for Token {
     fn from(text: &str) -> Self {
@@ -153,7 +147,7 @@ impl<'a> From<TokenRef<'a>> for Token {
         Token {
             text: other.text.to_owned(),
             offset: other.offset,
-            reference_offsets: other.reference_offsets,
+            reference_offsets: other.reference_offsets.to_vec(),
             mask: other.mask,
         }
     }
@@ -321,11 +315,12 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a string, return offset information
-    fn tokenize_with_offsets<'a>(&self, text: &'a str) -> (Vec<String>, Vec<Offset>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
+    fn tokenize_with_offsets(&self, text: &str) -> (Vec<String>, Vec<Offset>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
         if text.trim().is_empty() {
             return (vec!(), vec!(), vec!(), vec!());
         }
-        let initial_token: TokenRef<'a> = TokenRef::new(text);
+        let initial_offsets = (0..text.chars().count() as OffsetSize).collect::<Vec<OffsetSize>>();
+        let initial_token: TokenRef<'_> = TokenRef::new(text, &initial_offsets);
         let tokens = self.tokenize_to_tokens(initial_token);
         let length = tokens.len();
         let mut texts = Vec::with_capacity(length);
