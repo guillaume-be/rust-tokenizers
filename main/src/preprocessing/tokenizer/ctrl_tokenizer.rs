@@ -16,7 +16,7 @@ use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Mask, Token, TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens, split_on_regex, split_on_bpe_pairs, fix_mask};
+use crate::preprocessing::tokenizer::tokenization_utils::{ctrl_bpe, split_on_special_tokens, split_on_regex, split_on_bpe_pairs, fix_mask, lowercase};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -26,7 +26,7 @@ use regex::Regex;
 pub struct CtrlTokenizer {
     vocab: Rc<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<Token>>>,
+    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
     regex_pattern: Regex,
     lower_case: bool,
 }
@@ -53,30 +53,26 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
-        let tokens: Vec<Token> = split_on_special_tokens(initial_token, self.vocab.as_ref())
+        let mut tokens = split_on_special_tokens(initial_token, self.vocab.as_ref())
             .into_iter()
-            .map(|token| {
-                let mut token = token.to_owned();
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    //apply the necessary transformations to the actual tokens (unless it's a special value)
-                    if self.lower_case {
-                        token.text = token.text.to_lowercase();
-                    }
-                }
-                split_on_regex(token.as_ref(), &self.regex_pattern).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
-            })
-            .flatten()
-            .map(|token: Token| {
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.as_ref(), ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false)
-                } else {
-                    vec!(token)
-                }
-            })
-            .flatten()
-            .collect();
+            .map(|token| token.to_owned())
+            .collect::<Vec<Token>>();
+        let mut sub_tokens = Vec::new();
 
-        fix_mask(tokens)
+        for token in tokens.iter_mut() {
+            if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                if self.lower_case {
+                    lowercase(token);
+                }
+                for token in split_on_regex(token.as_ref(), &self.regex_pattern) {
+                    sub_tokens.extend(split_on_bpe_pairs(token, ctrl_bpe, (&self.bpe_ranks).as_ref(), &self.cache, false));
+                }
+            } else {
+                sub_tokens.push(token.clone());
+            }
+        }
+        fix_mask(&mut sub_tokens);
+        sub_tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -225,6 +221,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 })),
+                    reference_offsets: vec!(vec!(0, 1, 2), vec!(4), vec!(5), vec!(6), vec!(7), vec!(8)),
                     mask: vec!(Mask::None, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation),
                 }
             ),
@@ -237,6 +234,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 4 }), Some(Offset { begin: 4, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 12, end: 13 })),
+                    reference_offsets: vec!(vec!(0), vec!(1), vec!(2, 3), vec!(4), vec!(5), vec!(7), vec!(8), vec!(9), vec!(10), vec!(11), vec!(12)),
                     mask: vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation),
                 }
             ),
@@ -249,6 +247,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(),
+                    reference_offsets: vec!(),
                     mask: vec!(),
                 }
             )

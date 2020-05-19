@@ -16,7 +16,7 @@ use crate::OpenAiGptVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, BaseTokenizer, Mask, Token, TokenRef};
 use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe, fix_mask};
+use crate::preprocessing::tokenizer::tokenization_utils::{split_on_bpe_pairs, openai_gpt_bpe};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
@@ -26,7 +26,7 @@ pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<Token>>>,
+    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
 }
 
 impl OpenAiGptTokenizer {
@@ -59,7 +59,7 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
             }
         }).flatten().collect();
 
-        fix_mask(tokens)
+        tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -206,6 +206,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 4, end: 6 }), Some(Offset { begin: 6, end: 9 })),
+                    reference_offsets: vec!(vec!(0, 1, 2), vec!(4, 5), vec!(6, 7, 8)),
                     mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
                 }
             ),
@@ -218,6 +219,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(),
+                    reference_offsets: vec!(),
                     mask: vec!(),
                 }
             ),
@@ -230,6 +232,7 @@ mod tests {
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
                     token_offsets: vec!(),
+                    reference_offsets: vec!(),
                     mask: vec!(),
                 }
             )
