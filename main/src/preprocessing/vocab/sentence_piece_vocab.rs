@@ -72,7 +72,7 @@ impl SentencePieceVocab {
             .collect_vec();
         char_positions.push(text.len());
         let mut results = vec!(None; char_positions.len());
-        let mut scores = vec!(std::f32::MIN; char_positions.len());
+        let mut scores = vec!(std::f32::NEG_INFINITY; char_positions.len());
         scores[0] = 0f32;
 
         for char_end in 0..char_positions.len() {
@@ -90,7 +90,17 @@ impl SentencePieceVocab {
                         });
                         scores[char_end] = local_score;
                     }
-                };
+                }
+            }
+            if scores[char_end] <= std::f32::MIN {
+                results[char_end] = Some(Node {
+                    text: &text[char_positions[char_end - 1]..char_positions[char_end]],
+                    score: std::f32::MIN,
+                    index: 0,
+                    start: char_end - 1,
+                    end: char_end,
+                });
+                scores[char_end] = 0f32;
             }
         }
         results
