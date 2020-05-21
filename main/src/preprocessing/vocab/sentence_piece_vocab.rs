@@ -11,12 +11,12 @@
 // limitations under the License.
 
 
-use radix_trie::Trie;
 use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use protobuf::parse_from_bytes;
 use std::fs::File;
 use std::io::Read;
 use itertools::Itertools;
+use hashbrown::HashMap;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Node<'a> {
@@ -28,7 +28,7 @@ pub struct Node<'a> {
 }
 
 pub struct SentencePieceVocab {
-    trie: Trie<String, (f32, i64)>
+    pub trie: HashMap<String, (f32, i64)>
 }
 
 impl SentencePieceVocab {
@@ -42,7 +42,7 @@ impl SentencePieceVocab {
     }
 
     pub fn from_proto(proto: &ModelProto) -> SentencePieceVocab {
-        let mut trie = Trie::new();
+        let mut trie = HashMap::new();
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             trie.insert(piece.get_piece().to_owned(), (piece.get_score(), idx as i64));
         }

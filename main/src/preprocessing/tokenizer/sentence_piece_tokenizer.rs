@@ -11,28 +11,29 @@
 // limitations under the License.
 
 use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
-use std::sync::Arc;
 
 pub struct SentencePieceTokenizer {
-    vocab: Arc<SentencePieceVocab>,
+    vocab: SentencePieceVocab,
     _lower_case: bool,
 }
 
 impl SentencePieceTokenizer {
     pub fn from_file(path: &str, _lower_case: bool) -> SentencePieceTokenizer {
-        let vocab = Arc::new(SentencePieceVocab::from_file(path));
+        let vocab = SentencePieceVocab::from_file(path);
         SentencePieceTokenizer { vocab, _lower_case }
     }
 
-    pub fn from_existing_vocab(vocab: Arc<SentencePieceVocab>, _lower_case: bool) -> SentencePieceTokenizer {
+    pub fn from_existing_vocab(vocab: SentencePieceVocab, _lower_case: bool) -> SentencePieceTokenizer {
         SentencePieceTokenizer { vocab, _lower_case }
     }
 
     pub fn vocab(&self) -> &SentencePieceVocab {
-        self.vocab.as_ref()
+        &self.vocab
     }
 
     pub fn tokenize_to_pieces(&self, text: &str) {
+        let text = text.replace(' ', "\u{2581}");
+        let text = text.as_str();
         let output = self.vocab.decode_forward(text);
         let decoded = self.vocab.decode_backward(&output);
         println!("{:?}", decoded);
