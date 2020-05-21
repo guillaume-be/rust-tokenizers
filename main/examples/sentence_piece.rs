@@ -1,12 +1,15 @@
-use protobuf::parse_from_bytes;
-use rust_tokenizers::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+
+extern crate radix_trie;
+
+
+use rust_tokenizers::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
 
 
 fn main() {
 
-    let _contents = include_bytes!("E:/Coding/notebooks/toy.model");
-    let sentencepiece_model = parse_from_bytes::<ModelProto>(_contents).unwrap();
+    let model_path = "E:/Coding/notebooks/xlnet-base-cased-spiece.model";
+    let spiece_vocab = SentencePieceVocab::from_file(model_path);
 
-    println!("{:?}", sentencepiece_model.get_pieces());
-
+    let common_prefixes = spiece_vocab.common_prefix_search("absolutely");
+    println!("{:?}", common_prefixes);
 }
