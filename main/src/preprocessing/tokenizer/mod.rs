@@ -16,4 +16,5 @@ pub mod openai_gpt_tokenizer;
 pub mod gpt2_tokenizer;
 pub mod roberta_tokenizer;
 pub mod tokenization_utils;
+pub mod sentence_piece_tokenizer;
 mod constants;
