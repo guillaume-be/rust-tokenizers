@@ -16,6 +16,16 @@ use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::Model
 use protobuf::parse_from_bytes;
 use std::fs::File;
 use std::io::Read;
+use itertools::Itertools;
+
+#[derive(Debug, Clone, Copy)]
+pub struct Node<'a> {
+    text: &'a str,
+    score: f32,
+    index: i64,
+    start: usize,
+    end: usize,
+}
 
 pub struct SentencePieceVocab {
     trie: Trie<String, (f32, i64)>
@@ -39,13 +49,63 @@ impl SentencePieceVocab {
         SentencePieceVocab { trie }
     }
 
-    pub fn common_prefix_search<'a>(&'a self, text: &'a str) -> Vec<(&'a str, f32, i64)> {
-        let mut results = vec!();
-        for i in 1..text.len() + 1 {
-            if let Some(sub_trie) = self.trie.get(&text[..i]) {
-                results.push((&text[..i], sub_trie.0, sub_trie.1));
-            };
+//    pub fn common_prefix_search<'a>(&'a self, text: &'a str) -> Vec<Node> {
+//        let mut results = vec!();
+//        let mut char_positions = text.char_indices().map(|(pos, _)| pos).collect_vec();
+//        char_positions.push(text.len());
+//        for &i in char_positions.iter() {
+//            if let Some(sub_trie) = self.trie.get(&text[..i]) {
+//                results.push(Node {
+//                    text: &text[..i],
+//                    score: sub_trie.0,
+//                    index: sub_trie.1,
+//                });
+//            };
+//        }
+//        results
+//    }
+
+    pub fn decode_forward<'a>(&'a self, text: &'a str) -> Vec<Option<Node>> {
+        let mut char_positions = text
+            .char_indices()
+            .map(|(pos, _)| pos)
+            .collect_vec();
+        char_positions.push(text.len());
+        let mut results = vec!(None; char_positions.len());
+        let mut scores = vec!(std::f32::MIN; char_positions.len());
+        scores[0] = 0f32;
+
+        for char_end in 0..char_positions.len() {
+            for char_start in 0..char_end {
+                let sub_text = &text[char_positions[char_start]..char_positions[char_end]];
+                if let Some(sub_trie) = self.trie.get(sub_text) {
+                    let local_score = scores[char_start] + sub_trie.0;
+                    if local_score > scores[char_end] {
+                        results[char_end] = Some(Node {
+                            text: sub_text,
+                            score: local_score,
+                            index: sub_trie.1,
+                            start: char_start,
+                            end: char_end,
+                        });
+                        scores[char_end] = local_score;
+                    }
+                };
+            }
         }
         results
+    }
+
+    pub fn decode_backward<'a>(&'a self, nodes: &'a Vec<Option<Node<'a>>>) -> Vec<&'a Node> {
+        let mut next_node = nodes.last().unwrap();
+        let mut best_sequence = vec!();
+
+        while next_node.is_some() {
+            let node_value = next_node.as_ref().unwrap();
+            best_sequence.push(node_value);
+            next_node = &nodes[node_value.start];
+        };
+        best_sequence.reverse();
+        best_sequence
     }
 }
