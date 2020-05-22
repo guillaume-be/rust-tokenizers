@@ -15,8 +15,9 @@ use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::Model
 use protobuf::parse_from_bytes;
 use std::fs::File;
 use std::io::Read;
-use itertools::Itertools;
 use hashbrown::HashMap;
+use itertools::Itertools;
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct Node<'a> {
@@ -27,8 +28,32 @@ pub struct Node<'a> {
     end: usize,
 }
 
+#[derive(Debug, Clone)]
+pub struct TrieNode {
+    pub text: String,
+    pub len: usize,
+    pub score: f32,
+    pub index: i64,
+    pub end: bool,
+    pub children: HashMap<char, TrieNode>,
+}
+
+impl TrieNode {
+    pub fn new(text: String) -> TrieNode {
+        let len = text.chars().count();
+        TrieNode {
+            text,
+            len,
+            score: 0.0,
+            index: 0,
+            end: false,
+            children: HashMap::new(),
+        }
+    }
+}
+
 pub struct SentencePieceVocab {
-    pub trie: HashMap<String, (f32, i64)>
+    pub root: TrieNode
 }
 
 impl SentencePieceVocab {
@@ -42,30 +67,61 @@ impl SentencePieceVocab {
     }
 
     pub fn from_proto(proto: &ModelProto) -> SentencePieceVocab {
-        let mut trie = HashMap::new();
+        let root = TrieNode::new("".to_string());
+        let mut vocab = SentencePieceVocab { root };
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
-            trie.insert(piece.get_piece().to_owned(), (piece.get_score(), idx as i64));
+            vocab.insert(piece.get_piece(), piece.get_score(), idx as i64);
         }
-        SentencePieceVocab { trie }
+        vocab
     }
 
-//    pub fn common_prefix_search<'a>(&'a self, text: &'a str) -> Vec<Node> {
-//        let mut results = vec!();
-//        let mut char_positions = text.char_indices().map(|(pos, _)| pos).collect_vec();
-//        char_positions.push(text.len());
-//        for &i in char_positions.iter() {
-//            if let Some(sub_trie) = self.trie.get(&text[..i]) {
-//                results.push(Node {
-//                    text: &text[..i],
-//                    score: sub_trie.0,
-//                    index: sub_trie.1,
-//                });
-//            };
-//        }
-//        results
-//    }
+    fn insert(&mut self, word: &str, score: f32, index: i64) {
+        let char_count = word.chars().count();
+        let mut node = &mut self.root;
 
-    pub fn decode_forward<'a>(&'a self, text: &'a str) -> Vec<Option<Node>> {
+        for (idx, character) in word.chars().enumerate() {
+            if !node.children.contains_key(&character) {
+                let mut text = node.text.clone();
+                text.push(character);
+                let new_node = TrieNode::new(text);
+                node.children.insert(character, new_node);
+            }
+            node = node.children.get_mut(&character).unwrap();
+            if idx == char_count - 1 {
+                node.end = true;
+                node.score = score;
+                node.index = index;
+            }
+        }
+    }
+
+    pub fn common_prefix_search<'a>(&'a self, text: &'a str) -> Vec<&TrieNode> {
+        let mut results = vec!();
+        let mut characters = text.chars();
+
+        let mut node = self.root.children.get(&characters.next().unwrap());
+        if node.is_some() {
+            if node.unwrap().end {
+                results.push(node.unwrap());
+            }
+        } else {
+            return vec!();
+        }
+        while let Some(character) = characters.next() {
+            node = node.unwrap().children.get(&character);
+            if node.is_some() {
+                if node.unwrap().end {
+                    results.push(node.unwrap());
+                }
+            } else {
+                break;
+            }
+        }
+
+        results
+    }
+
+    pub fn decode_forward<'a>(&'a self, text: &'a str) -> Vec<Option<Node<'a>>> {
         let mut char_positions = text
             .char_indices()
             .map(|(pos, _)| pos)
@@ -75,32 +131,31 @@ impl SentencePieceVocab {
         let mut scores = vec!(std::f32::NEG_INFINITY; char_positions.len());
         scores[0] = 0f32;
 
-        for char_end in 0..char_positions.len() {
-            for char_start in 0..char_end {
-                let sub_text = &text[char_positions[char_start]..char_positions[char_end]];
-                if let Some(sub_trie) = self.trie.get(sub_text) {
-                    let local_score = scores[char_start] + sub_trie.0;
-                    if local_score > scores[char_end] {
-                        results[char_end] = Some(Node {
-                            text: sub_text,
-                            score: local_score,
-                            index: sub_trie.1,
-                            start: char_start,
-                            end: char_end,
-                        });
-                        scores[char_end] = local_score;
-                    }
+        for char_start in 0..char_positions.len() - 1 {
+            let matches = self.common_prefix_search(&text[char_positions[char_start]..]);
+            for node in matches {
+                let local_score = scores[char_start] + node.score;
+                let char_end = char_start + node.len;
+                if local_score > scores[char_end] {
+                    results[char_end] = Some(Node {
+                        text: node.text.as_str(),
+                        score: local_score,
+                        index: node.index,
+                        start: char_start,
+                        end: char_end,
+                    });
+                    scores[char_end] = local_score;
                 }
             }
-            if scores[char_end] <= std::f32::MIN {
-                results[char_end] = Some(Node {
-                    text: &text[char_positions[char_end - 1]..char_positions[char_end]],
+            if scores[char_start + 1] <= std::f32::MIN {
+                results[char_start + 1] = Some(Node {
+                    text: &text[char_positions[char_start]..char_positions[char_start + 1]],
                     score: std::f32::MIN,
                     index: 0,
-                    start: char_end - 1,
-                    end: char_end,
+                    start: char_start,
+                    end: char_start + 1,
                 });
-                scores[char_end] = 0f32;
+                scores[char_start + 1] = 0f32;
             }
         }
         results
