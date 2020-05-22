@@ -11,6 +11,7 @@
 // limitations under the License.
 
 use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
+use crate::Vocab;
 
 pub struct SentencePieceTokenizer {
     vocab: SentencePieceVocab,
@@ -35,7 +36,22 @@ impl SentencePieceTokenizer {
         let text = text.replace(' ', "\u{2581}");
         let text = text.as_str();
         let output = self.vocab.decode_forward(text);
-        let decoded = self.vocab.decode_backward(&output);
-//        println!("{:?}", decoded);
+        let _decoded = self.vocab.decode_backward(&output);
     }
 }
+
+//impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
+//    fn vocab(&self) -> &SentencePieceVocab {
+//        &self.vocab
+//    }
+//
+//    fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
+//        let mut token = text.to_owned();
+//        decompose_nfkc(&mut token);
+//        token.text = token.text.replace(is_whitespace, "\u{2581}");
+//        let output = self.vocab.decode_forward(token.text.as_str());
+//        let decoded = self.vocab.decode_backward(&output);
+////        for
+//        vec!()
+//    }
+//}

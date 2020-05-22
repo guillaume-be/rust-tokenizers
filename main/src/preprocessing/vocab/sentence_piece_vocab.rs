@@ -15,8 +15,12 @@ use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::Model
 use protobuf::parse_from_bytes;
 use std::fs::File;
 use std::io::Read;
-use hashbrown::HashMap;
+use hashbrown::HashMap as BrownHashMap;
 use itertools::Itertools;
+use crate::Vocab;
+use std::collections::HashMap;
+use crate::preprocessing::vocab::base_vocab::swap_key_values;
+use std::process;
 
 
 #[derive(Debug, Clone, Copy)]
@@ -35,7 +39,7 @@ pub struct TrieNode {
     pub score: f32,
     pub index: i64,
     pub end: bool,
-    pub children: HashMap<char, TrieNode>,
+    pub children: BrownHashMap<char, TrieNode>,
 }
 
 impl TrieNode {
@@ -47,37 +51,70 @@ impl TrieNode {
             score: 0.0,
             index: 0,
             end: false,
-            children: HashMap::new(),
+            children: BrownHashMap::new(),
         }
     }
 }
 
 pub struct SentencePieceVocab {
-    pub root: TrieNode
+    pub root: TrieNode,
+    pub values: HashMap<String, i64>,
+    pub indices: HashMap<i64, String>,
+    pub unknown_value: &'static str,
+    pub special_values: HashMap<String, i64>,
+    pub special_indices: HashMap<i64, String>,
 }
 
 impl SentencePieceVocab {
-    pub fn from_file(path: &str) -> SentencePieceVocab {
-        let mut f = File::open(path).unwrap();
-        let mut contents = Vec::new();
-        f.read_to_end(&mut contents).unwrap();
-
-        let proto = parse_from_bytes::<ModelProto>(contents.as_slice()).unwrap();
-        SentencePieceVocab::from_proto(&proto)
-    }
+    pub fn pad_value() -> &'static str { "<pad>" }
+    pub fn sep_value() -> &'static str { "<sep>" }
+    pub fn cls_value() -> &'static str { "<cls>" }
+    pub fn mask_value() -> &'static str { "<mask>" }
+    pub fn bos_value() -> &'static str { "<s>" }
+    pub fn eos_value() -> &'static str { "</s>" }
 
     pub fn from_proto(proto: &ModelProto) -> SentencePieceVocab {
         let root = TrieNode::new("".to_string());
-        let mut vocab = SentencePieceVocab { root };
+        let values = HashMap::new();
+        let indices = HashMap::new();
+        let unknown_value = SentencePieceVocab::unknown_value();
+        let special_values = HashMap::new();
+        let special_indices = HashMap::new();
+
+        let mut vocab = SentencePieceVocab { root, values, indices, unknown_value, special_values, special_indices };
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             vocab.insert(piece.get_piece(), piece.get_score(), idx as i64);
         }
+        vocab.indices = swap_key_values(&vocab.values);
+        SentencePieceVocab::_register_as_special_value(unknown_value, &vocab.values, &mut vocab.special_values);
+
+        let pad_value = SentencePieceVocab::pad_value();
+        SentencePieceVocab::_register_as_special_value(pad_value, &vocab.values, &mut vocab.special_values);
+
+        let sep_value = SentencePieceVocab::sep_value();
+        SentencePieceVocab::_register_as_special_value(sep_value, &vocab.values, &mut vocab.special_values);
+
+        let cls_value = SentencePieceVocab::cls_value();
+        SentencePieceVocab::_register_as_special_value(cls_value, &vocab.values, &mut vocab.special_values);
+
+        let mask_value = SentencePieceVocab::mask_value();
+        SentencePieceVocab::_register_as_special_value(mask_value, &vocab.values, &mut vocab.special_values);
+
+        let bos_value = SentencePieceVocab::bos_value();
+        SentencePieceVocab::_register_as_special_value(bos_value, &vocab.values, &mut vocab.special_values);
+
+        let eos_value = SentencePieceVocab::eos_value();
+        SentencePieceVocab::_register_as_special_value(eos_value, &vocab.values, &mut vocab.special_values);
+
+        vocab.special_indices = swap_key_values(&vocab.special_values);
+
         vocab
     }
 
     fn insert(&mut self, word: &str, score: f32, index: i64) {
         let char_count = word.chars().count();
         let mut node = &mut self.root;
+        self.values.insert(word.to_owned(), index);
 
         for (idx, character) in word.chars().enumerate() {
             if !node.children.contains_key(&character) {
@@ -172,5 +209,50 @@ impl SentencePieceVocab {
         };
         best_sequence.reverse();
         best_sequence
+    }
+}
+
+impl Vocab for SentencePieceVocab {
+    fn unknown_value() -> &'static str { "<unk>" }
+
+    fn get_unknown_value(&self) -> &'static str { "<unk>" }
+
+    fn values(&self) -> &HashMap<String, i64> {
+        &self.values
+    }
+
+    fn indices(&self) -> &HashMap<i64, String> {&self.indices}
+
+    fn special_values(&self) -> &HashMap<String, i64> { &self.special_values }
+
+    fn special_indices(&self) -> &HashMap<i64, String> {&self.special_indices}
+
+    fn from_file(path: &str) -> SentencePieceVocab {
+        let mut f = File::open(path).unwrap();
+        let mut contents = Vec::new();
+        f.read_to_end(&mut contents).unwrap();
+
+        let proto = parse_from_bytes::<ModelProto>(contents.as_slice()).unwrap();
+        SentencePieceVocab::from_proto(&proto)
+    }
+
+    fn token_to_id(&self, token: &str) -> i64 {
+        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
+            Ok(index) => index,
+            Err(err) => {
+                println!("{}", err);
+                process::exit(1);
+            }
+        }
+    }
+
+    fn id_to_token(&self, id: &i64) -> String {
+        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
+            Ok(token) => token,
+            Err(err) => {
+                println!("{}", err);
+                process::exit(1);
+            }
+        }
     }
 }
