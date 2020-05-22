@@ -1,6 +1,6 @@
 [package]
 name = "rust_tokenizers"
-version = "3.1.1"
+version = "3.1.0"
 authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
 description = "High performance tokenizers for Rust"
@@ -17,20 +17,17 @@ itertools = "0.8.2"
 serde = {version = "1.0.106", features = ["derive"]}
 serde_json = "1.0.44"
 regex = "1.3.1"
-protobuf = "= 2.14.0"
-radix_trie = "0.1.6"
-hashbrown = "0.7.2"
 
 [dev-dependencies]
 tempfile = "3.1.0"
-
-[build-dependencies]
-protobuf-codegen-pure = {version = "2.8.1", optional = true}
+dirs = "2.0.0"
+reqwest = {version = "0.10.4", features = ["blocking"]}
 
 [lib]
 name = "rust_tokenizers"
 path = "src/lib.rs"
 crate-type = ["lib"]
 
-[features]
-proto-compile = [ "protobuf-codegen-pure" ]
+[[bin]]
+name = "rust_tokenizers_bin"
+path = "src/main.rs"

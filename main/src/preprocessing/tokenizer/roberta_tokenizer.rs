@@ -14,7 +14,7 @@
 
 use crate::RobertaVocab;
 use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Offset, Token, TokenRef, Mask};
+use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Offset, Token, TokenRef, Mask, OffsetSize};
 use std::collections::HashMap;
 use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, is_whitespace, split_on_regex_with_lookahead, split_on_bpe_pairs, fix_mask};
 use std::rc::Rc;
@@ -24,11 +24,12 @@ use regex::Regex;
 use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
 use std::iter::Iterator;
 use itertools::Itertools;
+use crate::tokenization_utils::lowercase;
 
 pub struct RobertaTokenizer {
     vocab: Rc<RobertaVocab>,
     bpe_ranks: Rc<BpePairVocab>,
-    cache: RefCell<HashMap<String, Vec<Token>>>,
+    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
     pattern_lookahead: Regex,
     pattern_tokenization: Regex,
     lower_case: bool,
@@ -62,49 +63,32 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             return vec!();
         }
         let mut initial_token: Token = initial_token.to_owned();
-        let added_whitespace = if !is_whitespace(&initial_token.text.chars().next().unwrap()) {
+        if !is_whitespace(&initial_token.text.chars().next().unwrap()) {
             //text should always start with an initial whitespace
             initial_token.text.insert(0, ' ');
-            true
-        } else {
-            false
+            initial_token.reference_offsets.insert(0, 0);
         };
-        let tokens: Vec<Token> = split_on_special_tokens(initial_token.as_ref(), self.vocab.as_ref())
+        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token.as_ref(), self.vocab.as_ref())
             .into_iter()
-            .map(|token| {
-                let mut token = token.to_owned();
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    //apply the necessary transformations to the actual tokens (unless it's a special value)
-                    if self.lower_case {
-                        token.text = token.text.to_lowercase();
-                    }
-                }
+            .map(|token| token.to_owned())
+            .collect::<Vec<Token>>();
 
-                split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization).into_iter().map(|token| token.to_owned()).collect::<Vec<Token>>()
-            })
-            .flatten()
-            .map(|token: Token| {
-                if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                    split_on_bpe_pairs(token.as_ref(), bpe, &self.bpe_ranks, &self.cache, true)
-                } else {
-                    vec!(token)
+        let mut sub_tokens = Vec::new();
+        for token in tokens.iter_mut() {
+            if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                if self.lower_case {
+                    lowercase(token);
                 }
-            })
-            .flatten()
-            .map(|mut token: Token| {
-                if added_whitespace {
-                    //remove the added whitespace from the offsets
-                    if token.offset.begin == 0 {
-                        token.offset.end -= 1;
-                    } else {
-                        token.offset.begin -= 1;
-                        token.offset.end -= 1;
-                    }
+                for token in split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization) {
+                    sub_tokens.extend(split_on_bpe_pairs(token, bpe, &self.bpe_ranks, &self.cache, true));
                 }
-                token
-            }).collect();
+            } else {
+                sub_tokens.push(token.clone());
+            }
+        }
 
-        fix_mask(tokens)
+        fix_mask(&mut sub_tokens);
+        sub_tokens
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -120,11 +104,15 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         String::from_utf8_lossy(&tokens).to_string()
     }
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>, offsets_1: Vec<Offset>, offsets_2: Option<Vec<Offset>>, mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Mask>) {
+    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
+                                       offsets_1: Vec<Option<Offset>>, offsets_2: Option<Vec<Option<Offset>>>,
+                                       original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
+                                       mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
         let mut output: Vec<i64> = vec!();
         let mut token_segment_ids: Vec<i8> = vec!();
         let mut special_tokens_mask: Vec<i8> = vec!();
         let mut offsets: Vec<Option<Offset>> = vec!();
+        let mut original_offsets: Vec<Vec<OffsetSize>> = vec!();
         let mut mask: Vec<Mask> = vec!();
         special_tokens_mask.push(1);
         special_tokens_mask.extend(vec![0; tokens_1.len()]);
@@ -134,8 +122,11 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         output.extend(tokens_1);
         output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
         offsets.push(None);
-        offsets.extend(offsets_1.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
+        offsets.extend(offsets_1);
         offsets.push(None);
+        original_offsets.push(vec!());
+        original_offsets.extend(original_offsets_1);
+        original_offsets.push(vec!());
         mask.push(Mask::Special);
         mask.extend(mask_1);
         mask.push(Mask::Special);
@@ -150,11 +141,15 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             output.extend(add_tokens);
             output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
             if let Some(add_offsets) = offsets_2 {
-                offsets.extend(add_offsets.into_iter().map(|offset| offset.into_option()).collect::<Vec<Option<Offset>>>());
+                offsets.extend(add_offsets);
             } else {
                 offsets.extend(vec![None; length]);
             }
+            if let Some(add_original_offsets) = original_offsets_2 {
+                original_offsets.extend(add_original_offsets);
+            }
             offsets.push(None);
+            original_offsets.push(vec!());
             if let Some(mask_2) = mask_2 {
                 mask.extend(mask_2)
             } else {
@@ -162,7 +157,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             }
             mask.push(Mask::Special);
         }
-        (output, token_segment_ids, special_tokens_mask, offsets, mask)
+        (output, token_segment_ids, special_tokens_mask, offsets, original_offsets, mask)
     }
 }
 
@@ -234,11 +229,13 @@ mod tests {
             (
                 "The Earth",
                 vec!("Ġthe", "Ġear", "th"),
-                vec!(Offset { begin: 0, end: 3 }, Offset { begin: 3, end: 7 }, Offset { begin: 7, end: 9 }),
+                vec!(Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 })),
+                vec!(vec!(0, 0, 1, 2), vec!(3, 4, 5, 6), vec!(7, 8)),
                 vec!(Mask::None, Mask::Begin, Mask::Continuation)
             ),
             (
                 "",
+                vec!(),
                 vec!(),
                 vec!(),
                 vec!()
@@ -246,18 +243,20 @@ mod tests {
             (
                 "✿",
                 vec!("Ġ", "â", "ľ", "¿"),
-                vec!(Offset { begin: 0, end: 1 }, Offset { begin: 0, end: 1 }, Offset { begin: 0, end: 1 }, Offset { begin: 0, end: 1 }),
-                vec!(Mask::InexactBegin, Mask::InexactContinuation, Mask::InexactContinuation, Mask::InexactContinuation)
+                vec!(Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 })),
+                vec!(vec!(0), vec!(0), vec!(0), vec!(0)),
+                vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation)
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
         let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
 //        When & Then
-        for (source_text, expected_tokens, expected_offsets, expected_mask) in test_tuples.iter() {
-            let (tokens, offsets, mask) = roberta_tokenizer.tokenize_with_offsets(*source_text);
+        for (source_text, expected_tokens, expected_offsets, expected_original_offsets, expected_mask) in test_tuples.iter() {
+            let (tokens, offsets, original_offsets, mask) = roberta_tokenizer.tokenize_with_offsets(*source_text);
             assert_eq!(tokens, *expected_tokens);
             assert_eq!(offsets, *expected_offsets);
+            assert_eq!(original_offsets, *expected_original_offsets);
             assert_eq!(mask, *expected_mask);
         }
 
@@ -274,11 +273,13 @@ mod tests {
             (
                 "The Earth",
                 vec!("Ġ", "T", "he", "Ġ", "E", "a", "r", "th"),
-                vec!(Offset { begin: 0, end: 0 }, Offset { begin: 0, end: 1 }, Offset { begin: 1, end: 3 }, Offset { begin: 3, end: 4 }, Offset { begin: 4, end: 5 }, Offset { begin: 5, end: 6 }, Offset { begin: 6, end: 7 }, Offset { begin: 7, end: 9 }), //note: first inserted whitespace has offset (0,0), which will map to Option::None in further encoding
+                vec!(Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 3 }), Some(Offset { begin: 3, end: 4 }), Some(Offset { begin: 4, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 9 })), //note: first inserted whitespace has offset (0,0), which will map to Option::None in further encoding
+                vec!(vec!(0), vec!(0), vec!(1, 2), vec!(3), vec!(4), vec!(5), vec!(6), vec!(7, 8)),
                 vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Continuation)
             ),
             (
                 "",
+                vec!(),
                 vec!(),
                 vec!(),
                 vec!()
@@ -286,18 +287,20 @@ mod tests {
             (
                 "✿",
                 vec!("Ġ", "â", "ľ", "¿"),
-                vec!(Offset { begin: 0, end: 1 }, Offset { begin: 0, end: 1 }, Offset { begin: 0, end: 1 }, Offset { begin: 0, end: 1 }),
-                vec!(Mask::InexactBegin, Mask::InexactContinuation, Mask::InexactContinuation, Mask::InexactContinuation)
+                vec!(Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 })),
+                vec!(vec!(0), vec!(0), vec!(0), vec!(0)),
+                vec!(Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation)
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
         let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
 //        When & Then
-        for (source_text, expected_tokens, expected_offsets, expected_mask) in test_tuples.iter() {
-            let (tokens, offsets, mask) = roberta_tokenizer.tokenize_with_offsets(*source_text);
+        for (source_text, expected_tokens, expected_offsets, expected_original_offsets, expected_mask) in test_tuples.iter() {
+            let (tokens, offsets, original_offsets, mask) = roberta_tokenizer.tokenize_with_offsets(*source_text);
             assert_eq!(tokens, *expected_tokens);
             assert_eq!(offsets, *expected_offsets);
+            assert_eq!(original_offsets, *expected_original_offsets);
             assert_eq!(mask, *expected_mask);
         }
 
@@ -321,9 +324,8 @@ mod tests {
                     special_tokens_mask: vec!(1, 0, 0, 0, 1),
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(
-                        None, Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 }), None
-                    ),
+                    token_offsets: vec!(None, Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 }), None),
+                    reference_offsets: vec!(vec!(), vec!(0, 0, 1, 2), vec!(3, 4, 5, 6), vec!(7, 8), vec!()),
                     mask: vec!(Mask::Special, Mask::None, Mask::Begin, Mask::Continuation, Mask::Special),
                 }
             ),
@@ -335,10 +337,9 @@ mod tests {
                     special_tokens_mask: vec!(1, 0, 0, 0, 0, 1),
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(
-                        None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), None
-                    ),
-                    mask: vec!(Mask::Special, Mask::InexactBegin, Mask::InexactContinuation, Mask::InexactContinuation, Mask::InexactContinuation, Mask::Special),
+                    token_offsets: vec!(None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 0, end: 1 }), None),
+                    reference_offsets: vec!(vec!(), vec!(0), vec!(0), vec!(0), vec!(0), vec!()),
+                    mask: vec!(Mask::Special, Mask::Begin, Mask::Continuation, Mask::Continuation, Mask::Continuation, Mask::Special),
                 }
             ),
             (
@@ -349,9 +350,8 @@ mod tests {
                     special_tokens_mask: vec!(1, 1),
                     overflowing_tokens: vec!(),
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(
-                        None, None
-                    ),
+                    token_offsets: vec!(None, None),
+                    reference_offsets: vec!(vec!(), vec!()),
                     mask: vec!(Mask::Special, Mask::Special),
                 }
             )
