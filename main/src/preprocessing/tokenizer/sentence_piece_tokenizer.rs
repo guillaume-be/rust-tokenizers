@@ -11,7 +11,9 @@
 // limitations under the License.
 
 use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
-use crate::Vocab;
+use crate::{Vocab, Tokenizer};
+use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token, Offset};
+use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
 
 pub struct SentencePieceTokenizer {
     vocab: SentencePieceVocab,
@@ -40,18 +42,27 @@ impl SentencePieceTokenizer {
     }
 }
 
-//impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
-//    fn vocab(&self) -> &SentencePieceVocab {
-//        &self.vocab
-//    }
-//
-//    fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-//        let mut token = text.to_owned();
-//        decompose_nfkc(&mut token);
-//        token.text = token.text.replace(is_whitespace, "\u{2581}");
-//        let output = self.vocab.decode_forward(token.text.as_str());
-//        let decoded = self.vocab.decode_backward(&output);
-////        for
-//        vec!()
-//    }
-//}
+impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
+   fn vocab(&self) -> &SentencePieceVocab {
+       &self.vocab
+   }
+
+   fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
+       let mut token = text.to_owned();
+       decompose_nfkc(&mut token);
+       token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
+       let output = self.vocab.decode_forward_token_ref(token.as_ref());
+       let decoded = self.vocab.decode_backward(&output);
+
+       let mut output = Vec::with_capacity(decoded.len());
+       for node in decoded {
+            output.push ( Token {
+                text: node.text.to_owned(),
+                offset: Offset {begin: 0, end: 0},
+                reference_offsets: node.reference_offsets.to_vec(),
+                mask: Default::default()
+            })
+       }
+       output
+   }
+}

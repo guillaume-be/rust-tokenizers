@@ -21,15 +21,17 @@ use crate::Vocab;
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
 use std::process;
+use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize};
 
 
 #[derive(Debug, Clone, Copy)]
 pub struct Node<'a> {
-    text: &'a str,
-    score: f32,
-    index: i64,
-    start: usize,
-    end: usize,
+    pub text: &'a str,
+    pub score: f32,
+    pub index: i64,
+    pub start: usize,
+    pub end: usize,
+    pub reference_offsets: &'a [OffsetSize]
 }
 
 #[derive(Debug, Clone)]
@@ -158,6 +160,48 @@ impl SentencePieceVocab {
         results
     }
 
+    pub fn decode_forward_token_ref<'a>(&'a self, token: TokenRef<'a>) -> Vec<Option<Node<'a>>> {
+        let mut char_positions = token.text
+            .char_indices()
+            .map(|(pos, _)| pos)
+            .collect_vec();
+        char_positions.push(token.text.len());
+        let mut results = vec!(None; char_positions.len());
+        let mut scores = vec!(std::f32::NEG_INFINITY; char_positions.len());
+        scores[0] = 0f32;
+
+        for char_start in 0..char_positions.len() - 1 {
+            let matches = self.common_prefix_search(&token.text[char_positions[char_start]..]);
+            for node in matches {
+                let local_score = scores[char_start] + node.score;
+                let char_end = char_start + node.len;
+                if local_score > scores[char_end] {
+                    results[char_end] = Some(Node {
+                        text: &token.text[char_positions[char_start]..char_positions[char_end]],
+                        score: local_score,
+                        index: node.index,
+                        start: char_start,
+                        end: char_end,
+                        reference_offsets: &token.reference_offsets[char_start..char_end]
+                    });
+                    scores[char_end] = local_score;
+                }
+            }
+            if scores[char_start + 1] <= std::f32::MIN {
+                results[char_start + 1] = Some(Node {
+                    text: &token.text[char_positions[char_start]..char_positions[char_start + 1]],
+                    score: std::f32::MIN,
+                    index: 0,
+                    start: char_start,
+                    end: char_start + 1,
+                    reference_offsets: &token.reference_offsets[char_start..char_start + 1]
+                });
+                scores[char_start + 1] = 0f32;
+            }
+        }
+        results
+    }
+
     pub fn decode_forward<'a>(&'a self, text: &'a str) -> Vec<Option<Node<'a>>> {
         let mut char_positions = text
             .char_indices()
@@ -175,11 +219,12 @@ impl SentencePieceVocab {
                 let char_end = char_start + node.len;
                 if local_score > scores[char_end] {
                     results[char_end] = Some(Node {
-                        text: node.text.as_str(),
+                        text: &text[char_positions[char_start]..char_positions[char_end]],
                         score: local_score,
                         index: node.index,
                         start: char_start,
                         end: char_end,
+                        reference_offsets: &[]
                     });
                     scores[char_end] = local_score;
                 }
@@ -191,6 +236,7 @@ impl SentencePieceVocab {
                     index: 0,
                     start: char_start,
                     end: char_start + 1,
+                    reference_offsets: &[]
                 });
                 scores[char_start + 1] = 0f32;
             }
