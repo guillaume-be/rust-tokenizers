@@ -36,19 +36,6 @@ impl SentencePieceTokenizer {
         let text = text.as_str();
         let output = self.vocab.decode_forward(text);
         let decoded = self.vocab.decode_backward(&output);
-        println!("{:?}", decoded);
+//        println!("{:?}", decoded);
     }
-
-//    pub fn tokenizer_to_pieces_alt(&self, text: &str) {
-//        let mut char_positions = text.char_indices().map(|(pos, _)| pos).collect_vec();
-//        char_positions.push(text.len());
-//        for &byte_pos in char_positions.iter() {
-//            if byte_pos < text.len() {
-//                let output = self.vocab.common_prefix_search(&text[byte_pos..]);
-//                println!("{:?}", output);
-//            }
-//        }
-//        let output = self.vocab.decode_forward(text);
-//        println!("{:?}", output);
-//    }
 }
