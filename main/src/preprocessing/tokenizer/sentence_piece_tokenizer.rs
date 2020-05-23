@@ -14,20 +14,21 @@ use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
 use crate::{Vocab, Tokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token, Offset};
 use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
+use crate::preprocessing::tokenizer::tokenization_utils::lowercase;
 
 pub struct SentencePieceTokenizer {
     vocab: SentencePieceVocab,
-    _lower_case: bool,
+    lower_case: bool,
 }
 
 impl SentencePieceTokenizer {
     pub fn from_file(path: &str, _lower_case: bool) -> SentencePieceTokenizer {
         let vocab = SentencePieceVocab::from_file(path);
-        SentencePieceTokenizer { vocab, _lower_case }
+        SentencePieceTokenizer { vocab, lower_case: _lower_case }
     }
 
     pub fn from_existing_vocab(vocab: SentencePieceVocab, _lower_case: bool) -> SentencePieceTokenizer {
-        SentencePieceTokenizer { vocab, _lower_case }
+        SentencePieceTokenizer { vocab, lower_case: _lower_case }
     }
 
     pub fn vocab(&self) -> &SentencePieceVocab {
@@ -43,26 +44,37 @@ impl SentencePieceTokenizer {
 }
 
 impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
-   fn vocab(&self) -> &SentencePieceVocab {
-       &self.vocab
-   }
+    fn vocab(&self) -> &SentencePieceVocab {
+        &self.vocab
+    }
 
-   fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-       let mut token = text.to_owned();
-       decompose_nfkc(&mut token);
-       token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
-       let output = self.vocab.decode_forward_token_ref(token.as_ref());
-       let decoded = self.vocab.decode_backward(&output);
+    fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
+        let mut token = text.to_owned();
+        decompose_nfkc(&mut token);
+        if self.lower_case {
+            lowercase(&mut token);
+        }
+        token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
+        if !token.text.starts_with('\u{2581}') {
+            token.text.insert(0, '\u{2581}');
+            token.reference_offsets.insert(0, 0);
+        };
+        let output = self.vocab.decode_forward_token_ref(token.as_ref());
+        let decoded = self.vocab.decode_backward(&output);
 
-       let mut output = Vec::with_capacity(decoded.len());
-       for node in decoded {
-            output.push ( Token {
+        let mut output = Vec::with_capacity(decoded.len());
+        for node in decoded {
+            output.push(Token {
                 text: node.text.to_owned(),
-                offset: Offset {begin: 0, end: 0},
+                offset: Offset { begin: 0, end: 0 },
                 reference_offsets: node.reference_offsets.to_vec(),
-                mask: Default::default()
+                mask: Default::default(),
             })
-       }
-       output
-   }
+        }
+        output
+    }
+
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+    }
 }
