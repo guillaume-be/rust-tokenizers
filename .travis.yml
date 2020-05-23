@@ -6,7 +6,7 @@ matrix:
       os:
         - linux
       script:
-        - cargo build --manifest-path ./main/Cargo.toml --verbose
+        - cargo build --manifest-path ./main/Cargo.toml --verbose --features proto-compile
         - cargo test --manifest-path ./main/Cargo.toml
 
     - language: rust
@@ -14,7 +14,7 @@ matrix:
       os:
         - windows
       script:
-        - cargo build --manifest-path ./main/Cargo.toml --verbose
+        - cargo build --manifest-path ./main/Cargo.toml --verbose --features proto-compile
         - cargo test --manifest-path ./main/Cargo.toml
 
     - language: rust
@@ -22,7 +22,7 @@ matrix:
       os:
         - linux
       script:
-        - cargo build --manifest-path ./main/Cargo.toml --verbose
+        - cargo build --manifest-path ./main/Cargo.toml --verbose --features proto-compile
         - cargo test --manifest-path ./main/Cargo.toml
 
     - language: rust
@@ -30,7 +30,7 @@ matrix:
       os:
         - linux
       script:
-        - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose
+        - cargo build --manifest-path ./python-bindings/Cargo.toml --verbose --features proto-compile
 
     - language: python
       os: linux

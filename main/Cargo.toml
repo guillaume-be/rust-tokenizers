@@ -7,6 +7,7 @@ description = "High performance tokenizers for Rust"
 repository = "https://github.com/guillaume-be/rust-tokenizers"
 license = "Apache-2.0"
 readme = "README.md"
+build = "build.rs"
 
 [dependencies]
 csv = "1.1"
@@ -28,6 +29,9 @@ reqwest = {version = "0.10.4", features = ["blocking"]}
 
 [build-dependencies]
 protobuf-codegen-pure = {version = "2.8.1", optional = true}
+
+[features]
+proto-compile = [ "protobuf-codegen-pure" ]
 
 [lib]
 name = "rust_tokenizers"
