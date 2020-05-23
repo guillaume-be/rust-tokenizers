@@ -11,7 +11,6 @@
 // limitations under the License.
 
 
-use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use protobuf::parse_from_bytes;
 use std::fs::File;
 use std::io::Read;
@@ -22,6 +21,7 @@ use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
 use std::process;
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize};
+use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 
 
 #[derive(Debug, Clone, Copy)]

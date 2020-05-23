@@ -6,7 +6,7 @@ python-bindings/tests/__pycache__*
 python-bindings/__pycache__*
 python-bindings/*eggs*
 python-bindings/target
-main/src/preprocessing/vocab/sentencepiece_proto/sentencepiece_model.rs
+main/src/sentencepiece_model.rs
 **/*.rs.bk
 .idea*
 /resources
