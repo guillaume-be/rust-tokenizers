@@ -62,14 +62,33 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
         let output = self.vocab.decode_forward_token_ref(token.as_ref());
         let decoded = self.vocab.decode_backward(&output);
 
-        let mut output = Vec::with_capacity(decoded.len());
+        let mut output: Vec<Token> = Vec::with_capacity(decoded.len());
+        let mut is_prev_unknown = false;
         for node in decoded {
-            output.push(Token {
-                text: node.text.to_owned(),
-                offset: Offset { begin: 0, end: 0 },
-                reference_offsets: node.reference_offsets.to_vec(),
-                mask: Default::default(),
-            })
+            // Group unknown tokens
+            if is_prev_unknown & (node.index == 0) {
+                let prev_token = output.last().unwrap();
+                let mut text = prev_token.text.clone();
+                text.push_str(node.text);
+                let mut reference_offsets = prev_token.reference_offsets.clone();
+                reference_offsets.extend_from_slice(node.reference_offsets);
+                let consolidated_unknown = Token {
+                    text,
+                    offset: Offset { begin: 0, end: 0 },
+                    reference_offsets,
+                    mask: Default::default(),
+                };
+                output.pop();
+                output.push(consolidated_unknown);
+            } else {
+                output.push(Token {
+                    text: node.text.to_owned(),
+                    offset: Offset { begin: 0, end: 0 },
+                    reference_offsets: node.reference_offsets.to_vec(),
+                    mask: Default::default(),
+                });
+            }
+            is_prev_unknown = node.index == 0;
         }
         output
     }
