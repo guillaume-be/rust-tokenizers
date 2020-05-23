@@ -15,3 +15,5 @@ pub mod openai_gpt_vocab;
 pub mod gpt2_vocab;
 pub mod roberta_vocab;
 pub mod bpe_vocab;
+pub mod sentencepiece_proto;
+pub mod sentence_piece_vocab;

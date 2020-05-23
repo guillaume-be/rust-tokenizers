@@ -17,6 +17,7 @@ use crate::BertVocab;
 use crate::preprocessing::tokenizer::constants::{WHITESPACE_CHARS, ADDITIONAL_WHITESPACE_CHARS,
                                                  PUNCTUATION_CHARS, CONTROL_CHARS, ACCENT_MARKERS, BYTES_TO_UNICODE};
 use unicode_normalization::char::decompose_canonical;
+use unicode_normalization_alignments::UnicodeNormalization;
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 use std::error::Error;
@@ -35,7 +36,6 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
     for (character, position) in token.text.chars().zip(token.reference_offsets.iter()) {
         if is_control(&character, strict) || character == '\x00' || character == REPLACEMENT_CHARACTER {
-            character_mapping.push(*position);
             continue;
         }
         if is_whitespace(&character) {
@@ -173,6 +173,24 @@ pub fn strip_accents(token: &mut Token) {
                 character_mapping.push(*position);
             }
         });
+    }
+    token.text = decomposed_string;
+    token.reference_offsets = character_mapping;
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0 as OffsetSize));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize)) + 1;
+}
+
+///NFKC decomposition
+pub fn decompose_nfkc(token: &mut Token) {
+    let capacity = token.text.capacity();
+    let mut decomposed_string: String = String::with_capacity(capacity);
+    let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
+    let mut cur_position: isize = 0;
+    for (character, extra_char) in token.text.nfkc() {
+        decomposed_string.push(character);
+        character_mapping.push(token.reference_offsets[cur_position as usize]);
+        cur_position = cur_position + 1 - extra_char;
+
     }
     token.text = decomposed_string;
     token.reference_offsets = character_mapping;
