@@ -14,7 +14,6 @@ features = ["extension-module"]
 [dependencies.rust_tokenizers]
 version = "*"
 path = "../main"
-features = ["proto-compile"]
 
 [dev-dependencies]
 tempfile = "3.1.0"
