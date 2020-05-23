@@ -269,12 +269,15 @@ class TestTokenizationSST2:
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
-            assert rust.token_ids == baseline, f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
-                                               f'Sentence a: {self.examples[idx].text_a} \n' \
-                                               f'Sentence b: {self.examples[idx].text_b} \n' \
-                                               f'Token mismatch: {self.get_token_diff_sentence_piece(rust.token_ids, baseline)} \n' \
-                                               f'Rust: {rust.token_ids} \n' \
-                                               f' Python {baseline}'
+            if rust.token_ids != baseline:
+                assert sum(self.base_tokenizer.get_score(baseline)) == \
+                       sum(self.base_tokenizer.get_score(rust.token_ids)), \
+                    f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                    f'Sentence a: {self.examples[idx].text_a} \n' \
+                    f'Sentence b: {self.examples[idx].text_b} \n' \
+                    f'Token mismatch: {self.get_token_diff_sentence_piece(rust.token_ids, baseline)} \n' \
+                    f'Rust: {rust.token_ids} \n' \
+                    f' Python {baseline}'
 
     def get_token_diff(self, rust_tokens, python_tokens):
         last_index = 1

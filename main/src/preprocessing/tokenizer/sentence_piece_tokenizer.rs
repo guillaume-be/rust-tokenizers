@@ -54,7 +54,6 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
         if self.lower_case {
             lowercase(&mut token);
         }
-        println!("{:?}", token);
         token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
         if !token.text.starts_with('\u{2581}') {
             token.text.insert(0, '\u{2581}');
