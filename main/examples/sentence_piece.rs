@@ -4,7 +4,9 @@ use rust_tokenizers::{Tokenizer, TruncationStrategy};
 
 fn main() {
     let model_path = "E:/Coding/notebooks/xlnet-base-cased-spiece.model";
+
     let sentence_piece_tokenizer = SentencePieceTokenizer::from_file(model_path, false);
+
 
     let now = Instant::now();
 

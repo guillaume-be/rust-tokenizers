@@ -11,7 +11,7 @@
 // limitations under the License.
 
 use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
-use crate::{Vocab, Tokenizer};
+use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token, Offset};
 use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
 use crate::preprocessing::tokenizer::tokenization_utils::lowercase;
@@ -54,6 +54,7 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
         if self.lower_case {
             lowercase(&mut token);
         }
+        println!("{:?}", token);
         token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
         if !token.text.starts_with('\u{2581}') {
             token.text.insert(0, '\u{2581}');
@@ -78,3 +79,5 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
         tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
     }
 }
+
+impl MultiThreadedTokenizer<SentencePieceVocab> for SentencePieceTokenizer {}

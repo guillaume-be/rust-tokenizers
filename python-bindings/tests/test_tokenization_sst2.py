@@ -13,6 +13,7 @@
 import tempfile
 from pathlib import Path
 import pytest
+from rust_tokenizers.rust_tokenizers import PySentencePieceTokenizer
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_bert import BertTokenizer
@@ -25,6 +26,7 @@ from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, P
     PyOpenAiGptTokenizer
 from zipfile import ZipFile
 import requests
+import sentencepiece
 
 
 @pytest.mark.slow
@@ -38,6 +40,9 @@ class TestTokenizationSST2:
         with ZipFile(self.test_dir / 'SST-2.zip', 'r') as zipObj:
             zipObj.extractall(self.test_dir)
         self.examples = self.processor.get_train_examples(self.test_dir / 'SST-2')
+        sentence_piece_url = 'https://s3.amazonaws.com/models.huggingface.co/bert/xlnet-base-cased-spiece.model'
+        contents = requests.get(sentence_piece_url)
+        (self.test_dir / 'spiece.model').open('wb').write(contents.content)
 
     def test_tokenization_bert(self):
         # Given
@@ -246,6 +251,31 @@ class TestTokenizationSST2:
             assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
+    def test_tokenization_sentence_piece(self):
+        # Given
+        self.base_tokenizer = sentencepiece.SentencePieceProcessor()
+        self.base_tokenizer.Load(str(self.test_dir / 'spiece.model'))
+        self.rust_tokenizer = PySentencePieceTokenizer(str(self.test_dir / 'spiece.model'), do_lower_case=False)
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.EncodeAsIds(example.text_a))
+
+        # When
+        # Note: the original sentence piece tokenizer strips trailing spaces
+        output_rust = self.rust_tokenizer.encode_list([example.text_a.strip() for example in self.examples],
+                                                      max_len=256,
+                                                      truncation_strategy='longest_first',
+                                                      stride=0)
+
+        # Then
+        for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
+            assert rust.token_ids == baseline, f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                                               f'Sentence a: {self.examples[idx].text_a} \n' \
+                                               f'Sentence b: {self.examples[idx].text_b} \n' \
+                                               f'Token mismatch: {self.get_token_diff_sentence_piece(rust.token_ids, baseline)} \n' \
+                                               f'Rust: {rust.token_ids} \n' \
+                                               f' Python {baseline}'
+
     def get_token_diff(self, rust_tokens, python_tokens):
         last_index = 1
         first_index = 0
@@ -262,4 +292,22 @@ class TestTokenizationSST2:
         python_token_diff = python_tokens[first_index:python_last_index]
         rust_decoded_tokens = self.base_tokenizer.convert_ids_to_tokens(rust_tokens_diff)
         python_decoded_tokens = self.base_tokenizer.convert_ids_to_tokens(python_token_diff)
+        return rust_decoded_tokens, python_decoded_tokens
+
+    def get_token_diff_sentence_piece(self, rust_tokens, python_tokens):
+        last_index = 1
+        first_index = 0
+        max_index = min(len(rust_tokens), len(python_tokens))
+        while rust_tokens[first_index] == python_tokens[first_index] and first_index < max_index - 1:
+            first_index += 1
+        first_index -= 1
+        while rust_tokens[-last_index] == python_tokens[-last_index] and last_index < max_index - 1:
+            last_index += 1
+        last_index += 1
+        python_last_index = len(python_tokens) + last_index
+        rust_last_index = len(rust_tokens) + last_index
+        rust_tokens_diff = rust_tokens[first_index:rust_last_index]
+        python_token_diff = python_tokens[first_index:python_last_index]
+        rust_decoded_tokens = self.base_tokenizer.DecodeIds(rust_tokens_diff)
+        python_decoded_tokens = self.base_tokenizer.DecodeIds(python_token_diff)
         return rust_decoded_tokens, python_decoded_tokens
