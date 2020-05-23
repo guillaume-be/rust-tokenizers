@@ -36,7 +36,6 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
     for (character, position) in token.text.chars().zip(token.reference_offsets.iter()) {
         if is_control(&character, strict) || character == '\x00' || character == REPLACEMENT_CHARACTER {
-            character_mapping.push(*position);
             continue;
         }
         if is_whitespace(&character) {

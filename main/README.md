@@ -2,6 +2,7 @@
 
 Rust-tokenizer is a drop-in replacement for the tokenization methods from the [Transformers library](https://github.com/huggingface/transformers)
 It includes a broad range of tokenizers for state-of-the-art transformers architectures, including:
+- Sentence Piece (unigram model)
 - BERT
 - DistilBERT
 - RoBERTa

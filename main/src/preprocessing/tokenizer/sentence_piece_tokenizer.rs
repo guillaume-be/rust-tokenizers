@@ -14,7 +14,7 @@ use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token, Offset};
 use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
-use crate::preprocessing::tokenizer::tokenization_utils::lowercase;
+use crate::preprocessing::tokenizer::tokenization_utils::{lowercase, clean_text};
 
 pub struct SentencePieceTokenizer {
     vocab: SentencePieceVocab,
@@ -50,6 +50,7 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut token = text.to_owned();
+        clean_text(&mut token, true);
         decompose_nfkc(&mut token);
         if self.lower_case {
             lowercase(&mut token);
