@@ -1,4 +1,5 @@
-// Copyright 2019 Google LLC. All Rights Reserved.
+// Copyright 2018-2020 The HuggingFace Inc. team.
+// Copyright 2020 Marian Team Authors
 // Copyright 2019-2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -10,37 +11,54 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, SentencePieceVocab};
+use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel};
+use regex::Regex;
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
-use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token, Offset};
-use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
-use crate::preprocessing::tokenizer::tokenization_utils::{lowercase, clean_text};
+use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset};
+use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_at_regex};
+use crate::preprocessing::vocab::marian_vocab::MarianVocab;
 
-pub struct SentencePieceTokenizer {
+pub struct MarianTokenizer {
     model: SentencePieceModel,
-    vocab: SentencePieceVocab,
+    vocab: MarianVocab,
+    pattern_language_code: Regex,
     lower_case: bool,
 }
 
-impl SentencePieceTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> SentencePieceTokenizer {
-        let model = SentencePieceModel::from_file(path);
-        let vocab = SentencePieceVocab::from_file(path);
-        SentencePieceTokenizer { model, vocab, lower_case }
+impl MarianTokenizer {
+    pub fn from_files(vocab_path: &str, model_path: &str, lower_case: bool) -> MarianTokenizer {
+        let vocab = MarianVocab::from_file(vocab_path);
+        let model = SentencePieceModel::from_file(model_path);
+        let pattern_language_code = Regex::new(r"<<.+>>").unwrap();
+        MarianTokenizer { model, vocab, pattern_language_code, lower_case }
     }
 
-    pub fn from_existing_vocab_and_model(vocab: SentencePieceVocab, model: SentencePieceModel, lower_case: bool) -> SentencePieceTokenizer {
-        SentencePieceTokenizer { model, vocab, lower_case }
+    pub fn from_existing_vocab_and_model(vocab: MarianVocab, model: SentencePieceModel, lower_case: bool) -> MarianTokenizer {
+        let pattern_language_code = Regex::new(r"<<.+>>").unwrap();
+        MarianTokenizer { model, vocab, pattern_language_code, lower_case }
     }
 }
 
-impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
-    fn vocab(&self) -> &SentencePieceVocab {
-        &self.vocab
-    }
+impl Tokenizer<MarianVocab> for MarianTokenizer {
+    fn vocab(&self) -> &MarianVocab { &self.vocab }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-        let mut token = text.to_owned();
+        let tokens = split_at_regex(text, &self.pattern_language_code);
+        let (code_token, mut token) = match tokens.len() {
+            0 => { return vec!(); }
+            1 => (None, tokens[0].to_owned()),
+            2 => (Some(tokens[0].to_owned()), tokens[1].to_owned()),
+            _ => {
+                let mut token = Token::new("".to_string());
+                for token_ref in tokens[1..].iter() {
+                    token.text.push_str(token_ref.text);
+                    token.reference_offsets.extend_from_slice(token_ref.reference_offsets);
+                    token.offset.end = token_ref.offset.end;
+                }
+                (Some(tokens[0].to_owned()), token)
+            }
+        };
+
         clean_text(&mut token, true);
         decompose_nfkc(&mut token);
         if self.lower_case {
@@ -54,7 +72,10 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
         let output = self.model.decode_forward_token_ref(token.as_ref());
         let decoded = self.model.decode_backward(&output);
 
-        let mut output: Vec<Token> = Vec::with_capacity(decoded.len());
+        let mut output: Vec<Token> = Vec::with_capacity(decoded.len() + 1);
+        if let Some(code) = code_token {
+            output.push(code);
+        };
         let mut is_prev_unknown = false;
         for node in decoded {
             // Group unknown tokens
@@ -90,4 +111,4 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
     }
 }
 
-impl MultiThreadedTokenizer<SentencePieceVocab> for SentencePieceTokenizer {}
+impl MultiThreadedTokenizer<MarianVocab> for MarianTokenizer {}

@@ -31,7 +31,7 @@ pub struct Node<'a> {
     pub index: i64,
     pub start: usize,
     pub end: usize,
-    pub reference_offsets: &'a [OffsetSize]
+    pub reference_offsets: &'a [OffsetSize],
 }
 
 #[derive(Debug, Clone)]
@@ -58,65 +58,38 @@ impl TrieNode {
     }
 }
 
-pub struct SentencePieceVocab {
+pub struct SentencePieceModel {
     pub root: TrieNode,
-    pub values: HashMap<String, i64>,
-    pub indices: HashMap<i64, String>,
-    pub unknown_value: &'static str,
-    pub special_values: HashMap<String, i64>,
-    pub special_indices: HashMap<i64, String>,
 }
 
-impl SentencePieceVocab {
-    pub fn pad_value() -> &'static str { "<pad>" }
-    pub fn sep_value() -> &'static str { "<sep>" }
-    pub fn cls_value() -> &'static str { "<cls>" }
-    pub fn mask_value() -> &'static str { "<mask>" }
-    pub fn bos_value() -> &'static str { "<s>" }
-    pub fn eos_value() -> &'static str { "</s>" }
+impl SentencePieceModel {
 
-    pub fn from_proto(proto: &ModelProto) -> SentencePieceVocab {
+    pub fn from_file(path: &str) -> SentencePieceModel {
+        let mut f = File::open(path).unwrap();
+        let mut contents = Vec::new();
+        f.read_to_end(&mut contents).unwrap();
+
+        let proto = parse_from_bytes::<ModelProto>(contents.as_slice()).unwrap();
         let root = TrieNode::new("".to_string());
-        let values = HashMap::new();
-        let indices = HashMap::new();
-        let unknown_value = SentencePieceVocab::unknown_value();
-        let special_values = HashMap::new();
-        let special_indices = HashMap::new();
-
-        let mut vocab = SentencePieceVocab { root, values, indices, unknown_value, special_values, special_indices };
+        let mut vocab = SentencePieceModel { root };
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             vocab.insert(piece.get_piece(), piece.get_score(), idx as i64);
         }
-        vocab.indices = swap_key_values(&vocab.values);
-        SentencePieceVocab::_register_as_special_value(unknown_value, &vocab.values, &mut vocab.special_values);
+        vocab
+    }
 
-        let pad_value = SentencePieceVocab::pad_value();
-        SentencePieceVocab::_register_as_special_value(pad_value, &vocab.values, &mut vocab.special_values);
-
-        let sep_value = SentencePieceVocab::sep_value();
-        SentencePieceVocab::_register_as_special_value(sep_value, &vocab.values, &mut vocab.special_values);
-
-        let cls_value = SentencePieceVocab::cls_value();
-        SentencePieceVocab::_register_as_special_value(cls_value, &vocab.values, &mut vocab.special_values);
-
-        let mask_value = SentencePieceVocab::mask_value();
-        SentencePieceVocab::_register_as_special_value(mask_value, &vocab.values, &mut vocab.special_values);
-
-        let bos_value = SentencePieceVocab::bos_value();
-        SentencePieceVocab::_register_as_special_value(bos_value, &vocab.values, &mut vocab.special_values);
-
-        let eos_value = SentencePieceVocab::eos_value();
-        SentencePieceVocab::_register_as_special_value(eos_value, &vocab.values, &mut vocab.special_values);
-
-        vocab.special_indices = swap_key_values(&vocab.special_values);
-
+    pub fn from_proto(proto: &ModelProto) -> SentencePieceModel {
+        let root = TrieNode::new("".to_string());
+        let mut vocab = SentencePieceModel { root };
+        for (idx, piece) in proto.get_pieces().iter().enumerate() {
+            vocab.insert(piece.get_piece(), piece.get_score(), idx as i64);
+        }
         vocab
     }
 
     fn insert(&mut self, word: &str, score: f32, index: i64) {
         let char_count = word.chars().count();
         let mut node = &mut self.root;
-        self.values.insert(word.to_owned(), index);
 
         for (idx, character) in word.chars().enumerate() {
             if !node.children.contains_key(&character) {
@@ -182,7 +155,7 @@ impl SentencePieceVocab {
                         index: node.index,
                         start: char_start,
                         end: char_end,
-                        reference_offsets: &token.reference_offsets[char_start..char_end]
+                        reference_offsets: &token.reference_offsets[char_start..char_end],
                     });
                     scores[char_end] = local_score;
                 }
@@ -194,49 +167,7 @@ impl SentencePieceVocab {
                     index: 0,
                     start: char_start,
                     end: char_start + 1,
-                    reference_offsets: &token.reference_offsets[char_start..char_start + 1]
-                });
-                scores[char_start + 1] = 0f32;
-            }
-        }
-        results
-    }
-
-    pub fn decode_forward<'a>(&'a self, text: &'a str) -> Vec<Option<Node<'a>>> {
-        let mut char_positions = text
-            .char_indices()
-            .map(|(pos, _)| pos)
-            .collect_vec();
-        char_positions.push(text.len());
-        let mut results = vec!(None; char_positions.len());
-        let mut scores = vec!(std::f32::NEG_INFINITY; char_positions.len());
-        scores[0] = 0f32;
-
-        for char_start in 0..char_positions.len() - 1 {
-            let matches = self.common_prefix_search(&text[char_positions[char_start]..]);
-            for node in matches {
-                let local_score = scores[char_start] + node.score;
-                let char_end = char_start + node.len;
-                if local_score > scores[char_end] {
-                    results[char_end] = Some(Node {
-                        text: &text[char_positions[char_start]..char_positions[char_end]],
-                        score: local_score,
-                        index: node.index,
-                        start: char_start,
-                        end: char_end,
-                        reference_offsets: &[]
-                    });
-                    scores[char_end] = local_score;
-                }
-            }
-            if scores[char_start + 1] <= std::f32::MIN {
-                results[char_start + 1] = Some(Node {
-                    text: &text[char_positions[char_start]..char_positions[char_start + 1]],
-                    score: std::f32::MIN,
-                    index: 0,
-                    start: char_start,
-                    end: char_start + 1,
-                    reference_offsets: &[]
+                    reference_offsets: &token.reference_offsets[char_start..char_start + 1],
                 });
                 scores[char_start + 1] = 0f32;
             }
@@ -258,6 +189,24 @@ impl SentencePieceVocab {
     }
 }
 
+
+pub struct SentencePieceVocab {
+    pub values: HashMap<String, i64>,
+    pub indices: HashMap<i64, String>,
+    pub unknown_value: &'static str,
+    pub special_values: HashMap<String, i64>,
+    pub special_indices: HashMap<i64, String>,
+}
+
+impl SentencePieceVocab {
+    pub fn pad_value() -> &'static str { "<pad>" }
+    pub fn sep_value() -> &'static str { "<sep>" }
+    pub fn cls_value() -> &'static str { "<cls>" }
+    pub fn mask_value() -> &'static str { "<mask>" }
+    pub fn bos_value() -> &'static str { "<s>" }
+    pub fn eos_value() -> &'static str { "</s>" }
+}
+
 impl Vocab for SentencePieceVocab {
     fn unknown_value() -> &'static str { "<unk>" }
 
@@ -267,11 +216,11 @@ impl Vocab for SentencePieceVocab {
         &self.values
     }
 
-    fn indices(&self) -> &HashMap<i64, String> {&self.indices}
+    fn indices(&self) -> &HashMap<i64, String> { &self.indices }
 
     fn special_values(&self) -> &HashMap<String, i64> { &self.special_values }
 
-    fn special_indices(&self) -> &HashMap<i64, String> {&self.special_indices}
+    fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
     fn from_file(path: &str) -> SentencePieceVocab {
         let mut f = File::open(path).unwrap();
@@ -279,7 +228,20 @@ impl Vocab for SentencePieceVocab {
         f.read_to_end(&mut contents).unwrap();
 
         let proto = parse_from_bytes::<ModelProto>(contents.as_slice()).unwrap();
-        SentencePieceVocab::from_proto(&proto)
+
+        let mut values = HashMap::new();
+        for (idx, piece) in proto.get_pieces().iter().enumerate() {
+            values.insert(piece.get_piece().to_owned(), idx as i64);
+        }
+
+        let mut special_values = HashMap::new();
+        let unknown_value = SentencePieceVocab::unknown_value();
+        SentencePieceVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        SentencePieceVocab { values, indices, unknown_value, special_values, special_indices }
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
