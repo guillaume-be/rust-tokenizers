@@ -14,7 +14,7 @@
 use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel};
 use regex::Regex;
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
-use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset};
+use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_at_regex};
 use crate::preprocessing::vocab::marian_vocab::MarianVocab;
 
@@ -106,8 +106,55 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
         output
     }
 
+
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+    }
+
+    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
+                                       offsets_1: Vec<Option<Offset>>, offsets_2: Option<Vec<Option<Offset>>>,
+                                       original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
+                                       mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
+        let mut output: Vec<i64> = vec!();
+        let mut token_segment_ids: Vec<i8> = vec!();
+        let mut special_tokens_mask: Vec<i8> = vec!();
+        let mut offsets: Vec<Option<Offset>> = vec!();
+        let mut original_offsets: Vec<Vec<OffsetSize>> = vec!();
+        let mut mask: Vec<Mask> = vec!();
+        special_tokens_mask.extend(vec![0; tokens_1.len()]);
+        token_segment_ids.extend(vec![0; tokens_1.len()]);
+        output.extend(tokens_1);
+        offsets.extend(offsets_1);
+        original_offsets.extend(original_offsets_1);
+        mask.extend(mask_1);
+
+        if let Some(add_tokens) = tokens_2 {
+            let length = add_tokens.len();
+            special_tokens_mask.extend(vec![0; length]);
+            token_segment_ids.extend(vec![1; length + 1]);
+            output.extend(add_tokens);
+            if let Some(add_offsets) = offsets_2 {
+                offsets.extend(add_offsets);
+            } else {
+                offsets.extend(vec![None; length]);
+            }
+            if let Some(add_original_offsets) = original_offsets_2 {
+                original_offsets.extend(add_original_offsets);
+            }
+            if let Some(mask_2) = mask_2 {
+                mask.extend(mask_2)
+            } else {
+                mask.extend(vec![Mask::None; length]);
+            }
+        }
+        special_tokens_mask.push(1);
+        token_segment_ids.push(1);
+        output.push(self.vocab.token_to_id(MarianVocab::eos_value()));
+        offsets.push(None);
+        original_offsets.push(vec!());
+        mask.push(Mask::Special);
+
+        (output, token_segment_ids, special_tokens_mask, offsets, original_offsets, mask)
     }
 }
 
