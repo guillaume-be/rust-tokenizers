@@ -10,36 +10,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
+use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, SentencePieceVocab};
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token, Offset};
 use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
 use crate::preprocessing::tokenizer::tokenization_utils::{lowercase, clean_text};
 
 pub struct SentencePieceTokenizer {
+    model: SentencePieceModel,
     vocab: SentencePieceVocab,
     lower_case: bool,
 }
 
 impl SentencePieceTokenizer {
-    pub fn from_file(path: &str, _lower_case: bool) -> SentencePieceTokenizer {
+    pub fn from_file(path: &str, lower_case: bool) -> SentencePieceTokenizer {
+        let model = SentencePieceModel::from_file(path);
         let vocab = SentencePieceVocab::from_file(path);
-        SentencePieceTokenizer { vocab, lower_case: _lower_case }
+        SentencePieceTokenizer { model, vocab, lower_case }
     }
 
-    pub fn from_existing_vocab(vocab: SentencePieceVocab, _lower_case: bool) -> SentencePieceTokenizer {
-        SentencePieceTokenizer { vocab, lower_case: _lower_case }
-    }
-
-    pub fn vocab(&self) -> &SentencePieceVocab {
-        &self.vocab
-    }
-
-    pub fn tokenize_to_pieces(&self, text: &str) {
-        let text = text.replace(' ', "\u{2581}");
-        let text = text.as_str();
-        let output = self.vocab.decode_forward(text);
-        let _decoded = self.vocab.decode_backward(&output);
+    pub fn from_existing_vocab_and_model(vocab: SentencePieceVocab, model: SentencePieceModel, lower_case: bool) -> SentencePieceTokenizer {
+        SentencePieceTokenizer { model, vocab, lower_case }
     }
 }
 
@@ -60,8 +51,8 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
             token.text.insert(0, '\u{2581}');
             token.reference_offsets.insert(0, 0);
         };
-        let output = self.vocab.decode_forward_token_ref(token.as_ref());
-        let decoded = self.vocab.decode_backward(&output);
+        let output = self.model.decode_forward_token_ref(token.as_ref());
+        let decoded = self.model.decode_backward(&output);
 
         let mut output: Vec<Token> = Vec::with_capacity(decoded.len());
         let mut is_prev_unknown = false;

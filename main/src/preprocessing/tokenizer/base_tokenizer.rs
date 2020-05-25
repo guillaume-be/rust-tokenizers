@@ -72,7 +72,7 @@ pub trait TokenTrait {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 ///A token that references the original text
 pub struct TokenRef<'a> {
     pub text: &'a str,

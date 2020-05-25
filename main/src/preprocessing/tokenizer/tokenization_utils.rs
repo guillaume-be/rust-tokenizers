@@ -190,7 +190,6 @@ pub fn decompose_nfkc(token: &mut Token) {
         decomposed_string.push(character);
         character_mapping.push(token.reference_offsets[cur_position as usize]);
         cur_position = cur_position + 1 - extra_char;
-
     }
     token.text = decomposed_string;
     token.reference_offsets = character_mapping;
@@ -319,6 +318,46 @@ pub fn split_on_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> 
         });
         begin_char = end_char;
     }
+    tokens
+}
+
+pub fn split_at_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> Vec<TokenRef<'a>> {
+    let mut tokens: Vec<TokenRef<'a>> = Vec::new();
+    let mut begin_char: usize = 0usize;
+    let mut start_byte: usize = 0usize;
+    for hit in pattern_tokenization.find_iter(token.text) {
+        let hit_start_byte = hit.start();
+        let hit_start_char = token.text[..hit_start_byte].chars().count();
+        let hit_end_byte = hit.end();
+        let hit_end_char = begin_char + hit.as_str().chars().count();
+
+        if !&token.text[start_byte..hit_start_byte].trim().is_empty() {
+            tokens.push(TokenRef {
+                text: &token.text[start_byte..hit_start_byte],
+                offset: Offset::new(token.offset.begin + begin_char as OffsetSize, token.offset.begin + hit_start_char as OffsetSize),
+                reference_offsets: &token.reference_offsets[begin_char..hit_start_char],
+                mask: Mask::None,
+            });
+        }
+
+        tokens.push(TokenRef {
+            text: hit.as_str(),
+            offset: Offset::new(token.offset.begin + hit_start_char as OffsetSize, token.offset.begin + hit_end_char as OffsetSize),
+            reference_offsets: &token.reference_offsets[hit_start_char..hit_end_char],
+            mask: Mask::None,
+        });
+        begin_char = hit_end_char;
+        start_byte = hit_end_byte;
+    }
+    if !&token.text[start_byte..].trim().is_empty() {
+        tokens.push(TokenRef {
+            text: &token.text[start_byte..],
+            offset: Offset::new(token.offset.begin + begin_char as OffsetSize, token.text.chars().count() as OffsetSize),
+            reference_offsets: &token.reference_offsets[start_byte..],
+            mask: Mask::None,
+        });
+    }
+
     tokens
 }
 
