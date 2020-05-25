@@ -29,12 +29,12 @@ impl MarianTokenizer {
     pub fn from_files(vocab_path: &str, model_path: &str, lower_case: bool) -> MarianTokenizer {
         let vocab = MarianVocab::from_file(vocab_path);
         let model = SentencePieceModel::from_file(model_path);
-        let pattern_language_code = Regex::new(r"<<.+>>").unwrap();
+        let pattern_language_code = Regex::new(r">>.+<<").unwrap();
         MarianTokenizer { model, vocab, pattern_language_code, lower_case }
     }
 
     pub fn from_existing_vocab_and_model(vocab: MarianVocab, model: SentencePieceModel, lower_case: bool) -> MarianTokenizer {
-        let pattern_language_code = Regex::new(r"<<.+>>").unwrap();
+        let pattern_language_code = Regex::new(r">>.+<<").unwrap();
         MarianTokenizer { model, vocab, pattern_language_code, lower_case }
     }
 }
