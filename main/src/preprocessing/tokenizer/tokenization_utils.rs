@@ -269,7 +269,10 @@ pub fn split_on_regex_with_lookahead<'a>(token: TokenRef<'a>, pattern_lookahead:
         let mut i: usize = 0;
         let mut end_byte: usize;
         for hit in pattern_lookahead.find_iter(token.text) {
-            end_byte = hit.end() - 1 - hit.as_str().chars().last().unwrap().len_utf8();
+            let mut hit_chars = hit.as_str().chars().rev();
+            let start = hit_chars.next().unwrap();
+            let sep = hit_chars.next().unwrap();
+            end_byte = hit.end() - sep.len_utf8() - start.len_utf8();
             splits.push(&token.text[i..end_byte]);
             i = end_byte;
         }
