@@ -506,7 +506,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers"
-version = "3.1.2"
+version = "3.1.4"
 dependencies = [
  "csv",
  "hashbrown",
