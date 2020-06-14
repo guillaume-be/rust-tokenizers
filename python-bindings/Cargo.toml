@@ -1,6 +1,6 @@
 [package]
 name = "rust_tokenizers_python"
-version = "3.1.1"
+version = "3.1.4"
 authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
 description = "High performance tokenizers for Rust"

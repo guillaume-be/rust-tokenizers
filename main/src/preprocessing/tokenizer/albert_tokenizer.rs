@@ -13,7 +13,7 @@
 use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, Node};
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
-use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace};
+use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, replace_string};
 use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
 use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
 
@@ -112,6 +112,8 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut token = text.to_owned();
+        replace_string(&mut token, "``", "\"");
+        replace_string(&mut token, "\'\'", "\"");
         clean_text(&mut token, true);
         decompose_nfkc(&mut token);
         if self.lower_case {
