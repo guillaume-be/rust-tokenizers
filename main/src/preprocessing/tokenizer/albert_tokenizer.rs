@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
+use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, Node};
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace};
@@ -35,33 +35,49 @@ impl AlbertTokenizer {
                                          lower_case: bool, keep_accents: bool) -> AlbertTokenizer {
         AlbertTokenizer { model, vocab, lower_case, keep_accents }
     }
-}
 
-impl Tokenizer<AlbertVocab> for AlbertTokenizer {
-    fn vocab(&self) -> &AlbertVocab { &self.vocab }
+    fn post_process_pieces<'a>(&self, tokens: &'a mut Vec<Token>) -> &'a Vec<Token> {
+        let mut positions_to_update: Vec<(usize, Vec<Token>)> = vec!();
+        for (token_idx, token) in tokens.iter().enumerate() {
+            let mut token_chars = token.text.chars().rev();
+            if token.text.chars().count() > 1 {
+                if (token_chars.next().unwrap() == ',') & token_chars.next().unwrap().is_ascii_digit() {
+                    let mut new_token = token.clone();
+                    let last_char = new_token.text.pop().unwrap();
+                    new_token.text = new_token.text.replace('\u{2581}', "");
+                    let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
+                    let updated_tokens = self.model.decode_backward(&updated_tokens);
+                    let mut updated_tokens = self.parse_nodes_to_tokens(updated_tokens);
 
-    fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-        let mut token = text.to_owned();
-        clean_text(&mut token, true);
-        decompose_nfkc(&mut token);
-        if self.lower_case {
-            lowercase(&mut token);
-        }
-        if !self.keep_accents {
-            strip_accents(&mut token);
-        }
-        token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
-        if !token.text.starts_with('\u{2581}') {
-            token.text.insert(0, '\u{2581}');
-            token.reference_offsets.insert(0, 0);
+                    if (token.text.chars().next().unwrap() != '\u{2581}') &
+                        (updated_tokens[0].text.chars().next().unwrap() == '\u{2581}') {
+                        if updated_tokens[0].text.chars().count() == 1 {
+                            updated_tokens.remove(0);
+                        } else {
+                            let first_char_length = updated_tokens[0].text.chars().next().unwrap().len_utf8();
+                            updated_tokens[0].text = (&updated_tokens[0].text[first_char_length..]).parse().unwrap();
+                        }
+                    }
+                    updated_tokens.push(Token {
+                        text: last_char.to_string(),
+                        offset: Offset { begin: token.offset.end, end: token.offset.end - 1 },
+                        reference_offsets: vec!(*token.reference_offsets.last().unwrap()),
+                        mask: token.mask,
+                    });
+                    positions_to_update.push((token_idx, updated_tokens.clone()));
+                }
+            }
         };
-        let output = self.model.decode_forward_token_ref(token.as_ref());
-        let decoded = self.model.decode_backward(&output);
+        for (pos, new_tokens) in positions_to_update {
+            tokens.splice(pos..pos, new_tokens);
+        }
+        tokens
+    }
 
-        let mut output: Vec<Token> = Vec::with_capacity(decoded.len() + 1);
-
+    fn parse_nodes_to_tokens(&self, nodes: Vec<&Node>) -> Vec<Token> {
+        let mut output: Vec<Token> = Vec::with_capacity(nodes.len() + 1);
         let mut is_prev_unknown = false;
-        for node in decoded {
+        for node in nodes {
             // Group unknown tokens
             if is_prev_unknown & (node.index == 0) {
                 let prev_token = output.last().unwrap();
@@ -89,6 +105,33 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
         }
         output
     }
+}
+
+impl Tokenizer<AlbertVocab> for AlbertTokenizer {
+    fn vocab(&self) -> &AlbertVocab { &self.vocab }
+
+    fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
+        let mut token = text.to_owned();
+        clean_text(&mut token, true);
+        decompose_nfkc(&mut token);
+        if self.lower_case {
+            lowercase(&mut token);
+        }
+        if !self.keep_accents {
+            strip_accents(&mut token);
+        }
+        token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
+        if !token.text.starts_with('\u{2581}') {
+            token.text.insert(0, '\u{2581}');
+            token.reference_offsets.insert(0, 0);
+        };
+        let output = self.model.decode_forward_token_ref(token.as_ref());
+        let decoded = self.model.decode_backward(&output);
+
+        let mut output: Vec<Token> = self.parse_nodes_to_tokens(decoded);
+        self.post_process_pieces(&mut output);
+        output
+    }
 
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -105,18 +148,29 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
         let mut offsets: Vec<Option<Offset>> = vec!();
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec!();
         let mut mask: Vec<Mask> = vec!();
+        special_tokens_mask.push(1);
         special_tokens_mask.extend(vec![0; tokens_1.len()]);
-        token_segment_ids.extend(vec![0; tokens_1.len()]);
+        special_tokens_mask.push(1);
+        token_segment_ids.extend(vec![0; tokens_1.len() + 2]);
+        output.push(self.vocab.token_to_id(AlbertVocab::cls_value()));
         output.extend(tokens_1);
+        output.push(self.vocab.token_to_id(AlbertVocab::sep_value()));
+        offsets.push(None);
         offsets.extend(offsets_1);
+        offsets.push(None);
+        original_offsets.push(vec!());
         original_offsets.extend(original_offsets_1);
+        original_offsets.push(vec!());
+        mask.push(Mask::Special);
         mask.extend(mask_1);
-
+        mask.push(Mask::Special);
         if let Some(add_tokens) = tokens_2 {
             let length = add_tokens.len();
             special_tokens_mask.extend(vec![0; length]);
+            special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(add_tokens);
+            output.push(self.vocab.token_to_id(AlbertVocab::sep_value()));
             if let Some(add_offsets) = offsets_2 {
                 offsets.extend(add_offsets);
             } else {
@@ -125,19 +179,15 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
             if let Some(add_original_offsets) = original_offsets_2 {
                 original_offsets.extend(add_original_offsets);
             }
+            offsets.push(None);
+            original_offsets.push(vec!());
             if let Some(mask_2) = mask_2 {
                 mask.extend(mask_2)
             } else {
                 mask.extend(vec![Mask::None; length]);
             }
+            mask.push(Mask::Special);
         }
-        special_tokens_mask.push(1);
-        token_segment_ids.push(1);
-        output.push(self.vocab.token_to_id(AlbertVocab::eos_value()));
-        offsets.push(None);
-        original_offsets.push(vec!());
-        mask.push(Mask::Special);
-
         (output, token_segment_ids, special_tokens_mask, offsets, original_offsets, mask)
     }
 }
