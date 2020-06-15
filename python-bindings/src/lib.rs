@@ -4,6 +4,8 @@ use pyo3::exceptions;
 use rust_tokenizers::{Tokenizer, Vocab, TruncationStrategy, MultiThreadedTokenizer, BertTokenizer, BertVocab, CtrlTokenizer, OpenAiGptVocab, Gpt2Tokenizer, Gpt2Vocab, RobertaTokenizer, RobertaVocab, OpenAiGptTokenizer};
 use rust_tokenizers::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
 use rust_tokenizers::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
+use rust_tokenizers::preprocessing::vocab::albert_vocab::AlbertVocab;
+use rust_tokenizers::preprocessing::tokenizer::albert_tokenizer::AlbertTokenizer;
 
 #[pyclass]
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
@@ -466,6 +468,53 @@ impl PySentencePieceTokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyAlbertTokenizer {
+    tokenizer: AlbertTokenizer,
+}
+
+impl PyTokenizer<AlbertTokenizer, AlbertVocab> for PyAlbertTokenizer {
+    fn tokenizer(&self) -> &AlbertTokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab> for PyAlbertTokenizer {}
+
+#[pymethods]
+impl PyAlbertTokenizer {
+    #[new]
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, keep_accents: bool) {
+        obj.init(PyAlbertTokenizer {
+            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, keep_accents),
+        });
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::tokenize_list(&self, text_list)
+    }
+
+    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+}
+
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
@@ -474,5 +523,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyRobertaTokenizer>()?;
     m.add_class::<PyOpenAiGptTokenizer>()?;
     m.add_class::<PySentencePieceTokenizer>()?;
+    m.add_class::<PyAlbertTokenizer>()?;
     Ok(())
 }

@@ -52,6 +52,23 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize)) + 1;
 }
 
+/// Replaces a pattern &str by a replacement &str keeping track of the offsets
+/// (all new characters in replacement have the same reference offset as the first pattern character as these may have a different size)
+pub fn replace_string(token: &mut Token, pattern: &str, replacement_string: &str) {
+    let pattern_len = pattern.len();
+    let pattern_char_len = pattern.chars().count();
+    let replacement_char_len = replacement_string.chars().count();
+    let matches: Vec<usize> = token.text.rmatch_indices(pattern).map(|v| v.0).collect();
+    let char_indices: HashMap<usize, usize> = token.text.char_indices().enumerate().map(|(idx, v)| (v.0, idx)).collect();
+    for hit in matches {
+        token.text.replace_range(hit..hit + pattern_len, replacement_string);
+        let char_position = *char_indices.get(&hit).unwrap();
+        let reference_offset: u32 = token.reference_offsets[char_position];
+        token.reference_offsets.splice(char_position..char_position + pattern_char_len,
+                                       vec!(reference_offset; replacement_char_len));
+    }
+}
+
 ///Split a text on special tokens (like BOS/EOS/UNK markers), depending on the vocabulary
 pub fn split_on_special_tokens<'a>(token: TokenRef<'a>, vocab: &impl Vocab) -> Vec<TokenRef<'a>> {
     let test_substr = |s: &str| {

@@ -18,4 +18,5 @@ pub mod roberta_tokenizer;
 pub mod tokenization_utils;
 pub mod sentence_piece_tokenizer;
 pub mod marian_tokenizer;
+pub mod albert_tokenizer;
 mod constants;

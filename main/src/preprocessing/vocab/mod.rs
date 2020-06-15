@@ -18,3 +18,4 @@ pub mod bpe_vocab;
 pub mod sentencepiece_proto;
 pub mod sentence_piece_vocab;
 pub mod marian_vocab;
+pub mod albert_vocab;

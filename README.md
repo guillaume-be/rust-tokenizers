@@ -9,6 +9,7 @@ These tokenizers are used in the [rust-bert](https://github.com/guillaume-be/rus
 A broad range of tokenizers for state-of-the-art transformers architectures is included, including:
 - Sentence Piece (unigram model)
 - BERT
+- ALBERT
 - DistilBERT
 - RoBERTa
 - GPT
