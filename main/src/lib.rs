@@ -24,6 +24,7 @@ pub use crate::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
 pub use crate::preprocessing::tokenizer::roberta_tokenizer::RobertaTokenizer;
 pub use crate::preprocessing::tokenizer::openai_gpt_tokenizer::OpenAiGptTokenizer;
 pub use crate::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
+pub use crate::preprocessing::tokenizer::albert_tokenizer::AlbertTokenizer;
 
 #[macro_use]
 extern crate lazy_static;

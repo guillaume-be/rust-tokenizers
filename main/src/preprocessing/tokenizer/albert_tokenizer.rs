@@ -13,7 +13,7 @@
 use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, Node};
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
-use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, replace_string};
+use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, replace_string, split_on_special_tokens};
 use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
 use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
 
@@ -111,28 +111,40 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
     fn vocab(&self) -> &AlbertVocab { &self.vocab }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-        let mut token = text.to_owned();
-        replace_string(&mut token, "``", "\"");
-        replace_string(&mut token, "\'\'", "\"");
-        clean_text(&mut token, true);
-        decompose_nfkc(&mut token);
-        if self.lower_case {
-            lowercase(&mut token);
-        }
-        if !self.keep_accents {
-            strip_accents(&mut token);
-        }
-        token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
-        if !token.text.starts_with('\u{2581}') {
-            token.text.insert(0, '\u{2581}');
-            token.reference_offsets.insert(0, 0);
-        };
-        let output = self.model.decode_forward_token_ref(token.as_ref());
-        let decoded = self.model.decode_backward(&output);
+        let mut tokens = split_on_special_tokens(text, &self.vocab)
+            .into_iter()
+            .map(|token| token.to_owned())
+            .collect::<Vec<Token>>();
 
-        let mut output: Vec<Token> = self.parse_nodes_to_tokens(decoded);
-        self.post_process_pieces(&mut output);
-        output
+        let mut sub_tokens: Vec<Token> = Vec::new();
+        for token in tokens.iter_mut() {
+            if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                replace_string(token, "``", "\"");
+                replace_string(token, "\'\'", "\"");
+                clean_text(token, true);
+                decompose_nfkc(token);
+                if self.lower_case {
+                    lowercase(token);
+                }
+                if !self.keep_accents {
+                    strip_accents(token);
+                }
+                token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
+                if !token.text.starts_with('\u{2581}') {
+                    token.text.insert(0, '\u{2581}');
+                    token.reference_offsets.insert(0, 0);
+                };
+                let output = self.model.decode_forward_token_ref(token.as_ref());
+                let decoded = self.model.decode_backward(&output);
+
+                let mut output: Vec<Token> = self.parse_nodes_to_tokens(decoded);
+                self.post_process_pieces(&mut output);
+                sub_tokens.extend(output)
+            } else {
+                sub_tokens.push(token.clone());
+            }
+        }
+        sub_tokens
     }
 
 
