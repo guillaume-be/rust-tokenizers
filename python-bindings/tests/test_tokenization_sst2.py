@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 import pytest
 from rust_tokenizers.rust_tokenizers import PySentencePieceTokenizer
-from transformers import AlbertTokenizer
+from transformers import AlbertTokenizer, T5Tokenizer
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
 from transformers.tokenization_bert import BertTokenizer
@@ -24,7 +24,7 @@ from transformers.tokenization_gpt2 import GPT2Tokenizer
 from transformers.tokenization_roberta import RobertaTokenizer
 from transformers.tokenization_openai import OpenAIGPTTokenizer
 from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer, \
-    PyOpenAiGptTokenizer, PyAlbertTokenizer
+    PyOpenAiGptTokenizer, PyAlbertTokenizer, PyT5Tokenizer
 from zipfile import ZipFile
 import requests
 import sentencepiece
@@ -289,6 +289,49 @@ class TestTokenizationSST2:
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['albert-base-v2']),
             do_lower_case=True,
             keep_accents=False)
+
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
+                                                                   add_special_tokens=True,
+                                                                   return_overflowing_tokens=True,
+                                                                   return_special_tokens_mask=True,
+                                                                   max_length=128))
+
+        # When
+        # Note: the original sentence piece tokenizer strips trailing spaces
+        output_rust = self.rust_tokenizer.encode_list([example.text_a.strip() for example in self.examples],
+                                                      max_len=256,
+                                                      truncation_strategy='longest_first',
+                                                      stride=0)
+
+        # Then
+        for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
+            if rust.token_ids != baseline['input_ids']:
+                for pos, (rust_id, baseline_id) in enumerate(zip(rust.token_ids, baseline['input_ids'])):
+                    # This check is required a SentencePiece can also be ambiguous in very rare cases
+                    # (e.g. "eee" -> "e, ee" or "ee, e" have the same score)
+                    if rust_id != baseline_id:
+                        if pos < len(baseline):
+                            if (rust_id != baseline['input_ids'][pos + 1]) & \
+                                    (rust_id != baseline['input_ids'][pos - 1]):
+                                raise AssertionError(
+                                    f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                                    f'Sentence a: {self.examples[idx].text_a} \n'
+                                    f'Sentence b: {self.examples[idx].text_b} \n'
+                                    f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                                    f'Rust: {rust.token_ids} \n'
+                                    f' Python {baseline["input_ids"]}')
+            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
+
+    def test_tokenization_t5(self):
+        # Given
+        self.base_tokenizer = T5Tokenizer.from_pretrained('t5-base',
+                                                          do_lower_case=False,
+                                                          cache_dir=self.test_dir)
+        self.rust_tokenizer = PyT5Tokenizer(
+            get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['t5-base']),
+            do_lower_case=True)
 
         output_baseline = []
         for example in self.examples:
