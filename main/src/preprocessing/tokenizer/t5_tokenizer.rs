@@ -12,29 +12,25 @@
 
 use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, Node};
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
-use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
-use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, replace_string, split_on_special_tokens};
-use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
-use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
+use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, Mask};
+use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_on_special_tokens};
 use crate::preprocessing::vocab::t5_vocab::T5Vocab;
 
 pub struct T5Tokenizer {
     model: SentencePieceModel,
     vocab: T5Vocab,
     lower_case: bool,
-    keep_accents: bool,
 }
 
 impl T5Tokenizer {
-    pub fn from_file(path: &str, lower_case: bool, keep_accents: bool) -> T5Tokenizer {
+    pub fn from_file(path: &str, lower_case: bool) -> T5Tokenizer {
         let model = SentencePieceModel::from_file(path);
         let vocab = T5Vocab::from_file(path);
-        T5Tokenizer { model, vocab, lower_case, keep_accents }
+        T5Tokenizer { model, vocab, lower_case }
     }
 
-    pub fn from_existing_vocab_and_model(vocab: T5Vocab, model: SentencePieceModel,
-                                         lower_case: bool, keep_accents: bool) -> T5Tokenizer {
-        T5Tokenizer { model, vocab, lower_case, keep_accents }
+    pub fn from_existing_vocab_and_model(vocab: T5Vocab, model: SentencePieceModel, lower_case: bool) -> T5Tokenizer {
+        T5Tokenizer { model, vocab, lower_case }
     }
 
     fn post_process_pieces<'a>(&self, tokens: &'a mut Vec<Token>) -> &'a Vec<Token> {
@@ -147,7 +143,6 @@ impl Tokenizer<T5Vocab> for T5Tokenizer {
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
     }
-
 }
 
 impl MultiThreadedTokenizer<T5Vocab> for T5Tokenizer {}
