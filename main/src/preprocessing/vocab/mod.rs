@@ -20,3 +20,4 @@ pub mod sentence_piece_vocab;
 pub mod marian_vocab;
 pub mod albert_vocab;
 pub mod t5_vocab;
+pub mod xlm_roberta_vocab;
