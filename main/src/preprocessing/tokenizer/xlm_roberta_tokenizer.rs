@@ -1,4 +1,4 @@
-// Copyright 2018 Mesh TensorFlow authors, T5 Authors and HuggingFace Inc. team.
+// Copyright 2018 Google AI, Google Brain and Carnegie Mellon University Authors and the HuggingFace Inc. team.
 // Copyright 2019-2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
