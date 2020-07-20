@@ -20,8 +20,9 @@ use crate::Vocab;
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
 use std::process;
-use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize, Token, Offset};
+use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize, Token, Offset, Mask};
 use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::preprocessing::tokenizer::tokenization_utils::{is_punctuation, is_whitespace};
 
 
 #[derive(Debug, Clone, Copy)]
@@ -63,7 +64,6 @@ pub struct SentencePieceModel {
 }
 
 impl SentencePieceModel {
-
     pub fn from_file(path: &str) -> SentencePieceModel {
         let mut f = File::open(path).unwrap();
         let mut contents = Vec::new();
@@ -203,7 +203,7 @@ impl SentencePieceModel {
                     text,
                     offset: Offset { begin: 0, end: 0 },
                     reference_offsets,
-                    mask: Default::default(),
+                    mask: Mask::Unknown,
                 };
                 output.pop();
                 output.push(consolidated_unknown);
@@ -217,7 +217,35 @@ impl SentencePieceModel {
             }
             is_prev_unknown = node.index == 0;
         }
+        self.populate_masks(output.as_mut_slice(), '\u{2581}');
         output
+    }
+
+    pub fn populate_masks(&self, tokens: &mut [Token], whitespace_token: char) {
+        let mut previous_mask = Mask::None;
+        for token in tokens {
+            if token.text.chars().count() == 1 {
+                let first_char = token.text.chars().last().unwrap();
+                if is_punctuation(&first_char) {
+                    token.mask = Mask::Punctuation;
+                    previous_mask = Mask::Punctuation;
+                    continue;
+                }
+                if is_whitespace(&first_char) {
+                    token.mask = Mask::Whitespace;
+                    previous_mask = Mask::Punctuation;
+                    continue;
+                }
+            }
+            if !token.text.starts_with(whitespace_token) &
+                !(previous_mask == Mask::Punctuation) &
+                !(previous_mask == Mask::Whitespace) {
+                token.mask = Mask::Continuation;
+                previous_mask = Mask::Continuation;
+            } else {
+                previous_mask = Mask::None;
+            }
+        }
     }
 }
 
