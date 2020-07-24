@@ -20,8 +20,9 @@ use crate::Vocab;
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
 use std::process;
-use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize};
+use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize, Token, Offset, Mask};
 use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::preprocessing::tokenizer::tokenization_utils::{is_punctuation, is_whitespace};
 
 
 #[derive(Debug, Clone, Copy)]
@@ -63,7 +64,6 @@ pub struct SentencePieceModel {
 }
 
 impl SentencePieceModel {
-
     pub fn from_file(path: &str) -> SentencePieceModel {
         let mut f = File::open(path).unwrap();
         let mut contents = Vec::new();
@@ -186,6 +186,66 @@ impl SentencePieceModel {
         };
         best_sequence.reverse();
         best_sequence
+    }
+
+    pub fn parse_nodes_to_tokens(&self, nodes: Vec<&Node>) -> Vec<Token> {
+        let mut output: Vec<Token> = Vec::with_capacity(nodes.len() + 1);
+        let mut is_prev_unknown = false;
+        for node in nodes {
+            // Group unknown tokens
+            if is_prev_unknown & (node.index == 0) {
+                let prev_token = output.last().unwrap();
+                let mut text = prev_token.text.clone();
+                text.push_str(node.text);
+                let mut reference_offsets = prev_token.reference_offsets.clone();
+                reference_offsets.extend_from_slice(node.reference_offsets);
+                let consolidated_unknown = Token {
+                    text,
+                    offset: Offset { begin: 0, end: 0 },
+                    reference_offsets,
+                    mask: Mask::Unknown,
+                };
+                output.pop();
+                output.push(consolidated_unknown);
+            } else {
+                output.push(Token {
+                    text: node.text.to_owned(),
+                    offset: Offset { begin: 0, end: 0 },
+                    reference_offsets: node.reference_offsets.to_vec(),
+                    mask: Default::default(),
+                });
+            }
+            is_prev_unknown = node.index == 0;
+        }
+        self.populate_masks(output.as_mut_slice(), '\u{2581}');
+        output
+    }
+
+    pub fn populate_masks(&self, tokens: &mut [Token], whitespace_token: char) {
+        let mut previous_mask = Mask::None;
+        for token in tokens {
+            if token.text.chars().count() == 1 {
+                let first_char = token.text.chars().last().unwrap();
+                if is_punctuation(&first_char) {
+                    token.mask = Mask::Punctuation;
+                    previous_mask = Mask::Punctuation;
+                    continue;
+                }
+                if is_whitespace(&first_char) {
+                    token.mask = Mask::Whitespace;
+                    previous_mask = Mask::Punctuation;
+                    continue;
+                }
+            }
+            if !token.text.starts_with(whitespace_token) &
+                !(previous_mask == Mask::Punctuation) &
+                !(previous_mask == Mask::Whitespace) {
+                token.mask = Mask::Continuation;
+                previous_mask = Mask::Continuation;
+            } else {
+                previous_mask = Mask::None;
+            }
+        }
     }
 }
 

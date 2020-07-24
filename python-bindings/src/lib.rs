@@ -1,13 +1,14 @@
 use pyo3::{PyResult, PyRawObject, Python};
 use pyo3::prelude::*;
 use pyo3::exceptions;
-use rust_tokenizers::{Tokenizer, Vocab, TruncationStrategy, MultiThreadedTokenizer, BertTokenizer, BertVocab, CtrlTokenizer, OpenAiGptVocab, Gpt2Tokenizer, Gpt2Vocab, RobertaTokenizer, RobertaVocab, OpenAiGptTokenizer};
+use rust_tokenizers::{Tokenizer, Vocab, TruncationStrategy, MultiThreadedTokenizer, BertTokenizer, BertVocab, CtrlTokenizer, OpenAiGptVocab, Gpt2Tokenizer, Gpt2Vocab, RobertaTokenizer, RobertaVocab, OpenAiGptTokenizer, XLMRobertaVocab};
 use rust_tokenizers::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
 use rust_tokenizers::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
 use rust_tokenizers::preprocessing::vocab::albert_vocab::AlbertVocab;
 use rust_tokenizers::preprocessing::tokenizer::albert_tokenizer::AlbertTokenizer;
 use rust_tokenizers::preprocessing::tokenizer::t5_tokenizer::T5Tokenizer;
 use rust_tokenizers::preprocessing::vocab::t5_vocab::T5Vocab;
+use rust_tokenizers::preprocessing::tokenizer::xlm_roberta_tokenizer::XLMRobertaTokenizer;
 
 #[pyclass]
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
@@ -564,6 +565,53 @@ impl PyT5Tokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyXLMRobertaTokenizer {
+    tokenizer: XLMRobertaTokenizer,
+}
+
+impl PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab> for PyXLMRobertaTokenizer {
+    fn tokenizer(&self) -> &XLMRobertaTokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab> for PyXLMRobertaTokenizer {}
+
+#[pymethods]
+impl PyXLMRobertaTokenizer {
+    #[new]
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
+        obj.init(PyXLMRobertaTokenizer {
+            tokenizer: XLMRobertaTokenizer::from_file(path.as_str(), do_lower_case),
+        });
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::tokenize_list(&self, text_list)
+    }
+
+    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    }
+}
+
 
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -575,5 +623,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PySentencePieceTokenizer>()?;
     m.add_class::<PyAlbertTokenizer>()?;
     m.add_class::<PyT5Tokenizer>()?;
+    m.add_class::<PyXLMRobertaTokenizer>()?;
     Ok(())
 }

@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, Node};
+use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, replace_string, split_on_special_tokens};
@@ -47,7 +47,7 @@ impl AlbertTokenizer {
                     new_token.text = new_token.text.replace('\u{2581}', "");
                     let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
                     let updated_tokens = self.model.decode_backward(&updated_tokens);
-                    let mut updated_tokens = self.parse_nodes_to_tokens(updated_tokens);
+                    let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);
 
                     if (token.text.chars().next().unwrap() != '\u{2581}') &
                         (updated_tokens[0].text.chars().next().unwrap() == '\u{2581}') {
@@ -72,38 +72,6 @@ impl AlbertTokenizer {
             tokens.splice(pos..pos, new_tokens);
         }
         tokens
-    }
-
-    fn parse_nodes_to_tokens(&self, nodes: Vec<&Node>) -> Vec<Token> {
-        let mut output: Vec<Token> = Vec::with_capacity(nodes.len() + 1);
-        let mut is_prev_unknown = false;
-        for node in nodes {
-            // Group unknown tokens
-            if is_prev_unknown & (node.index == 0) {
-                let prev_token = output.last().unwrap();
-                let mut text = prev_token.text.clone();
-                text.push_str(node.text);
-                let mut reference_offsets = prev_token.reference_offsets.clone();
-                reference_offsets.extend_from_slice(node.reference_offsets);
-                let consolidated_unknown = Token {
-                    text,
-                    offset: Offset { begin: 0, end: 0 },
-                    reference_offsets,
-                    mask: Default::default(),
-                };
-                output.pop();
-                output.push(consolidated_unknown);
-            } else {
-                output.push(Token {
-                    text: node.text.to_owned(),
-                    offset: Offset { begin: 0, end: 0 },
-                    reference_offsets: node.reference_offsets.to_vec(),
-                    mask: Default::default(),
-                });
-            }
-            is_prev_unknown = node.index == 0;
-        }
-        output
     }
 }
 
@@ -137,7 +105,7 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
                 let output = self.model.decode_forward_token_ref(token.as_ref());
                 let decoded = self.model.decode_backward(&output);
 
-                let mut output: Vec<Token> = self.parse_nodes_to_tokens(decoded);
+                let mut output: Vec<Token> = self.model.parse_nodes_to_tokens(decoded);
                 self.post_process_pieces(&mut output);
                 sub_tokens.extend(output)
             } else {

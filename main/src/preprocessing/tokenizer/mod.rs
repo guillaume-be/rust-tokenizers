@@ -20,4 +20,5 @@ pub mod sentence_piece_tokenizer;
 pub mod marian_tokenizer;
 pub mod albert_tokenizer;
 pub mod t5_tokenizer;
+pub mod xlm_roberta_tokenizer;
 mod constants;
