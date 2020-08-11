@@ -45,7 +45,7 @@ pub trait Vocab {
     fn special_indices(&self) -> &HashMap<i64, String>;
 
     ///Read a vocabulary file from file
-    fn from_file(path: &str) -> Self;
+    fn from_file(path: &str) -> Result<Self, TokenizationError> where Self: std::marker::Sized;
 
     ///Read a Bert-style vocab.txt file (single column, one token per line)
     fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizationError> {
@@ -168,36 +168,24 @@ impl Vocab for BaseVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> BaseVocab {
-        let values = BaseVocab::read_vocab_file(path);
+    fn from_file(path: &str) -> Result<BaseVocab, TokenizationError> {
+        let values = BaseVocab::read_vocab_file(path)?;
         let mut special_values = HashMap::new();
         let unknown_value = BaseVocab::unknown_value();
-        BaseVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        BaseVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        BaseVocab { values, indices, unknown_value, special_values, special_indices }
+        Ok(BaseVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> i64 {
-        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
-            Ok(index) => index,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
-            Ok(token) => token,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
     }
 }
 
