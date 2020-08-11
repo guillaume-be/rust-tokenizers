@@ -13,9 +13,9 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
-use std::error::Error;
 use std::process;
 use std::hash::Hash;
+use crate::error::TokenizationError;
 
 pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(input_hashmap: &HashMap<T, U>) -> HashMap<U, T> {
     input_hashmap
@@ -48,31 +48,44 @@ pub trait Vocab {
     fn from_file(path: &str) -> Self;
 
     ///Read a Bert-style vocab.txt file (single column, one token per line)
-    fn read_vocab_file(path: &str) -> HashMap<String, i64> {
-        let f = File::open(path).expect("Could not open vocabulary file.");
+    fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizationError> {
+        let f = match File::open(path) {
+            Ok(file) => file,
+            Err(e) => {
+                return Err(TokenizationError::FileNotFound(
+                    format!("{} vocabulary file not found", path)
+                ));
+            }
+        };
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
 
         for line in br.lines() {
-            data.insert(line.unwrap().trim().to_owned(), index);
+            let line = match line {
+                Ok(value) => value,
+                Err(e) => {
+                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                }
+            };
+            data.insert(line.trim().to_owned(), index);
             index += 1;
         };
-        data
+        Ok(data)
     }
 
     fn _token_to_id(&self,
                     token: &str,
                     values: &HashMap<String, i64>,
                     special_values: &HashMap<String, i64>,
-                    unknown_value: &str) -> Result<i64, Box<dyn Error>> {
+                    unknown_value: &str) -> Result<i64, TokenizationError> {
         match special_values.get(token) {
             Some(index) => Ok(*index),
             None => match values.get(token) {
                 Some(index) => Ok(*index),
                 None => match values.get(unknown_value) {
                     Some(index) => Ok(*index),
-                    None => Err("Could not decode token".into())
+                    None => Err(TokenizationError::TokenNotFound(token.to_string()))
                 }
             }
         }
@@ -82,32 +95,35 @@ pub trait Vocab {
                     id: &i64,
                     indices: &HashMap<i64, String>,
                     special_indices: &HashMap<i64, String>,
-                    unknown_value: &str) -> Result<String, Box<dyn Error>> {
+                    unknown_value: &str) -> String {
         match special_indices.get(id) {
-            Some(token) => Ok(token.clone()),
+            Some(token) => token.clone(),
             None => match indices.get(id) {
-                Some(token) => Ok(token.clone()),
-                None => Ok(unknown_value.to_owned())
+                Some(token) => token.clone(),
+                None => unknown_value.to_owned()
             }
         }
     }
 
     fn _register_as_special_value(token: &str,
                                   values: &HashMap<String, i64>,
-                                  special_values: &mut HashMap<String, i64>) {
+                                  special_values: &mut HashMap<String, i64>) -> Result<(), TokenizationError> {
         let token_id = match values.get(token) {
             Some(index) => *index,
-            None => panic!("The special value {} could not be found in the vocabulary", token)
+            None => {
+                return Err(TokenizationError::TokenNotFound(format!("The special value {} could not be found in the vocabulary", token)));
+            }
         };
         special_values.insert(String::from(token), token_id);
+        Ok(())
     }
 
-    fn token_to_id(&self, token: &str) -> i64;
+    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError>;
 
     fn id_to_token(&self, id: &i64) -> String;
 
-    fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Vec<i64> {
-        tokens.iter().map(|v| self.token_to_id(v)).collect()
+    fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Result<Vec<i64>, TokenizationError> {
+        tokens.iter().map(|v| self.token_to_id(v)).collect()?
     }
 }
 
