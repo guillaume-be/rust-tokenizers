@@ -14,6 +14,7 @@
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
 use std::process;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct BertVocab {
     ///A mapping of tokens as string to indices (i.e. the encoder base)
@@ -56,49 +57,37 @@ impl Vocab for BertVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> {&self.special_indices}
 
-    fn from_file(path: &str) -> BertVocab {
-        let values = BertVocab::read_vocab_file(path);
+    fn from_file(path: &str) -> Result<BertVocab, TokenizationError> {
+        let values = BertVocab::read_vocab_file(path)?;
         let mut special_values = HashMap::new();
 
         let unknown_value = BertVocab::unknown_value();
-        BertVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        BertVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let pad_value = BertVocab::pad_value();
-        BertVocab::_register_as_special_value(pad_value, &values, &mut special_values);
+        BertVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
         let sep_value = BertVocab::sep_value();
-        BertVocab::_register_as_special_value(sep_value, &values, &mut special_values);
+        BertVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
 
         let cls_value = BertVocab::cls_value();
-        BertVocab::_register_as_special_value(cls_value, &values, &mut special_values);
+        BertVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
 
         let mask_value = BertVocab::mask_value();
-        BertVocab::_register_as_special_value(mask_value, &values, &mut special_values);
+        BertVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
+        let special_indices = swap_key_values(&special_values)?;
 
-        BertVocab { values, indices, unknown_value, special_values, special_indices }
+        Ok(BertVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> i64 {
-        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
-            Ok(index) => index,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
-            Ok(token) => token,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
     }
 }
 

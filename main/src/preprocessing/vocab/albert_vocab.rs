@@ -21,6 +21,7 @@ use std::fs::File;
 use std::io::Read;
 use protobuf::parse_from_bytes;
 use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::preprocessing::error::TokenizationError;
 
 
 pub struct AlbertVocab {
@@ -55,12 +56,27 @@ impl Vocab for AlbertVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
-    fn from_file(path: &str) -> AlbertVocab {
-        let mut f = File::open(path).unwrap();
+    fn from_file(path: &str) -> Result<AlbertVocab, TokenizationError> {
+        let mut f = match File::open(path) {
+            Ok(file) => file,
+            Err(_) => {
+                return Err(TokenizationError::FileNotFound(
+                    format!("{} vocabulary file not found", path)
+                ));
+            }
+        };
         let mut contents = Vec::new();
-        f.read_to_end(&mut contents).unwrap();
-
-        let proto = parse_from_bytes::<ModelProto>(contents.as_slice()).unwrap();
+        let proto = match f.read_to_end(&mut contents) {
+            Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
+                Ok(proto_value) => proto_value,
+                Err(e) => {
+                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                }
+            },
+            Err(e) => {
+                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+            }
+        };
 
         let mut values = HashMap::new();
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
@@ -69,46 +85,34 @@ impl Vocab for AlbertVocab {
 
         let mut special_values = HashMap::new();
         let unknown_value = AlbertVocab::unknown_value();
-        AlbertVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        AlbertVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let bos_value = AlbertVocab::bos_value();
-        AlbertVocab::_register_as_special_value(bos_value, &values, &mut special_values);
+        AlbertVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
 
         let eos_value = AlbertVocab::eos_value();
-        AlbertVocab::_register_as_special_value(eos_value, &values, &mut special_values);
+        AlbertVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
 
         let cls_value = AlbertVocab::cls_value();
-        AlbertVocab::_register_as_special_value(cls_value, &values, &mut special_values);
+        AlbertVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
 
         let mask_value = AlbertVocab::mask_value();
-        AlbertVocab::_register_as_special_value(mask_value, &values, &mut special_values);
+        AlbertVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
 
         let pad_value = AlbertVocab::pad_value();
-        AlbertVocab::_register_as_special_value(pad_value, &values, &mut special_values);
+        AlbertVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        AlbertVocab { values, indices, unknown_value, special_values, special_indices }
+        Ok(AlbertVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> i64 {
-        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
-            Ok(index) => index,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
-            Ok(token) => token,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
     }
 }

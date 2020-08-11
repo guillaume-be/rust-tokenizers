@@ -51,7 +51,7 @@ pub trait Vocab {
     fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizationError> {
         let f = match File::open(path) {
             Ok(file) => file,
-            Err(e) => {
+            Err(_) => {
                 return Err(TokenizationError::FileNotFound(
                     format!("{} vocabulary file not found", path)
                 ));
