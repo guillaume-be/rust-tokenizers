@@ -13,7 +13,6 @@
 
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
-use std::process;
 use crate::preprocessing::error::TokenizationError;
 
 pub struct BertVocab {

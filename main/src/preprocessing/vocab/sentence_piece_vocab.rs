@@ -19,10 +19,10 @@ use itertools::Itertools;
 use crate::Vocab;
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
-use std::process;
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize, Token, Offset, Mask};
 use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::preprocessing::tokenizer::tokenization_utils::{is_punctuation, is_whitespace};
+use crate::error::TokenizationError;
 
 
 #[derive(Debug, Clone, Copy)]
@@ -64,18 +64,33 @@ pub struct SentencePieceModel {
 }
 
 impl SentencePieceModel {
-    pub fn from_file(path: &str) -> SentencePieceModel {
-        let mut f = File::open(path).unwrap();
+    pub fn from_file(path: &str) -> Result<SentencePieceModel, TokenizationError> {
+        let mut f = match File::open(path) {
+            Ok(file) => file,
+            Err(_) => {
+                return Err(TokenizationError::FileNotFound(
+                    format!("{} vocabulary file not found", path)
+                ));
+            }
+        };
         let mut contents = Vec::new();
-        f.read_to_end(&mut contents).unwrap();
-
-        let proto = parse_from_bytes::<ModelProto>(contents.as_slice()).unwrap();
+        let proto = match f.read_to_end(&mut contents) {
+            Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
+                Ok(proto_value) => proto_value,
+                Err(e) => {
+                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                }
+            },
+            Err(e) => {
+                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+            }
+        };
         let root = TrieNode::new("".to_string());
         let mut vocab = SentencePieceModel { root };
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             vocab.insert(piece.get_piece(), piece.get_score(), idx as i64);
         }
-        vocab
+        Ok(vocab)
     }
 
     pub fn from_proto(proto: &ModelProto) -> SentencePieceModel {
@@ -110,8 +125,10 @@ impl SentencePieceModel {
     pub fn common_prefix_search<'a>(&'a self, text: &'a str) -> Vec<&TrieNode> {
         let mut results = vec!();
         let mut characters = text.chars();
-
-        let mut node = self.root.children.get(&characters.next().unwrap());
+        let mut node = self.root.children.get(match &characters.next() {
+            Some(character) => character,
+            None => { return vec!(); }
+        });
         if node.is_some() {
             if node.unwrap().end {
                 results.push(node.unwrap());
@@ -176,8 +193,11 @@ impl SentencePieceModel {
     }
 
     pub fn decode_backward<'a>(&'a self, nodes: &'a Vec<Option<Node<'a>>>) -> Vec<&'a Node> {
-        let mut next_node = nodes.last().unwrap();
         let mut best_sequence = vec!();
+        let mut next_node = match nodes.last() {
+            Some(value) => value,
+            None => { return best_sequence; }
+        };
 
         while next_node.is_some() {
             let node_value = next_node.as_ref().unwrap();
@@ -225,7 +245,14 @@ impl SentencePieceModel {
         let mut previous_mask = Mask::None;
         for token in tokens {
             if token.text.chars().count() == 1 {
-                let first_char = token.text.chars().last().unwrap();
+                let first_char = match token.text.chars().last() {
+                    Some(value) => value,
+                    None => {
+                        token.mask = Mask::Unknown;
+                        previous_mask = Mask::Unknown;
+                        continue;
+                    }
+                };
                 if is_punctuation(&first_char) {
                     token.mask = Mask::Punctuation;
                     previous_mask = Mask::Punctuation;
@@ -282,12 +309,27 @@ impl Vocab for SentencePieceVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
-    fn from_file(path: &str) -> SentencePieceVocab {
-        let mut f = File::open(path).unwrap();
+    fn from_file(path: &str) -> Result<SentencePieceVocab, TokenizationError> {
+        let mut f = match File::open(path) {
+            Ok(file) => file,
+            Err(_) => {
+                return Err(TokenizationError::FileNotFound(
+                    format!("{} vocabulary file not found", path)
+                ));
+            }
+        };
         let mut contents = Vec::new();
-        f.read_to_end(&mut contents).unwrap();
-
-        let proto = parse_from_bytes::<ModelProto>(contents.as_slice()).unwrap();
+        let proto = match f.read_to_end(&mut contents) {
+            Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
+                Ok(proto_value) => proto_value,
+                Err(e) => {
+                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                }
+            },
+            Err(e) => {
+                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+            }
+        };
 
         let mut values = HashMap::new();
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
@@ -296,31 +338,19 @@ impl Vocab for SentencePieceVocab {
 
         let mut special_values = HashMap::new();
         let unknown_value = SentencePieceVocab::unknown_value();
-        SentencePieceVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        SentencePieceVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        SentencePieceVocab { values, indices, unknown_value, special_values, special_indices }
+        Ok(SentencePieceVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> i64 {
-        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
-            Ok(index) => index,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
-            Ok(token) => token,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
     }
 }

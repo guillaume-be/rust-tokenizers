@@ -16,7 +16,6 @@
 use crate::Vocab;
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
-use std::process;
 use std::fs::File;
 use std::io::Read;
 use protobuf::parse_from_bytes;

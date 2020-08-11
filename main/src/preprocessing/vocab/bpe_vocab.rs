@@ -15,6 +15,7 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::ptr;
 use std::mem::ManuallyDrop;
+use crate::preprocessing::error::TokenizationError;
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
 pub struct BpePairRef<'a> {
@@ -27,20 +28,33 @@ pub struct BpePairVocab {
 }
 
 impl BpePairVocab {
-    pub fn from_file(path: &str) -> BpePairVocab {
-        let f = File::open(path).expect("Could not open vocabulary file.");
+    pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizationError> {
+        let mut f = match File::open(path) {
+            Ok(file) => file,
+            Err(_) => {
+                return Err(TokenizationError::FileNotFound(
+                    format!("{} vocabulary file not found", path)
+                ));
+            }
+        };
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
         for line in br.lines().skip(1) {
-            let tuple: Vec<String> = line.unwrap().trim().split(' ').map(|v| v.to_owned()).collect();
+            let line = match line {
+                Ok(value) => value,
+                Err(e) => {
+                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                }
+            };
+            let tuple: Vec<String> = line.trim().split(' ').map(|v| v.to_owned()).collect();
             if tuple.len() > 1 {
                 data.insert((tuple[0].clone(), tuple[1].clone()), index);
                 index += 1;
             }
         };
 
-        BpePairVocab { values: data }
+        Ok(BpePairVocab { values: data })
     }
 
     pub fn byte_pair_to_id(&self, byte_pair: &BpePairRef) -> Option<&i64> {

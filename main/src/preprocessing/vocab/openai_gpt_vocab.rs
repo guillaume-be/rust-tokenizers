@@ -13,9 +13,9 @@
 
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
-use std::process;
 use std::fs::File;
 use std::io::BufReader;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct OpenAiGptVocab {
     pub values: HashMap<String, i64>,
@@ -42,38 +42,38 @@ impl Vocab for OpenAiGptVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
-    fn from_file(path: &str) -> OpenAiGptVocab {
-        let f = File::open(path).expect("Could not open vocabulary file.");
+    fn from_file(path: &str) -> Result<OpenAiGptVocab, TokenizationError> {
+        let mut f = match File::open(path) {
+            Ok(file) => file,
+            Err(_) => {
+                return Err(TokenizationError::FileNotFound(
+                    format!("{} vocabulary file not found", path)
+                ));
+            }
+        };
         let br = BufReader::new(f);
-        let values: HashMap<String, i64> = serde_json::from_reader(br).expect("could not parse vocabulary");
+        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+            }
+        };
         let mut special_values = HashMap::new();
         let unknown_value = OpenAiGptVocab::unknown_value();
-        OpenAiGptVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        OpenAiGptVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
+        let special_indices = swap_key_values(&special_values)?;
 
-        OpenAiGptVocab { values, indices, unknown_value, special_values, special_indices }
+        Ok(OpenAiGptVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> i64 {
-        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
-            Ok(index) => index,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
-            Ok(token) => token,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
     }
 }
 
