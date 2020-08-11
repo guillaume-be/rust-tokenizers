@@ -76,7 +76,7 @@ impl Vocab for BertVocab {
         BertVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values)?;
+        let special_indices = swap_key_values(&special_values);
 
         Ok(BertVocab { values, indices, unknown_value, special_values, special_indices })
     }

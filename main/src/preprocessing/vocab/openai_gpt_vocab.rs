@@ -43,14 +43,8 @@ impl Vocab for OpenAiGptVocab {
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
     fn from_file(path: &str) -> Result<OpenAiGptVocab, TokenizationError> {
-        let mut f = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => {
-                return Err(TokenizationError::FileNotFound(
-                    format!("{} vocabulary file not found", path)
-                ));
-            }
-        };
+        let f = File::open(path)
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = match serde_json::from_reader(br) {
             Ok(value) => value,
@@ -63,7 +57,7 @@ impl Vocab for OpenAiGptVocab {
         OpenAiGptVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values)?;
+        let special_indices = swap_key_values(&special_values);
 
         Ok(OpenAiGptVocab { values, indices, unknown_value, special_values, special_indices })
     }

@@ -65,14 +65,8 @@ pub struct SentencePieceModel {
 
 impl SentencePieceModel {
     pub fn from_file(path: &str) -> Result<SentencePieceModel, TokenizationError> {
-        let mut f = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => {
-                return Err(TokenizationError::FileNotFound(
-                    format!("{} vocabulary file not found", path)
-                ));
-            }
-        };
+        let f = File::open(path)
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
             Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {

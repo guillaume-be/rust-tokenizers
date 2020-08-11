@@ -48,14 +48,8 @@ pub trait Vocab {
 
     ///Read a Bert-style vocab.txt file (single column, one token per line)
     fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizationError> {
-        let f = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => {
-                return Err(TokenizationError::FileNotFound(
-                    format!("{} vocabulary file not found", path)
-                ));
-            }
-        };
+        let f = File::open(path)
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
@@ -122,7 +116,7 @@ pub trait Vocab {
     fn id_to_token(&self, id: &i64) -> String;
 
     fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Result<Vec<i64>, TokenizationError> {
-        tokens.iter().map(|v| self.token_to_id(v)).collect()?
+        tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
 }
 

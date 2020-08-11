@@ -64,14 +64,8 @@ impl Vocab for RobertaVocab {
 
     ///Read a Roberta-style vocab.json file
     fn from_file(path: &str) -> Result<RobertaVocab, TokenizationError> {
-        let mut f = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => {
-                return Err(TokenizationError::FileNotFound(
-                    format!("{} vocabulary file not found", path)
-                ));
-            }
-        };
+        let f = File::open(path)
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = match serde_json::from_reader(br) {
             Ok(value) => value,

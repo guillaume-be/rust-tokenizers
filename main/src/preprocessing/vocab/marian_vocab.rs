@@ -16,9 +16,9 @@
 use crate::Vocab;
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
-use std::process;
 use std::fs::File;
 use std::io::BufReader;
+use crate::error::TokenizationError;
 
 
 pub struct MarianVocab {
@@ -49,45 +49,38 @@ impl Vocab for MarianVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
-    fn from_file(path: &str) -> MarianVocab {
-
-        let f = File::open(path).expect("Could not open vocabulary file.");
+    fn from_file(path: &str) -> Result<MarianVocab, TokenizationError> {
+        let f = File::open(path)
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
         let br = BufReader::new(f);
-        let values: HashMap<String, i64> = serde_json::from_reader(br).expect("could not parse vocabulary");
+        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+            }
+        };
 
         let mut special_values = HashMap::new();
         let unknown_value = MarianVocab::unknown_value();
-        MarianVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        MarianVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let pad_value = MarianVocab::pad_value();
-        MarianVocab::_register_as_special_value(pad_value, &values, &mut special_values);
+        MarianVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
         let eos_value = MarianVocab::eos_value();
-        MarianVocab::_register_as_special_value(eos_value, &values, &mut special_values);
+        MarianVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        MarianVocab { values, indices, unknown_value, special_values, special_indices }
+        Ok(MarianVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> i64 {
-        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
-            Ok(index) => index,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
-            Ok(token) => token,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
     }
 }

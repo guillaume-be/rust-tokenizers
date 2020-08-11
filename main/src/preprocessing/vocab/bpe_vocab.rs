@@ -29,14 +29,8 @@ pub struct BpePairVocab {
 
 impl BpePairVocab {
     pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizationError> {
-        let mut f = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => {
-                return Err(TokenizationError::FileNotFound(
-                    format!("{} vocabulary file not found", path)
-                ));
-            }
-        };
+        let f = File::open(path)
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
