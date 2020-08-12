@@ -30,7 +30,7 @@ pub struct BpePairVocab {
 impl BpePairVocab {
     pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizationError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
@@ -68,8 +68,8 @@ impl BpePairVocab {
 //==============================
 #[cfg(test)]
 mod tests {
+    extern crate anyhow;
     use super::*;
-    use std::io;
     use std::io::Write;
 
     #[test]
@@ -87,7 +87,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_pair_vocab_from_file() -> Result<(), io::Error> {
+    fn test_create_pair_vocab_from_file() -> anyhow::Result<()> {
 //        Given
         let mut merges_file = tempfile::NamedTempFile::new()?;
         write!(merges_file, "#version: 0.1\n t h\na n\ni n\nth e</w>")?;
@@ -100,7 +100,7 @@ mod tests {
         ].iter().cloned().collect();
 
 //        When
-        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        Then
         assert_eq!(pair_vocab.values, target_values);
@@ -109,12 +109,12 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_byte_pairs() -> Result<(), io::Error> {
+    fn test_encode_byte_pairs() -> anyhow::Result<()> {
 //        Given
         let mut merges_file = tempfile::NamedTempFile::new()?;
         write!(merges_file, "#version: 0.1\n t h\na n\ni n\nth e</w>")?;
         let path = merges_file.into_temp_path();
-        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        Given
         let t = String::from("t");

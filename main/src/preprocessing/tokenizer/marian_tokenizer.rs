@@ -17,6 +17,7 @@ use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_at_regex};
 use crate::preprocessing::vocab::marian_vocab::MarianVocab;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct MarianTokenizer {
     model: SentencePieceModel,
@@ -26,11 +27,11 @@ pub struct MarianTokenizer {
 }
 
 impl MarianTokenizer {
-    pub fn from_files(vocab_path: &str, model_path: &str, lower_case: bool) -> MarianTokenizer {
-        let vocab = MarianVocab::from_file(vocab_path);
-        let model = SentencePieceModel::from_file(model_path);
+    pub fn from_files(vocab_path: &str, model_path: &str, lower_case: bool) -> Result<MarianTokenizer, TokenizationError> {
+        let vocab = MarianVocab::from_file(vocab_path)?;
+        let model = SentencePieceModel::from_file(model_path)?;
         let pattern_language_code = Regex::new(r">>.+<<").unwrap();
-        MarianTokenizer { model, vocab, pattern_language_code, lower_case }
+        Ok(MarianTokenizer { model, vocab, pattern_language_code, lower_case })
     }
 
     pub fn from_existing_vocab_and_model(vocab: MarianVocab, model: SentencePieceModel, lower_case: bool) -> MarianTokenizer {

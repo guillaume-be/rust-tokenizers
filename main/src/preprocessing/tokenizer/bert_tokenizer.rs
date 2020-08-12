@@ -17,6 +17,7 @@ use std::sync::Arc;
 use crate::preprocessing::tokenizer::tokenization_utils::tokenize_wordpiece;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::BertVocab;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct BertTokenizer {
     vocab: Arc<BertVocab>,
@@ -24,11 +25,11 @@ pub struct BertTokenizer {
 }
 
 impl BertTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> BertTokenizer {
-        let vocab = Arc::new(BertVocab::from_file(path));
+    pub fn from_file(path: &str, lower_case: bool) -> Result<BertTokenizer, TokenizationError> {
+        let vocab = Arc::new(BertVocab::from_file(path)?);
         let strip_accents = lower_case;
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
-        BertTokenizer { vocab, base_tokenizer }
+        Ok(BertTokenizer { vocab, base_tokenizer })
     }
 
     pub fn from_existing_vocab(vocab: Arc<BertVocab>, lower_case: bool) -> BertTokenizer {

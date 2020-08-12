@@ -19,6 +19,7 @@ use rayon::prelude::*;
 use itertools::Itertools;
 use serde::{Serialize, Deserialize};
 use crate::tokenization_utils::lowercase;
+use crate::preprocessing::error::TokenizationError;
 
 pub enum TruncationStrategy {
     LongestFirst,
@@ -368,7 +369,7 @@ pub trait Tokenizer<T: Vocab> {
         tokens.into_iter().map(|v| self.vocab().token_to_id(v)).collect()
     }
 
-    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> TokenizedInput {
+    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<TokenizedInput, TokenizationError> {
         let (token_strings, token_offsets, original_positions, token_mask) = self.tokenize_with_offsets(text_1);
         let token_ids_1 = self.convert_tokens_to_ids(&token_strings);
         let len_1 = token_ids_1.len();
@@ -412,17 +413,17 @@ pub trait Tokenizer<T: Vocab> {
             reference_offsets,
             token_mask) = self.build_input_with_special_tokens(token_ids_1, token_ids_2, token_offsets, token_offsets_2, original_positions, original_positions_2, token_mask, token_mask_2);
 
-        TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens, token_offsets, reference_offsets, mask: token_mask }
+        Ok(TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens, token_offsets, reference_offsets, mask: token_mask })
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
         text_list
             .into_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
         text_list
             .into_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
@@ -555,14 +556,14 @@ pub trait MultiThreadedTokenizer<T: Vocab>
             collect()
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
         text_list
             .par_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Vec<TokenizedInput> {
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
         text_list
             .par_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
@@ -585,9 +586,9 @@ pub struct BaseTokenizer<T: Vocab> {
 }
 
 impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
-    pub fn from_file(path: &str, lower_case: bool, strip_accents: bool) -> BaseTokenizer<T> {
-        let vocab = T::from_file(path);
-        BaseTokenizer { vocab: Arc::new(vocab), lower_case, strip_accents }
+    pub fn from_file(path: &str, lower_case: bool, strip_accents: bool) -> Result<BaseTokenizer<T>, TokenizationError> {
+        let vocab = T::from_file(path)?;
+        Ok(BaseTokenizer { vocab: Arc::new(vocab), lower_case, strip_accents })
     }
 
     pub fn from_existing_vocab(vocab: Arc<T>, lower_case: bool, strip_accents: bool) -> BaseTokenizer<T> {
@@ -652,6 +653,8 @@ impl<T: Vocab + Sync + Send> MultiThreadedTokenizer<T> for BaseTokenizer<T> {}
 //==============================
 #[cfg(test)]
 mod tests {
+    extern crate anyhow;
+
     use super::*;
     use crate::BertVocab;
     use std::collections::HashMap;
@@ -904,7 +907,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_single_sentence() {
+    fn test_encode_single_sentence() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
@@ -970,12 +973,13 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let tokenized_input = base_tokenizer.encode(source_text, None, 10, &truncation_strategy, 0);
+            let tokenized_input = base_tokenizer.encode(source_text, None, 10, &truncation_strategy, 0)?;
             assert_eq!(tokenized_input.token_ids.len(), tokenized_input.token_offsets.len(), "Offsets and tokens must have same length");
             assert_eq!(tokenized_input, *expected_result, "Testing results");
         }
-        assert_eq!(Tokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
-        assert_eq!(MultiThreadedTokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
+        Ok(())
     }
 
     #[test]

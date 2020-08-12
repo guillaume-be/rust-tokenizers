@@ -21,6 +21,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use regex::Regex;
+use crate::preprocessing::error::TokenizationError;
 
 
 pub struct CtrlTokenizer {
@@ -32,12 +33,12 @@ pub struct CtrlTokenizer {
 }
 
 impl CtrlTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> CtrlTokenizer {
-        let vocab = Rc::new(OpenAiGptVocab::from_file(vocab_path));
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<CtrlTokenizer, TokenizationError> {
+        let vocab = Rc::new(OpenAiGptVocab::from_file(vocab_path)?);
+        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
         let cache = RefCell::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
-        CtrlTokenizer { vocab, bpe_ranks, cache, regex_pattern, lower_case }
+        Ok(CtrlTokenizer { vocab, bpe_ranks, cache, regex_pattern, lower_case })
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Rc<OpenAiGptVocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> CtrlTokenizer {

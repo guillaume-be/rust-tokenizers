@@ -49,7 +49,7 @@ pub trait Vocab {
     ///Read a Bert-style vocab.txt file (single column, one token per line)
     fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizationError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
@@ -71,15 +71,12 @@ pub trait Vocab {
                     token: &str,
                     values: &HashMap<String, i64>,
                     special_values: &HashMap<String, i64>,
-                    unknown_value: &str) -> Result<i64, TokenizationError> {
+                    unknown_value: &str) -> i64 {
         match special_values.get(token) {
-            Some(index) => Ok(*index),
+            Some(index) => *index,
             None => match values.get(token) {
-                Some(index) => Ok(*index),
-                None => match values.get(unknown_value) {
-                    Some(index) => Ok(*index),
-                    None => Err(TokenizationError::TokenNotFound(token.to_string()))
-                }
+                Some(index) => *index,
+                None => *values.get(unknown_value).unwrap()
             }
         }
     }
@@ -111,11 +108,11 @@ pub trait Vocab {
         Ok(())
     }
 
-    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError>;
+    fn token_to_id(&self, token: &str) -> i64;
 
     fn id_to_token(&self, id: &i64) -> String;
 
-    fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Result<Vec<i64>, TokenizationError> {
+    fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Vec<i64> {
         tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
 }
@@ -173,7 +170,7 @@ impl Vocab for BaseVocab {
         Ok(BaseVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+    fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
@@ -187,8 +184,9 @@ impl Vocab for BaseVocab {
 //==============================
 #[cfg(test)]
 mod tests {
+    extern crate anyhow;
+
     use super::*;
-    use std::io;
     use std::io::Write;
 
     #[test]
@@ -217,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_object_from_file() -> Result<(), io::Error> {
+    fn test_create_object_from_file() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n !")?;
@@ -234,7 +232,7 @@ mod tests {
         ].iter().cloned().collect();
 
 //        When
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        Then
         assert_eq!(base_vocab.unknown_value, "[UNK]");
@@ -257,12 +255,12 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_tokens() -> Result<(), io::Error> {
+    fn test_encode_tokens() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n !")?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        When & Then
         assert_eq!(base_vocab.token_to_id("hello"), 0);
@@ -276,12 +274,12 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_tokens() -> Result<(), io::Error> {
+    fn test_decode_tokens() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n !")?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        When & Then
         assert_eq!(base_vocab.id_to_token(&(0 as i64)), "hello");

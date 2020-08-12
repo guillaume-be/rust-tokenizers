@@ -15,6 +15,7 @@ use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Mask};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_on_special_tokens};
 use crate::preprocessing::vocab::t5_vocab::T5Vocab;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct T5Tokenizer {
     model: SentencePieceModel,
@@ -23,10 +24,10 @@ pub struct T5Tokenizer {
 }
 
 impl T5Tokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> T5Tokenizer {
-        let model = SentencePieceModel::from_file(path);
-        let vocab = T5Vocab::from_file(path);
-        T5Tokenizer { model, vocab, lower_case }
+    pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizationError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab = T5Vocab::from_file(path)?;
+        Ok(T5Tokenizer { model, vocab, lower_case })
     }
 
     pub fn from_existing_vocab_and_model(vocab: T5Vocab, model: SentencePieceModel, lower_case: bool) -> T5Tokenizer {

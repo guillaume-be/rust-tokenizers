@@ -49,7 +49,7 @@ impl Vocab for Gpt2Vocab {
 
     fn from_file(path: &str) -> Result<Gpt2Vocab, TokenizationError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = match serde_json::from_reader(br) {
             Ok(value) => value,
@@ -73,7 +73,7 @@ impl Vocab for Gpt2Vocab {
         Ok(Gpt2Vocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+    fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
@@ -88,8 +88,8 @@ impl Vocab for Gpt2Vocab {
 //==============================
 #[cfg(test)]
 mod tests {
+    extern crate anyhow;
     use super::*;
-    use std::io;
     use std::io::Write;
 
     #[test]
@@ -120,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_object_from_file() -> Result<(), io::Error> {
+    fn test_create_object_from_file() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<|endoftext|>\": 2,\n \"!\": 3\n}}")?;
@@ -137,7 +137,7 @@ mod tests {
         ].iter().cloned().collect();
 
 //        When
-        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap());
+        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        Then
         assert_eq!(gpt2_vocab.unknown_value, "<|endoftext|>");
@@ -160,12 +160,12 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_tokens() -> Result<(), io::Error> {
+    fn test_encode_tokens() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<|endoftext|>\": 2,\n \"!\": 3\n}}")?;
         let path = vocab_file.into_temp_path();
-        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap());
+        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        When & Then
         assert_eq!(gpt2_vocab.token_to_id("hello"), 1);
@@ -179,12 +179,12 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_tokens() -> Result<(), io::Error> {
+    fn test_decode_tokens() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<|endoftext|>\": 2,\n \"!\": 3\n}}")?;
         let path = vocab_file.into_temp_path();
-        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap());
+        let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        When & Then
         assert_eq!(gpt2_vocab.id_to_token(&(1 as i64)), "hello");

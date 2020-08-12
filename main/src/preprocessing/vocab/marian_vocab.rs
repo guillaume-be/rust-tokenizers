@@ -51,7 +51,7 @@ impl Vocab for MarianVocab {
 
     fn from_file(path: &str) -> Result<MarianVocab, TokenizationError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = match serde_json::from_reader(br) {
             Ok(value) => value,
@@ -76,7 +76,7 @@ impl Vocab for MarianVocab {
         Ok(MarianVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+    fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 

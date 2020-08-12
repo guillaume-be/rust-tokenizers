@@ -55,8 +55,8 @@ impl Vocab for XLMRobertaVocab {
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
     fn from_file(path: &str) -> Result<XLMRobertaVocab, TokenizationError> {
-        let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found", path)))?;
+        let mut f = File::open(path)
+            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
             Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
@@ -104,7 +104,7 @@ impl Vocab for XLMRobertaVocab {
         Ok(XLMRobertaVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+    fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 

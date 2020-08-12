@@ -15,6 +15,7 @@ use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token};
 use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
 use crate::preprocessing::tokenizer::tokenization_utils::{lowercase, clean_text};
+use crate::preprocessing::error::TokenizationError;
 
 pub struct SentencePieceTokenizer {
     model: SentencePieceModel,
@@ -23,10 +24,10 @@ pub struct SentencePieceTokenizer {
 }
 
 impl SentencePieceTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> SentencePieceTokenizer {
-        let model = SentencePieceModel::from_file(path);
-        let vocab = SentencePieceVocab::from_file(path);
-        SentencePieceTokenizer { model, vocab, lower_case }
+    pub fn from_file(path: &str, lower_case: bool) -> Result<SentencePieceTokenizer, TokenizationError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab = SentencePieceVocab::from_file(path)?;
+        Ok(SentencePieceTokenizer { model, vocab, lower_case })
     }
 
     pub fn from_existing_vocab_and_model(vocab: SentencePieceVocab, model: SentencePieceModel, lower_case: bool) -> SentencePieceTokenizer {

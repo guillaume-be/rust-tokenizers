@@ -16,6 +16,7 @@ use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, O
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, replace_string, split_on_special_tokens};
 use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
 use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct AlbertTokenizer {
     model: SentencePieceModel,
@@ -25,10 +26,10 @@ pub struct AlbertTokenizer {
 }
 
 impl AlbertTokenizer {
-    pub fn from_file(path: &str, lower_case: bool, keep_accents: bool) -> AlbertTokenizer {
-        let model = SentencePieceModel::from_file(path);
-        let vocab = AlbertVocab::from_file(path);
-        AlbertTokenizer { model, vocab, lower_case, keep_accents }
+    pub fn from_file(path: &str, lower_case: bool, keep_accents: bool) -> Result<AlbertTokenizer, TokenizationError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab = AlbertVocab::from_file(path)?;
+        Ok(AlbertTokenizer { model, vocab, lower_case, keep_accents })
     }
 
     pub fn from_existing_vocab_and_model(vocab: AlbertVocab, model: SentencePieceModel,

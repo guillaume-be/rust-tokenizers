@@ -25,6 +25,7 @@ use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
 use std::iter::Iterator;
 use itertools::Itertools;
 use crate::tokenization_utils::lowercase;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct RobertaTokenizer {
     vocab: Rc<RobertaVocab>,
@@ -36,13 +37,13 @@ pub struct RobertaTokenizer {
 }
 
 impl RobertaTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> RobertaTokenizer {
-        let vocab = Rc::new(RobertaVocab::from_file(vocab_path));
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<RobertaTokenizer, TokenizationError> {
+        let vocab = Rc::new(RobertaVocab::from_file(vocab_path)?);
+        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
         let cache = RefCell::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
         let pattern_tokenization = Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+").unwrap();
-        RobertaTokenizer { vocab, bpe_ranks, cache, pattern_lookahead, pattern_tokenization, lower_case }
+        Ok(RobertaTokenizer { vocab, bpe_ranks, cache, pattern_lookahead, pattern_tokenization, lower_case })
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Rc<RobertaVocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> RobertaTokenizer {

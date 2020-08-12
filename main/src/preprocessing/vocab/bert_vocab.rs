@@ -81,7 +81,7 @@ impl Vocab for BertVocab {
         Ok(BertVocab { values, indices, unknown_value, special_values, special_indices })
     }
 
-    fn token_to_id(&self, token: &str) -> Result<i64, TokenizationError> {
+    fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
     }
 
@@ -96,7 +96,7 @@ impl Vocab for BertVocab {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io;
+    extern crate anyhow;
     use std::io::Write;
 
     #[test]
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_object_from_file() -> Result<(), io::Error> {
+    fn test_create_object_from_file() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
@@ -154,7 +154,7 @@ mod tests {
         ].iter().cloned().collect();
 
 //        When
-        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        Then
         assert_eq!(base_vocab.unknown_value, "[UNK]");
@@ -177,12 +177,12 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_tokens() -> Result<(), io::Error> {
+    fn test_encode_tokens() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        When & Then
         assert_eq!(base_vocab.token_to_id("hello"), 0);
@@ -200,12 +200,12 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_tokens() -> Result<(), io::Error> {
+    fn test_decode_tokens() -> anyhow::Result<()> {
 //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
         let path = vocab_file.into_temp_path();
-        let bert_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let bert_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
 //        When & Then
         assert_eq!(bert_vocab.id_to_token(&(0 as i64)), "hello");

@@ -21,6 +21,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use std::sync::Arc;
+use crate::preprocessing::error::TokenizationError;
 
 pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
@@ -30,12 +31,12 @@ pub struct OpenAiGptTokenizer {
 }
 
 impl OpenAiGptTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> OpenAiGptTokenizer {
-        let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path));
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<OpenAiGptTokenizer, TokenizationError> {
+        let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path)?);
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
+        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
         let cache = RefCell::new(HashMap::new());
-        OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks, cache }
+        Ok(OpenAiGptTokenizer { vocab, base_tokenizer, bpe_ranks, cache })
     }
 
     pub fn from_existing_vocab_and_merges(vocab: Arc<OpenAiGptVocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> OpenAiGptTokenizer {

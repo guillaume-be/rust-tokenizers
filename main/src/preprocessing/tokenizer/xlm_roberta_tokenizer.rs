@@ -14,6 +14,7 @@ use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel};
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer, XLMRobertaVocab};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Mask, Offset, OffsetSize};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_on_special_tokens};
+use crate::preprocessing::error::TokenizationError;
 
 pub struct XLMRobertaTokenizer {
     model: SentencePieceModel,
@@ -22,10 +23,10 @@ pub struct XLMRobertaTokenizer {
 }
 
 impl XLMRobertaTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> XLMRobertaTokenizer {
-        let model = SentencePieceModel::from_file(path);
-        let vocab = XLMRobertaVocab::from_file(path);
-        XLMRobertaTokenizer { model, vocab, lower_case }
+    pub fn from_file(path: &str, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizationError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab = XLMRobertaVocab::from_file(path)?;
+        Ok(XLMRobertaTokenizer { model, vocab, lower_case })
     }
 
     pub fn from_existing_vocab_and_model(vocab: XLMRobertaVocab, model: SentencePieceModel, lower_case: bool) -> XLMRobertaTokenizer {
