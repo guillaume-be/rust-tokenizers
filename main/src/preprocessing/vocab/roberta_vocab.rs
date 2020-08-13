@@ -197,7 +197,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
 //        When & Then
-        let _roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let _roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
     }
 
     #[test]

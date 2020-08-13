@@ -1,19 +1,21 @@
 use rust_tokenizers::{TruncationStrategy, Tokenizer, TokenizedInput, OpenAiGptTokenizer};
 use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
+
 mod test_utils;
+
 use test_utils::download_file_to_cache;
 
 
 #[test]
-fn test_openai_gpt_tokenization() {
+fn test_openai_gpt_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://s3.amazonaws.com/models.huggingface.co/bert/openai-gpt-vocab.json",
                                             "openai-gpt_vocab.json").unwrap();
 
     let merges_path = download_file_to_cache("https://s3.amazonaws.com/models.huggingface.co/bert/openai-gpt-merges.txt",
-                                            "openai-gpt_merges.txt").unwrap();
+                                             "openai-gpt_merges.txt").unwrap();
 
 
-    let openai_gpt_tokenizer = OpenAiGptTokenizer::from_file(vocab_path.to_str().unwrap(), merges_path.to_str().unwrap(), true);
+    let openai_gpt_tokenizer = OpenAiGptTokenizer::from_file(vocab_path.to_str().unwrap(), merges_path.to_str().unwrap(), true)?;
 
 
     let original_strings = [
@@ -106,13 +108,12 @@ fn test_openai_gpt_tokenization() {
     ].to_vec();
 
     let output = openai_gpt_tokenizer.encode_list(original_strings.to_vec(),
-                                            128,
-                                            &TruncationStrategy::LongestFirst,
-                                            0);
+                                                  128,
+                                                  &TruncationStrategy::LongestFirst,
+                                                  0)?;
 
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
-
         let original_sentence_chars: Vec<char> = original_strings[_idx].chars().collect();
         for (idx, offset) in predicted.token_offsets.iter().enumerate() {
             match offset {
@@ -129,4 +130,5 @@ fn test_openai_gpt_tokenization() {
         assert_eq!(predicted.special_tokens_mask, expected.special_tokens_mask);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+    Ok(())
 }

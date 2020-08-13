@@ -7,7 +7,7 @@ use test_utils::download_file_to_cache;
 
 
 #[test]
-fn test_roberta_tokenization() {
+fn test_roberta_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://s3.amazonaws.com/models.huggingface.co/bert/roberta-base-vocab.json",
                                             "roberta_vocab.json").unwrap();
 
@@ -16,7 +16,7 @@ fn test_roberta_tokenization() {
 
     let roberta_tokenizer = RobertaTokenizer::from_file(vocab_path.to_str().unwrap(),
                                                         merges_path.to_str().unwrap(),
-                                                        false);
+                                                        false)?;
 
 
     let original_strings = [
@@ -136,7 +136,7 @@ fn test_roberta_tokenization() {
     let output = roberta_tokenizer.encode_list(original_strings.to_vec(),
                                                128,
                                                &TruncationStrategy::LongestFirst,
-                                               0);
+                                               0)?;
 
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
@@ -155,4 +155,5 @@ fn test_roberta_tokenization() {
         assert_eq!(predicted.token_ids, expected.token_ids);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+    Ok(())
 }

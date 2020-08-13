@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode() {
+    fn test_encode() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true);
@@ -275,16 +275,17 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let tokenized_input = bert_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0);
+            let tokenized_input = bert_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0)?;
             assert_eq!(tokenized_input.token_ids.len(), tokenized_input.token_offsets.len(), "Tokens and offsets must have same length");
             assert_eq!(tokenized_input, *expected_result);
         }
-        assert_eq!(Tokenizer::encode_list(&bert_tokenizer, source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
-        assert_eq!(MultiThreadedTokenizer::encode_list(&bert_tokenizer, source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_list(&bert_tokenizer, source_texts.clone(), 128, &truncation_strategy, 0)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_list(&bert_tokenizer, source_texts.clone(), 128, &truncation_strategy, 0)?, expected_results);
+        Ok(())
     }
 
     #[test]
-    fn test_encode_sentence_pair() {
+    fn test_encode_sentence_pair() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true);
@@ -360,11 +361,12 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(bert_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0),
+            assert_eq!(bert_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
-        assert_eq!(MultiThreadedTokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_pair_list(&bert_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
+        Ok(())
     }
 
     #[test]

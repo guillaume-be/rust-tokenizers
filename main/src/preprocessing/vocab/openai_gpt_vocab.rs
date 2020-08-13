@@ -144,7 +144,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
 //        When & Then
-        let _ctrl_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let _ctrl_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
     }
 
     #[test]

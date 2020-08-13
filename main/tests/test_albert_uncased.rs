@@ -8,13 +8,13 @@ use rust_tokenizers::preprocessing::tokenizer::albert_tokenizer::AlbertTokenizer
 
 
 #[test]
-fn test_albert_tokenization() {
+fn test_albert_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://s3.amazonaws.com/models.huggingface.co/bert/albert-base-v2-spiece.model",
-                                            "albert-base-v2-spiece.model").unwrap();
+                                            "albert-base-v2-spiece.model")?;
 
     let albert_tokenizer = AlbertTokenizer::from_file(vocab_path.to_str().unwrap(),
                                                       true,
-                                                      false);
+                                                      false)?;
 
 
     let original_strings = [
@@ -105,7 +105,7 @@ fn test_albert_tokenization() {
     let output = albert_tokenizer.encode_list(original_strings.to_vec(),
                                               128,
                                               &TruncationStrategy::LongestFirst,
-                                              0);
+                                              0)?;
 
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
@@ -124,4 +124,5 @@ fn test_albert_tokenization() {
         assert_eq!(predicted.token_ids, expected.token_ids);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+    Ok(())
 }

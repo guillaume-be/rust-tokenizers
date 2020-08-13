@@ -7,16 +7,16 @@ use test_utils::download_file_to_cache;
 
 
 #[test]
-fn test_ctrl_tokenization() {
+fn test_ctrl_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://raw.githubusercontent.com/salesforce/ctrl/master/ctrl-vocab.json",
-                                            "ctrl_vocab.json").unwrap();
+                                            "ctrl_vocab.json")?;
 
     let merges_path = download_file_to_cache("https://raw.githubusercontent.com/salesforce/ctrl/master/ctrl-merges.txt",
-                                             "ctrl_merges.txt").unwrap();
+                                             "ctrl_merges.txt")?;
 
     let ctrl_tokenizer = CtrlTokenizer::from_file(vocab_path.to_str().unwrap(),
                                                   merges_path.to_str().unwrap(),
-                                                  false);
+                                                  false)?;
 
 
     let original_strings = [
@@ -115,7 +115,7 @@ fn test_ctrl_tokenization() {
     let output = ctrl_tokenizer.encode_list(original_strings.to_vec(),
                                             128,
                                             &TruncationStrategy::LongestFirst,
-                                            0);
+                                            0)?;
 
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
@@ -134,4 +134,5 @@ fn test_ctrl_tokenization() {
         assert_eq!(predicted.token_ids, expected.token_ids);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+    Ok(())
 }

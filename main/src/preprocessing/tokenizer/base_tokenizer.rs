@@ -693,7 +693,7 @@ mod tests {
     }
 
     #[test]
-    fn test_base_tokenizer() {
+    fn test_base_tokenizer() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
@@ -783,11 +783,12 @@ mod tests {
             assert_eq!(*offsets, expected_result.1);
             assert_eq!(*offset_positions, expected_result.2);
             assert_eq!(*mask, expected_result.3);
-        }
+        };
+        Ok(())
     }
 
     #[test]
-    fn test_no_lower_casing() {
+    fn test_no_lower_casing()-> anyhow::Result<()>  {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, false, true);
@@ -877,6 +878,7 @@ mod tests {
             assert_eq!(*offset_positions, expected_result.2);
             assert_eq!(*mask, expected_result.3);
         }
+        Ok(())
     }
 
     #[test]
@@ -983,7 +985,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_sentence_pair() {
+    fn test_encode_sentence_pair() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
@@ -1057,12 +1059,13 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let tokenized_input = base_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0);
+            let tokenized_input = base_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0)?;
             assert_eq!(tokenized_input.token_ids.len(), tokenized_input.token_offsets.len(), "Offsets and tokens must have same length");
             assert_eq!(tokenized_input, *expected_result, "Testing results");
         }
-        assert_eq!(Tokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
-        assert_eq!(MultiThreadedTokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0), expected_results);
+        assert_eq!(Tokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
+        Ok(())
     }
 
     #[test]

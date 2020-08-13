@@ -7,7 +7,7 @@ use test_utils::download_file_to_cache;
 
 
 #[test]
-fn test_gpt2_tokenization() {
+fn test_gpt2_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-vocab.json",
                                             "gpt2_vocab.json").unwrap();
 
@@ -17,7 +17,7 @@ fn test_gpt2_tokenization() {
 
     let gpt2_tokenizer = Gpt2Tokenizer::from_file(vocab_path.to_str().unwrap(),
                                                   merges_path.to_str().unwrap(),
-                                                  false);
+                                                  false)?;
 
 
     let original_strings = [
@@ -138,7 +138,7 @@ fn test_gpt2_tokenization() {
     let output = gpt2_tokenizer.encode_list(original_strings.to_vec(),
                                             128,
                                             &TruncationStrategy::LongestFirst,
-                                            0);
+                                            0)?;
 
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
@@ -158,4 +158,5 @@ fn test_gpt2_tokenization() {
         assert_eq!(predicted.special_tokens_mask, expected.special_tokens_mask);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+    Ok(())
 }

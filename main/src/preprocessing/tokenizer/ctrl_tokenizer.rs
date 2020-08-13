@@ -206,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode() {
+    fn test_encode()-> anyhow::Result<()>  {
 //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
@@ -258,10 +258,11 @@ mod tests {
 
 //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
+            assert_eq!(ctrl_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0)?,
                        *expected_result);
         }
-        assert_eq!(ctrl_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+        assert_eq!(ctrl_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0)?, expected_results);
+        Ok(())
     }
 
     #[test]

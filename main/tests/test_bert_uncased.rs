@@ -6,11 +6,11 @@ use test_utils::download_file_to_cache;
 
 
 #[test]
-fn test_bert_tokenization() {
+fn test_bert_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt",
                                             "bert-base-uncased_vocab.txt").unwrap();
 
-    let vocab = Arc::new(rust_tokenizers::BertVocab::from_file(vocab_path.to_str().unwrap()));
+    let vocab = Arc::new(rust_tokenizers::BertVocab::from_file(vocab_path.to_str().unwrap())?);
     let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab.clone(), true);
 
 
@@ -106,7 +106,7 @@ fn test_bert_tokenization() {
     let output = bert_tokenizer.encode_list(original_strings.to_vec(),
                                             128,
                                             &TruncationStrategy::LongestFirst,
-                                            0);
+                                            0)?;
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
         let original_sentence_chars: Vec<char> = original_strings[_idx].chars().collect();
@@ -125,4 +125,5 @@ fn test_bert_tokenization() {
         assert_eq!(predicted.special_tokens_mask, expected.special_tokens_mask);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+    Ok(())
 }

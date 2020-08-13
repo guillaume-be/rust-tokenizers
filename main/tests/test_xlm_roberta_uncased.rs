@@ -8,11 +8,11 @@ use rust_tokenizers::preprocessing::tokenizer::xlm_roberta_tokenizer::XLMRoberta
 
 
 #[test]
-fn test_xlm_roberta_tokenization() {
+fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://cdn.huggingface.co/xlm-roberta-large-finetuned-conll03-english-sentencepiece.bpe.model",
-                                            "xlm-roberta-spiece.model").unwrap();
+                                            "xlm-roberta-spiece.model")?;
 
-    let xlm_roberta_tokenizer = XLMRobertaTokenizer::from_file(vocab_path.to_str().unwrap(), false);
+    let xlm_roberta_tokenizer = XLMRobertaTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
 
     let original_strings = [
@@ -103,7 +103,7 @@ fn test_xlm_roberta_tokenization() {
     let output = xlm_roberta_tokenizer.encode_list(original_strings.to_vec(),
                                                    128,
                                                    &TruncationStrategy::LongestFirst,
-                                                   0);
+                                                   0)?;
 
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
@@ -122,4 +122,5 @@ fn test_xlm_roberta_tokenization() {
         assert_eq!(predicted.token_ids, expected.token_ids);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+    Ok(())
 }

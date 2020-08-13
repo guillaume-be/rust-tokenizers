@@ -1,18 +1,19 @@
-use rust_tokenizers::{TruncationStrategy, Tokenizer, TokenizedInput};
-use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
+extern crate anyhow;
 
 mod test_utils;
 
+use rust_tokenizers::{TruncationStrategy, Tokenizer, TokenizedInput};
+use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
 use test_utils::download_file_to_cache;
 use rust_tokenizers::preprocessing::tokenizer::t5_tokenizer::T5Tokenizer;
 
 
 #[test]
-fn test_t5_tokenization() {
+fn test_t5_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache("https://s3.amazonaws.com/models.huggingface.co/bert/t5-spiece.model",
                                             "t5-spiece.model").unwrap();
 
-    let t5_tokenizer = T5Tokenizer::from_file(vocab_path.to_str().unwrap(), false);
+    let t5_tokenizer = T5Tokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
 
     let original_strings = [
@@ -111,7 +112,7 @@ fn test_t5_tokenization() {
     let output = t5_tokenizer.encode_list(original_strings.to_vec(),
                                           128,
                                           &TruncationStrategy::LongestFirst,
-                                          0);
+                                          0)?;
 
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
@@ -130,4 +131,6 @@ fn test_t5_tokenization() {
         assert_eq!(predicted.token_ids, expected.token_ids);
         assert_eq!(predicted.token_offsets, expected.token_offsets);
     }
+
+    Ok(())
 }
