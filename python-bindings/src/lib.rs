@@ -214,7 +214,7 @@ impl PyBertTokenizer {
     #[new]
     fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
         obj.init(PyBertTokenizer {
-            tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case),
+            tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
         });
     }
 
@@ -259,7 +259,7 @@ impl PyCtrlTokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyCtrlTokenizer {
-            tokenizer: CtrlTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case),
+            tokenizer: CtrlTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case).unwrap(),
         });
     }
 
@@ -305,7 +305,7 @@ impl PyGpt2Tokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyGpt2Tokenizer {
-            tokenizer: Gpt2Tokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case),
+            tokenizer: Gpt2Tokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case).unwrap(),
         });
     }
 
@@ -350,7 +350,7 @@ impl PyRobertaTokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyRobertaTokenizer {
-            tokenizer: RobertaTokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case),
+            tokenizer: RobertaTokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case).unwrap(),
         });
     }
 
@@ -395,7 +395,7 @@ impl PyOpenAiGptTokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyOpenAiGptTokenizer {
-            tokenizer: OpenAiGptTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case),
+            tokenizer: OpenAiGptTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case).unwrap(),
         });
     }
 
@@ -442,7 +442,7 @@ impl PySentencePieceTokenizer {
     #[new]
     fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
         obj.init(PySentencePieceTokenizer {
-            tokenizer: SentencePieceTokenizer::from_file(path.as_str(), do_lower_case),
+            tokenizer: SentencePieceTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
         });
     }
 
@@ -489,7 +489,7 @@ impl PyAlbertTokenizer {
     #[new]
     fn new(obj: &PyRawObject, path: String, do_lower_case: bool, keep_accents: bool) {
         obj.init(PyAlbertTokenizer {
-            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, keep_accents),
+            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, keep_accents).unwrap(),
         });
     }
 
@@ -536,7 +536,7 @@ impl PyT5Tokenizer {
     #[new]
     fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
         obj.init(PyT5Tokenizer {
-            tokenizer: T5Tokenizer::from_file(path.as_str(), do_lower_case),
+            tokenizer: T5Tokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
         });
     }
 
@@ -583,7 +583,7 @@ impl PyXLMRobertaTokenizer {
     #[new]
     fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
         obj.init(PyXLMRobertaTokenizer {
-            tokenizer: XLMRobertaTokenizer::from_file(path.as_str(), do_lower_case),
+            tokenizer: XLMRobertaTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
         });
     }
 

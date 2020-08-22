@@ -506,7 +506,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers"
-version = "3.1.6"
+version = "4.0.0"
 dependencies = [
  "csv",
  "hashbrown",
@@ -517,13 +517,14 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "thiserror",
  "unicode-normalization",
  "unicode-normalization-alignments",
 ]
 
 [[package]]
 name = "rust_tokenizers_python"
-version = "3.1.5"
+version = "4.0.0"
 dependencies = [
  "pyo3",
  "rust_tokenizers",
@@ -632,6 +633,26 @@ dependencies = [
  "redox_syscall",
  "remove_dir_all",
  "winapi",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dfdd070ccd8ccb78f4ad66bf1982dc37f620ef696c6b5028fe2ed83dd3d0d08"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd80fc12f73063ac132ac92aceea36734f04a1d93c1240c6944e23a3b8841793"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
