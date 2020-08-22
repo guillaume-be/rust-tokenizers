@@ -17,7 +17,7 @@ use std::sync::Arc;
 use crate::preprocessing::tokenizer::tokenization_utils::tokenize_wordpiece;
 use crate::preprocessing::vocab::base_vocab::Vocab;
 use crate::BertVocab;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct BertTokenizer {
     vocab: Arc<BertVocab>,
@@ -25,7 +25,7 @@ pub struct BertTokenizer {
 }
 
 impl BertTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> Result<BertTokenizer, TokenizationError> {
+    pub fn from_file(path: &str, lower_case: bool) -> Result<BertTokenizer, TokenizerError> {
         let vocab = Arc::new(BertVocab::from_file(path)?);
         let strip_accents = lower_case;
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
@@ -51,8 +51,8 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         }).flatten().collect()
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.join(" ").replace(" ##", "").trim().to_owned()
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.join(" ").replace(" ##", "").trim().to_owned())
     }
 
     fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
@@ -370,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode() {
+    fn test_decode() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true);
@@ -391,15 +391,16 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(bert_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(bert_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 
     #[test]
-    fn test_decode_skip_special_tokens() {
+    fn test_decode_skip_special_tokens() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true);
@@ -420,10 +421,11 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(bert_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(bert_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&bert_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 }

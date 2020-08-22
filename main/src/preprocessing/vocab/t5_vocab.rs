@@ -18,7 +18,7 @@ use std::fs::File;
 use std::io::Read;
 use protobuf::parse_from_bytes;
 use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 
 pub struct T5Vocab {
@@ -49,19 +49,19 @@ impl Vocab for T5Vocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
-    fn from_file(path: &str) -> Result<T5Vocab, TokenizationError> {
+    fn from_file(path: &str) -> Result<T5Vocab, TokenizerError> {
         let mut f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
+            .map_err(|e| TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
             Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
                 Ok(proto_value) => proto_value,
                 Err(e) => {
-                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
                 }
             },
             Err(e) => {
-                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
         let mut values = HashMap::new();

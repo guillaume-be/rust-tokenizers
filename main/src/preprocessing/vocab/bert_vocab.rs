@@ -13,7 +13,7 @@
 
 use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct BertVocab {
     ///A mapping of tokens as string to indices (i.e. the encoder base)
@@ -56,7 +56,7 @@ impl Vocab for BertVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> {&self.special_indices}
 
-    fn from_file(path: &str) -> Result<BertVocab, TokenizationError> {
+    fn from_file(path: &str) -> Result<BertVocab, TokenizerError> {
         let values = BertVocab::read_vocab_file(path)?;
         let mut special_values = HashMap::new();
 

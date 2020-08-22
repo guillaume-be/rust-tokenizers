@@ -15,7 +15,7 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::ptr;
 use std::mem::ManuallyDrop;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
 pub struct BpePairRef<'a> {
@@ -28,9 +28,9 @@ pub struct BpePairVocab {
 }
 
 impl BpePairVocab {
-    pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizationError> {
+    pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizerError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
+            .map_err(|e| TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
@@ -38,7 +38,7 @@ impl BpePairVocab {
             let line = match line {
                 Ok(value) => value,
                 Err(e) => {
-                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
                 }
             };
             let tuple: Vec<String> = line.trim().split(' ').map(|v| v.to_owned()).collect();

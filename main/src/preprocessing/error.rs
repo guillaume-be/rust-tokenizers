@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum TokenizationError {
+pub enum TokenizerError {
     #[error("File not found error: {0}")]
     FileNotFound(String),
 
@@ -13,4 +13,7 @@ pub enum TokenizationError {
 
     #[error("Token not found in vocabulary: {0}")]
     TokenNotFound(String),
+
+    #[error("Tokenization error: {0}")]
+    TokenizationError(String),
 }

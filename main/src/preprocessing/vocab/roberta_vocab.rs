@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
 use std::fs::File;
 use std::io::BufReader;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct RobertaVocab {
     ///A mapping of tokens as string to indices (i.e. the encoder base)
@@ -63,14 +63,14 @@ impl Vocab for RobertaVocab {
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
     ///Read a Roberta-style vocab.json file
-    fn from_file(path: &str) -> Result<RobertaVocab, TokenizationError> {
+    fn from_file(path: &str) -> Result<RobertaVocab, TokenizerError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
+            .map_err(|e| TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = match serde_json::from_reader(br) {
             Ok(value) => value,
             Err(e) => {
-                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
         let mut special_values = HashMap::new();

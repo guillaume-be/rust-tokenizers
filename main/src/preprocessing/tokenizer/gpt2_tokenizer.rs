@@ -25,7 +25,7 @@ use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
 use std::iter::Iterator;
 use itertools::Itertools;
 use crate::tokenization_utils::lowercase;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct Gpt2Tokenizer {
     vocab: Rc<Gpt2Vocab>,
@@ -37,7 +37,7 @@ pub struct Gpt2Tokenizer {
 }
 
 impl Gpt2Tokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<Gpt2Tokenizer, TokenizationError> {
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<Gpt2Tokenizer, TokenizerError> {
         let vocab = Rc::new(Gpt2Vocab::from_file(vocab_path)?);
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
         let cache = RefCell::new(HashMap::new());
@@ -83,16 +83,20 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
         sub_tokens
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
         let tokens = tokens
             .iter()
             .join("")
             .replace(" ##", "")
             .trim()
             .chars()
-            .map(|character| UNICODE_TO_BYTES.get(&character).unwrap().clone())
-            .collect_vec();
-        String::from_utf8_lossy(&tokens).to_string()
+            .map(|character|
+                match UNICODE_TO_BYTES.get(&character) {
+                    Some(value) => Ok(*value),
+                    None => Err(TokenizerError::TokenizationError("Could not convert unicode to byte sequence".to_string()))
+                })
+            .collect::<Result<Vec<u8>, TokenizerError>>()?;
+        Ok(String::from_utf8_lossy(tokens.as_slice()).to_string())
     }
 }
 
@@ -292,7 +296,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode() {
+    fn test_decode() -> anyhow::Result<()> {
 //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
@@ -310,9 +314,10 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(gpt2_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(gpt2_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&gpt2_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&gpt2_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 }

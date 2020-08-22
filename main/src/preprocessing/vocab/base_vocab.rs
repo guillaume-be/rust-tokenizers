@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::hash::Hash;
-use crate::error::TokenizationError;
+use crate::error::TokenizerError;
 
 pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(input_hashmap: &HashMap<T, U>) -> HashMap<U, T> {
     input_hashmap
@@ -44,12 +44,12 @@ pub trait Vocab {
     fn special_indices(&self) -> &HashMap<i64, String>;
 
     ///Read a vocabulary file from file
-    fn from_file(path: &str) -> Result<Self, TokenizationError> where Self: std::marker::Sized;
+    fn from_file(path: &str) -> Result<Self, TokenizerError> where Self: std::marker::Sized;
 
     ///Read a Bert-style vocab.txt file (single column, one token per line)
-    fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizationError> {
+    fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
+            .map_err(|e| TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
@@ -58,7 +58,7 @@ pub trait Vocab {
             let line = match line {
                 Ok(value) => value,
                 Err(e) => {
-                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
                 }
             };
             data.insert(line.trim().to_owned(), index);
@@ -97,11 +97,11 @@ pub trait Vocab {
 
     fn _register_as_special_value(token: &str,
                                   values: &HashMap<String, i64>,
-                                  special_values: &mut HashMap<String, i64>) -> Result<(), TokenizationError> {
+                                  special_values: &mut HashMap<String, i64>) -> Result<(), TokenizerError> {
         let token_id = match values.get(token) {
             Some(index) => *index,
             None => {
-                return Err(TokenizationError::TokenNotFound(format!("The special value {} could not be found in the vocabulary", token)));
+                return Err(TokenizerError::TokenNotFound(format!("The special value {} could not be found in the vocabulary", token)));
             }
         };
         special_values.insert(String::from(token), token_id);
@@ -158,7 +158,7 @@ impl Vocab for BaseVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<BaseVocab, TokenizationError> {
+    fn from_file(path: &str) -> Result<BaseVocab, TokenizerError> {
         let values = BaseVocab::read_vocab_file(path)?;
         let mut special_values = HashMap::new();
         let unknown_value = BaseVocab::unknown_value();

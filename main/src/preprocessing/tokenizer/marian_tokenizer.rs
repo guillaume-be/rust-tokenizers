@@ -17,7 +17,7 @@ use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_at_regex};
 use crate::preprocessing::vocab::marian_vocab::MarianVocab;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct MarianTokenizer {
     model: SentencePieceModel,
@@ -27,7 +27,7 @@ pub struct MarianTokenizer {
 }
 
 impl MarianTokenizer {
-    pub fn from_files(vocab_path: &str, model_path: &str, lower_case: bool) -> Result<MarianTokenizer, TokenizationError> {
+    pub fn from_files(vocab_path: &str, model_path: &str, lower_case: bool) -> Result<MarianTokenizer, TokenizerError> {
         let vocab = MarianVocab::from_file(vocab_path)?;
         let model = SentencePieceModel::from_file(model_path)?;
         let pattern_language_code = Regex::new(r">>.+<<").unwrap();
@@ -109,8 +109,8 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
     }
 
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join(""))
     }
 
     fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,

@@ -15,7 +15,7 @@ use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token};
 use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
 use crate::preprocessing::tokenizer::tokenization_utils::{lowercase, clean_text};
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct SentencePieceTokenizer {
     model: SentencePieceModel,
@@ -24,7 +24,7 @@ pub struct SentencePieceTokenizer {
 }
 
 impl SentencePieceTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> Result<SentencePieceTokenizer, TokenizationError> {
+    pub fn from_file(path: &str, lower_case: bool) -> Result<SentencePieceTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = SentencePieceVocab::from_file(path)?;
         Ok(SentencePieceTokenizer { model, vocab, lower_case })
@@ -57,8 +57,8 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
         self.model.parse_nodes_to_tokens(decoded)
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join(""))
     }
 }
 

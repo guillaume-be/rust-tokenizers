@@ -16,7 +16,7 @@ use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, O
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, replace_string, split_on_special_tokens};
 use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
 use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct AlbertTokenizer {
     model: SentencePieceModel,
@@ -26,7 +26,7 @@ pub struct AlbertTokenizer {
 }
 
 impl AlbertTokenizer {
-    pub fn from_file(path: &str, lower_case: bool, keep_accents: bool) -> Result<AlbertTokenizer, TokenizationError> {
+    pub fn from_file(path: &str, lower_case: bool, keep_accents: bool) -> Result<AlbertTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = AlbertVocab::from_file(path)?;
         Ok(AlbertTokenizer { model, vocab, lower_case, keep_accents })
@@ -117,8 +117,8 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
     }
 
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join(""))
     }
 
     fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,

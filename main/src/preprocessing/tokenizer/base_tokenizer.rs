@@ -19,7 +19,7 @@ use rayon::prelude::*;
 use itertools::Itertools;
 use serde::{Serialize, Deserialize};
 use crate::tokenization_utils::lowercase;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub enum TruncationStrategy {
     LongestFirst,
@@ -369,7 +369,7 @@ pub trait Tokenizer<T: Vocab> {
         tokens.into_iter().map(|v| self.vocab().token_to_id(v)).collect()
     }
 
-    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<TokenizedInput, TokenizationError> {
+    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<TokenizedInput, TokenizerError> {
         let (token_strings, token_offsets, original_positions, token_mask) = self.tokenize_with_offsets(text_1);
         let token_ids_1 = self.convert_tokens_to_ids(&token_strings);
         let len_1 = token_ids_1.len();
@@ -416,14 +416,14 @@ pub trait Tokenizer<T: Vocab> {
         Ok(TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens, token_offsets, reference_offsets, mask: token_mask })
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
         text_list
             .into_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
         text_list
             .into_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
@@ -452,18 +452,18 @@ pub trait Tokenizer<T: Vocab> {
     ///   * token_ids: list of tokenized input ids. Can be obtained using the `encode` or `encode_plus` methods.
     ///   * skip_special_tokens: if set to True, will replace special tokens.
     ///   * clean_up_tokenization_spaces: if set to True, will clean up the tokenization spaces.
-    fn decode(&self, token_ids: Vec<i64>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> String {
+    fn decode(&self, token_ids: Vec<i64>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Result<String, TokenizerError> {
         let tokens = self.decode_to_vec(token_ids, skip_special_tokens);
-        let decoded_string = self.convert_tokens_to_string(tokens);
+        let decoded_string = self.convert_tokens_to_string(tokens)?;
         if clean_up_tokenization_spaces {
-            self.clean_up_tokenization(decoded_string)
+            Ok(self.clean_up_tokenization(decoded_string))
         } else {
-            decoded_string
+            Ok(decoded_string)
         }
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.join(" ")
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.join(" "))
     }
 
     fn clean_up_tokenization(&self, input_string: String) -> String {
@@ -481,7 +481,7 @@ pub trait Tokenizer<T: Vocab> {
             .replace(" 're", "'re")
     }
 
-    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Vec<String> {
+    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Result<Vec<String>, TokenizerError> {
         token_ids_list
             .into_iter()
             .map(|token_ids| self.decode(token_ids, skip_special_tokens, clean_up_tokenization_spaces))
@@ -556,21 +556,21 @@ pub trait MultiThreadedTokenizer<T: Vocab>
             collect()
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
+    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
         text_list
             .par_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizationError> {
+    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
         text_list
             .par_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Vec<String> {
+    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Result<Vec<String>, TokenizerError> {
         token_ids_list
             .par_iter()
             .map(|token_ids| self.decode(token_ids.to_vec(), skip_special_tokens, clean_up_tokenization_spaces))
@@ -586,7 +586,7 @@ pub struct BaseTokenizer<T: Vocab> {
 }
 
 impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
-    pub fn from_file(path: &str, lower_case: bool, strip_accents: bool) -> Result<BaseTokenizer<T>, TokenizationError> {
+    pub fn from_file(path: &str, lower_case: bool, strip_accents: bool) -> Result<BaseTokenizer<T>, TokenizerError> {
         let vocab = T::from_file(path)?;
         Ok(BaseTokenizer { vocab: Arc::new(vocab), lower_case, strip_accents })
     }
@@ -1069,7 +1069,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode() {
+    fn test_decode() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
@@ -1094,15 +1094,16 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 
     #[test]
-    fn test_decode_skip_special_tokens() {
+    fn test_decode_skip_special_tokens() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
@@ -1127,15 +1128,16 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 
     #[test]
-    fn test_decode_clean_up_tokenization_spaces() {
+    fn test_decode_clean_up_tokenization_spaces() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
@@ -1160,11 +1162,12 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 
     #[test]

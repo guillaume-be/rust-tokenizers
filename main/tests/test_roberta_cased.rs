@@ -146,7 +146,7 @@ fn test_roberta_tokenization() -> anyhow::Result<()> {
                 Some(offset) => {
                     let (start_char, end_char) = (offset.begin as usize, offset.end as usize);
                     let text: String = original_sentence_chars[start_char..end_char].iter().collect();
-                    println!("{:<2?} | {:<10} | {:<10} | {:<10?}", offset, text, roberta_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false), predicted.mask[idx])
+                    println!("{:<2?} | {:<10} | {:<10} | {:<10?}", offset, text, roberta_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false)?, predicted.mask[idx])
                 }
                 None => continue
             }

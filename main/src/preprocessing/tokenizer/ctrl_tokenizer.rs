@@ -21,7 +21,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use regex::Regex;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 
 pub struct CtrlTokenizer {
@@ -33,7 +33,7 @@ pub struct CtrlTokenizer {
 }
 
 impl CtrlTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<CtrlTokenizer, TokenizationError> {
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<CtrlTokenizer, TokenizerError> {
         let vocab = Rc::new(OpenAiGptVocab::from_file(vocab_path)?);
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
         let cache = RefCell::new(HashMap::new());
@@ -76,8 +76,8 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         sub_tokens
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.join(" ").replace("@@ ", "").trim().to_owned()
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.join(" ").replace("@@ ", "").trim().to_owned())
     }
 }
 
@@ -206,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode()-> anyhow::Result<()>  {
+    fn test_encode() -> anyhow::Result<()> {
 //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
@@ -266,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode() {
+    fn test_decode() -> anyhow::Result<()> {
 //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
@@ -284,14 +284,15 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(ctrl_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 
     #[test]
-    fn test_decode_skip_special_tokens() {
+    fn test_decode_skip_special_tokens() -> anyhow::Result<()> {
 //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
@@ -309,9 +310,10 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(ctrl_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&ctrl_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 }

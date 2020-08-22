@@ -21,7 +21,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use std::sync::Arc;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
@@ -31,7 +31,7 @@ pub struct OpenAiGptTokenizer {
 }
 
 impl OpenAiGptTokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<OpenAiGptTokenizer, TokenizationError> {
+    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Result<OpenAiGptTokenizer, TokenizerError> {
         let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path)?);
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
@@ -63,8 +63,8 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
         tokens
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.join("").replace("</w>", " ").trim().to_owned()
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.join("").replace("</w>", " ").trim().to_owned())
     }
 }
 
@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decode() {
+    fn test_decode() -> anyhow::Result<()> {
 //        Given
         let vocab = Arc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
@@ -269,9 +269,10 @@ mod tests {
 
 //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(openai_gpt_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
+            assert_eq!(openai_gpt_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
                        *expected_result);
         }
-        assert_eq!(Tokenizer::decode_list(&openai_gpt_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(Tokenizer::decode_list(&openai_gpt_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
+        Ok(())
     }
 }

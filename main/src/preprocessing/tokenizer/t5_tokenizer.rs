@@ -15,7 +15,7 @@ use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Mask};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_on_special_tokens};
 use crate::preprocessing::vocab::t5_vocab::T5Vocab;
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct T5Tokenizer {
     model: SentencePieceModel,
@@ -24,7 +24,7 @@ pub struct T5Tokenizer {
 }
 
 impl T5Tokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizationError> {
+    pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = T5Vocab::from_file(path)?;
         Ok(T5Tokenizer { model, vocab, lower_case })
@@ -71,8 +71,8 @@ impl Tokenizer<T5Vocab> for T5Tokenizer {
     }
 
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join(""))
     }
 }
 

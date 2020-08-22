@@ -22,7 +22,7 @@ use crate::preprocessing::vocab::base_vocab::swap_key_values;
 use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, OffsetSize, Token, Offset, Mask};
 use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::preprocessing::tokenizer::tokenization_utils::{is_punctuation, is_whitespace};
-use crate::error::TokenizationError;
+use crate::error::TokenizerError;
 
 
 #[derive(Debug, Clone, Copy)]
@@ -64,19 +64,19 @@ pub struct SentencePieceModel {
 }
 
 impl SentencePieceModel {
-    pub fn from_file(path: &str) -> Result<SentencePieceModel, TokenizationError> {
+    pub fn from_file(path: &str) -> Result<SentencePieceModel, TokenizerError> {
         let mut f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
+            .map_err(|e| TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
             Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
                 Ok(proto_value) => proto_value,
                 Err(e) => {
-                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
                 }
             },
             Err(e) => {
-                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
         let root = TrieNode::new("".to_string());
@@ -303,11 +303,11 @@ impl Vocab for SentencePieceVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
-    fn from_file(path: &str) -> Result<SentencePieceVocab, TokenizationError> {
+    fn from_file(path: &str) -> Result<SentencePieceVocab, TokenizerError> {
         let mut f = match File::open(path) {
             Ok(file) => file,
             Err(_) => {
-                return Err(TokenizationError::FileNotFound(
+                return Err(TokenizerError::FileNotFound(
                     format!("{} vocabulary file not found", path)
                 ));
             }
@@ -317,11 +317,11 @@ impl Vocab for SentencePieceVocab {
             Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
                 Ok(proto_value) => proto_value,
                 Err(e) => {
-                    return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
                 }
             },
             Err(e) => {
-                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
 

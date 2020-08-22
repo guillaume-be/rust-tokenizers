@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
 use std::fs::File;
 use std::io::BufReader;
-use crate::error::TokenizationError;
+use crate::error::TokenizerError;
 
 
 pub struct MarianVocab {
@@ -49,14 +49,14 @@ impl Vocab for MarianVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
 
-    fn from_file(path: &str) -> Result<MarianVocab, TokenizationError> {
+    fn from_file(path: &str) -> Result<MarianVocab, TokenizerError> {
         let f = File::open(path)
-            .map_err(|e| TokenizationError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
+            .map_err(|e| TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = match serde_json::from_reader(br) {
             Ok(value) => value,
             Err(e) => {
-                return Err(TokenizationError::VocabularyParsingError(e.to_string()));
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
 

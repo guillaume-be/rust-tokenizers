@@ -14,7 +14,7 @@ use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel};
 use crate::{Vocab, Tokenizer, MultiThreadedTokenizer, XLMRobertaVocab};
 use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Mask, Offset, OffsetSize};
 use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_on_special_tokens};
-use crate::preprocessing::error::TokenizationError;
+use crate::preprocessing::error::TokenizerError;
 
 pub struct XLMRobertaTokenizer {
     model: SentencePieceModel,
@@ -23,7 +23,7 @@ pub struct XLMRobertaTokenizer {
 }
 
 impl XLMRobertaTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizationError> {
+    pub fn from_file(path: &str, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = XLMRobertaVocab::from_file(path)?;
         Ok(XLMRobertaTokenizer { model, vocab, lower_case })
@@ -127,8 +127,8 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
     }
 
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
+        Ok(tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join(""))
     }
 }
 
