@@ -10,12 +10,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, SentencePieceVocab};
-use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
-use crate::preprocessing::tokenizer::base_tokenizer::{TokenRef, Token};
-use crate::tokenization_utils::{is_whitespace, decompose_nfkc};
-use crate::preprocessing::tokenizer::tokenization_utils::{lowercase, clean_text};
 use crate::preprocessing::error::TokenizerError;
+use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef};
+use crate::preprocessing::tokenizer::tokenization_utils::{clean_text, lowercase};
+use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel, SentencePieceVocab};
+use crate::tokenization_utils::{decompose_nfkc, is_whitespace};
+use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
 
 pub struct SentencePieceTokenizer {
     model: SentencePieceModel,
@@ -24,14 +24,29 @@ pub struct SentencePieceTokenizer {
 }
 
 impl SentencePieceTokenizer {
-    pub fn from_file(path: &str, lower_case: bool) -> Result<SentencePieceTokenizer, TokenizerError> {
+    pub fn from_file(
+        path: &str,
+        lower_case: bool,
+    ) -> Result<SentencePieceTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = SentencePieceVocab::from_file(path)?;
-        Ok(SentencePieceTokenizer { model, vocab, lower_case })
+        Ok(SentencePieceTokenizer {
+            model,
+            vocab,
+            lower_case,
+        })
     }
 
-    pub fn from_existing_vocab_and_model(vocab: SentencePieceVocab, model: SentencePieceModel, lower_case: bool) -> SentencePieceTokenizer {
-        SentencePieceTokenizer { model, vocab, lower_case }
+    pub fn from_existing_vocab_and_model(
+        vocab: SentencePieceVocab,
+        model: SentencePieceModel,
+        lower_case: bool,
+    ) -> SentencePieceTokenizer {
+        SentencePieceTokenizer {
+            model,
+            vocab,
+            lower_case,
+        }
     }
 }
 
@@ -57,8 +72,12 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
         self.model.parse_nodes_to_tokens(decoded)
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
-        Ok(tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join(""))
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens
+            .into_iter()
+            .map(|v| v.replace('\u{2581}', " "))
+            .collect::<Vec<String>>()
+            .join("")
     }
 }
 

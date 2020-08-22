@@ -10,11 +10,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel};
-use crate::{Vocab, Tokenizer, MultiThreadedTokenizer, XLMRobertaVocab};
-use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Mask, Offset, OffsetSize};
-use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_on_special_tokens};
 use crate::preprocessing::error::TokenizerError;
+use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
+use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
+use crate::tokenization_utils::{
+    clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
+};
+use crate::{MultiThreadedTokenizer, Tokenizer, Vocab, XLMRobertaVocab};
 
 pub struct XLMRobertaTokenizer {
     model: SentencePieceModel,
@@ -26,16 +28,30 @@ impl XLMRobertaTokenizer {
     pub fn from_file(path: &str, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = XLMRobertaVocab::from_file(path)?;
-        Ok(XLMRobertaTokenizer { model, vocab, lower_case })
+        Ok(XLMRobertaTokenizer {
+            model,
+            vocab,
+            lower_case,
+        })
     }
 
-    pub fn from_existing_vocab_and_model(vocab: XLMRobertaVocab, model: SentencePieceModel, lower_case: bool) -> XLMRobertaTokenizer {
-        XLMRobertaTokenizer { model, vocab, lower_case }
+    pub fn from_existing_vocab_and_model(
+        vocab: XLMRobertaVocab,
+        model: SentencePieceModel,
+        lower_case: bool,
+    ) -> XLMRobertaTokenizer {
+        XLMRobertaTokenizer {
+            model,
+            vocab,
+            lower_case,
+        }
     }
 }
 
 impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
-    fn vocab(&self) -> &XLMRobertaVocab { &self.vocab }
+    fn vocab(&self) -> &XLMRobertaVocab {
+        &self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut tokens = split_on_special_tokens(text, &self.vocab)
@@ -68,16 +84,30 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
         sub_tokens
     }
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
-                                       offsets_1: Vec<Option<Offset>>, offsets_2: Option<Vec<Option<Offset>>>,
-                                       original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
-                                       mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
-        let mut output: Vec<i64> = vec!();
-        let mut token_segment_ids: Vec<i8> = vec!();
-        let mut special_tokens_mask: Vec<i8> = vec!();
-        let mut offsets: Vec<Option<Offset>> = vec!();
-        let mut original_offsets: Vec<Vec<OffsetSize>> = vec!();
-        let mut mask: Vec<Mask> = vec!();
+    fn build_input_with_special_tokens(
+        &self,
+        tokens_1: Vec<i64>,
+        tokens_2: Option<Vec<i64>>,
+        offsets_1: Vec<Option<Offset>>,
+        offsets_2: Option<Vec<Option<Offset>>>,
+        original_offsets_1: Vec<Vec<OffsetSize>>,
+        original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
+        mask_1: Vec<Mask>,
+        mask_2: Option<Vec<Mask>>,
+    ) -> (
+        Vec<i64>,
+        Vec<i8>,
+        Vec<i8>,
+        Vec<Option<Offset>>,
+        Vec<Vec<OffsetSize>>,
+        Vec<Mask>,
+    ) {
+        let mut output: Vec<i64> = vec![];
+        let mut token_segment_ids: Vec<i8> = vec![];
+        let mut special_tokens_mask: Vec<i8> = vec![];
+        let mut offsets: Vec<Option<Offset>> = vec![];
+        let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
+        let mut mask: Vec<Mask> = vec![];
         special_tokens_mask.push(1);
         special_tokens_mask.extend(vec![0; tokens_1.len()]);
         special_tokens_mask.push(1);
@@ -88,9 +118,9 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
         offsets.push(None);
         offsets.extend(offsets_1);
         offsets.push(None);
-        original_offsets.push(vec!());
+        original_offsets.push(vec![]);
         original_offsets.extend(original_offsets_1);
-        original_offsets.push(vec!());
+        original_offsets.push(vec![]);
         mask.push(Mask::Special);
         mask.extend(mask_1);
         mask.push(Mask::Special);
@@ -110,11 +140,11 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
                 offsets.extend(vec![None; length + 2]);
             }
             if let Some(add_original_offsets) = original_offsets_2 {
-                original_offsets.push(vec!());
+                original_offsets.push(vec![]);
                 original_offsets.extend(add_original_offsets);
             }
             offsets.push(None);
-            original_offsets.push(vec!());
+            original_offsets.push(vec![]);
             mask.push(Mask::Special);
             if let Some(mask_2) = mask_2 {
                 mask.extend(mask_2)
@@ -123,12 +153,22 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
             }
             mask.push(Mask::Special);
         }
-        (output, token_segment_ids, special_tokens_mask, offsets, original_offsets, mask)
+        (
+            output,
+            token_segment_ids,
+            special_tokens_mask,
+            offsets,
+            original_offsets,
+            mask,
+        )
     }
 
-
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
-        Ok(tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join(""))
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens
+            .into_iter()
+            .map(|v| v.replace('\u{2581}', " "))
+            .collect::<Vec<String>>()
+            .join("")
     }
 }
 

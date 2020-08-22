@@ -9,9 +9,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-use std::fs::File;
 use std::error::Error;
+use std::fs::File;
 
 #[derive(Debug)]
 pub enum Label {
@@ -35,7 +34,7 @@ impl Example {
             label: match label {
                 "0" => Ok(Label::Negative),
                 "1" => Ok(Label::Positive),
-                _ => Err("invalid label class (must be 0 or 1)")
+                _ => Err("invalid label class (must be 0 or 1)"),
             }?,
         })
     }
@@ -71,6 +70,6 @@ pub fn read_sst2(path: &str, sep: u8) -> Result<Vec<Example>, Box<dyn Error>> {
         let record = result?;
         let example = Example::new(&record[0], "", &record[1])?;
         examples.push(example);
-    };
+    }
     Ok(examples)
 }

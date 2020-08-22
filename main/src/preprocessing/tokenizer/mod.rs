@@ -9,16 +9,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod albert_tokenizer;
 pub mod base_tokenizer;
 pub mod bert_tokenizer;
-pub mod ctrl_tokenizer;
-pub mod openai_gpt_tokenizer;
-pub mod gpt2_tokenizer;
-pub mod roberta_tokenizer;
-pub mod tokenization_utils;
-pub mod sentence_piece_tokenizer;
-pub mod marian_tokenizer;
-pub mod albert_tokenizer;
-pub mod t5_tokenizer;
-pub mod xlm_roberta_tokenizer;
 mod constants;
+pub mod ctrl_tokenizer;
+pub mod gpt2_tokenizer;
+pub mod marian_tokenizer;
+pub mod openai_gpt_tokenizer;
+pub mod roberta_tokenizer;
+pub mod sentence_piece_tokenizer;
+pub mod t5_tokenizer;
+pub mod tokenization_utils;
+pub mod xlm_roberta_tokenizer;

@@ -10,16 +10,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-use crate::Vocab;
-use std::collections::HashMap;
+use crate::preprocessing::error::TokenizerError;
 use crate::preprocessing::vocab::base_vocab::swap_key_values;
+use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::Vocab;
+use protobuf::parse_from_bytes;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
-use protobuf::parse_from_bytes;
-use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
-use crate::preprocessing::error::TokenizerError;
-
 
 pub struct T5Vocab {
     pub values: HashMap<String, i64>,
@@ -30,28 +28,43 @@ pub struct T5Vocab {
 }
 
 impl T5Vocab {
-    pub fn eos_value() -> &'static str { "</s>" }
-    pub fn pad_value() -> &'static str { "<pad>" }
+    pub fn eos_value() -> &'static str {
+        "</s>"
+    }
+    pub fn pad_value() -> &'static str {
+        "<pad>"
+    }
 }
 
 impl Vocab for T5Vocab {
-    fn unknown_value() -> &'static str { "<unk>" }
+    fn unknown_value() -> &'static str {
+        "<unk>"
+    }
 
-    fn get_unknown_value(&self) -> &'static str { "<unk>" }
+    fn get_unknown_value(&self) -> &'static str {
+        "<unk>"
+    }
 
     fn values(&self) -> &HashMap<String, i64> {
         &self.values
     }
 
-    fn indices(&self) -> &HashMap<i64, String> { &self.indices }
+    fn indices(&self) -> &HashMap<i64, String> {
+        &self.indices
+    }
 
-    fn special_values(&self) -> &HashMap<String, i64> { &self.special_values }
+    fn special_values(&self) -> &HashMap<String, i64> {
+        &self.special_values
+    }
 
-    fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
+    fn special_indices(&self) -> &HashMap<i64, String> {
+        &self.special_indices
+    }
 
     fn from_file(path: &str) -> Result<T5Vocab, TokenizerError> {
-        let mut f = File::open(path)
-            .map_err(|e| TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e)))?;
+        let mut f = File::open(path).map_err(|e| {
+            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        })?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
             Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
@@ -76,21 +89,36 @@ impl Vocab for T5Vocab {
         let eos_value = T5Vocab::eos_value();
         T5Vocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
 
-
         let pad_value = T5Vocab::pad_value();
         T5Vocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        Ok(T5Vocab { values, indices, unknown_value, special_values, special_indices })
+        Ok(T5Vocab {
+            values,
+            indices,
+            unknown_value,
+            special_values,
+            special_indices,
+        })
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
-        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
+        self._token_to_id(
+            token,
+            &self.values,
+            &self.special_values,
+            &self.unknown_value,
+        )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
+        self._id_to_token(
+            &id,
+            &self.indices,
+            &self.special_indices,
+            &self.unknown_value,
+        )
     }
 }

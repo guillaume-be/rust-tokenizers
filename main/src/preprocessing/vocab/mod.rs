@@ -9,15 +9,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod albert_vocab;
 pub mod base_vocab;
 pub mod bert_vocab;
-pub mod openai_gpt_vocab;
-pub mod gpt2_vocab;
-pub mod roberta_vocab;
 pub mod bpe_vocab;
-pub mod sentencepiece_proto;
-pub mod sentence_piece_vocab;
+pub mod gpt2_vocab;
 pub mod marian_vocab;
-pub mod albert_vocab;
+pub mod openai_gpt_vocab;
+pub mod roberta_vocab;
+pub mod sentence_piece_vocab;
+pub mod sentencepiece_proto;
 pub mod t5_vocab;
 pub mod xlm_roberta_vocab;

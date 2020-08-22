@@ -11,9 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
-use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
 use crate::preprocessing::error::TokenizerError;
+use crate::preprocessing::vocab::base_vocab::{swap_key_values, Vocab};
+use std::collections::HashMap;
 
 pub struct BertVocab {
     ///A mapping of tokens as string to indices (i.e. the encoder base)
@@ -35,26 +35,44 @@ pub struct BertVocab {
 }
 
 impl BertVocab {
-    pub fn pad_value() -> &'static str { "[PAD]" }
-    pub fn sep_value() -> &'static str { "[SEP]" }
-    pub fn cls_value() -> &'static str { "[CLS]" }
-    pub fn mask_value() -> &'static str { "[MASK]" }
+    pub fn pad_value() -> &'static str {
+        "[PAD]"
+    }
+    pub fn sep_value() -> &'static str {
+        "[SEP]"
+    }
+    pub fn cls_value() -> &'static str {
+        "[CLS]"
+    }
+    pub fn mask_value() -> &'static str {
+        "[MASK]"
+    }
 }
 
 impl Vocab for BertVocab {
-    fn unknown_value() -> &'static str { "[UNK]" }
+    fn unknown_value() -> &'static str {
+        "[UNK]"
+    }
 
-    fn get_unknown_value(&self) -> &'static str { "[UNK]" }
+    fn get_unknown_value(&self) -> &'static str {
+        "[UNK]"
+    }
 
     fn values(&self) -> &HashMap<String, i64> {
         &self.values
     }
 
-    fn indices(&self) -> &HashMap<i64, String> {&self.indices}
+    fn indices(&self) -> &HashMap<i64, String> {
+        &self.indices
+    }
 
-    fn special_values(&self) -> &HashMap<String, i64> { &self.special_values }
+    fn special_values(&self) -> &HashMap<String, i64> {
+        &self.special_values
+    }
 
-    fn special_indices(&self) -> &HashMap<i64, String> {&self.special_indices}
+    fn special_indices(&self) -> &HashMap<i64, String> {
+        &self.special_indices
+    }
 
     fn from_file(path: &str) -> Result<BertVocab, TokenizerError> {
         let values = BertVocab::read_vocab_file(path)?;
@@ -78,15 +96,31 @@ impl Vocab for BertVocab {
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        Ok(BertVocab { values, indices, unknown_value, special_values, special_indices })
+        Ok(BertVocab {
+            values,
+            indices,
+            unknown_value,
+            special_values,
+            special_indices,
+        })
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
-        self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value)
+        self._token_to_id(
+            token,
+            &self.values,
+            &self.special_values,
+            &self.unknown_value,
+        )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value)
+        self._id_to_token(
+            &id,
+            &self.indices,
+            &self.special_indices,
+            &self.unknown_value,
+        )
     }
 }
 
@@ -101,23 +135,23 @@ mod tests {
 
     #[test]
     fn test_create_object() {
-//        Given
+        //        Given
         let values: HashMap<String, i64> = HashMap::new();
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
         let unknown_value = BertVocab::unknown_value();
 
-//        When
+        //        When
         let base_vocab = BertVocab {
             values,
             indices,
             unknown_value,
             special_values,
-            special_indices
+            special_indices,
         };
 
-//        Then
+        //        Then
         assert_eq!(base_vocab.unknown_value, "[UNK]");
         assert_eq!(base_vocab.unknown_value, BertVocab::unknown_value());
         assert_eq!(BertVocab::pad_value(), "[PAD]");
@@ -130,9 +164,12 @@ mod tests {
 
     #[test]
     fn test_create_object_from_file() -> anyhow::Result<()> {
-//        Given
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
-        write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
+        write!(
+            vocab_file,
+            "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]"
+        )?;
         let path = vocab_file.into_temp_path();
         let target_values: HashMap<String, i64> = [
             ("hello".to_owned(), 0),
@@ -142,21 +179,27 @@ mod tests {
             ("[CLS]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
-            ("[PAD]".to_owned(), 7)
-        ].iter().cloned().collect();
+            ("[PAD]".to_owned(), 7),
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
             ("[CLS]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
-            ("[PAD]".to_owned(), 7)
-        ].iter().cloned().collect();
+            ("[PAD]".to_owned(), 7),
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
-//        When
+        //        When
         let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        Then
+        //        Then
         assert_eq!(base_vocab.unknown_value, "[UNK]");
         assert_eq!(base_vocab.values, target_values);
         assert_eq!(base_vocab.special_values, special_values);
@@ -167,24 +210,27 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_create_object_from_file_without_unknown_token() {
-//        Given
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new().unwrap();
         write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS]").unwrap();
         let path = vocab_file.into_temp_path();
 
-//        When & Then
+        //        When & Then
         let _base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
     }
 
     #[test]
     fn test_encode_tokens() -> anyhow::Result<()> {
-//        Given
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
-        write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
+        write!(
+            vocab_file,
+            "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]"
+        )?;
         let path = vocab_file.into_temp_path();
         let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        When & Then
+        //        When & Then
         assert_eq!(base_vocab.token_to_id("hello"), 0);
         assert_eq!(base_vocab.token_to_id("world"), 1);
         assert_eq!(base_vocab.token_to_id("!"), 3);
@@ -201,13 +247,16 @@ mod tests {
 
     #[test]
     fn test_decode_tokens() -> anyhow::Result<()> {
-//        Given
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
-        write!(vocab_file, "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]")?;
+        write!(
+            vocab_file,
+            "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]"
+        )?;
         let path = vocab_file.into_temp_path();
         let bert_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        When & Then
+        //        When & Then
         assert_eq!(bert_vocab.id_to_token(&(0 as i64)), "hello");
         assert_eq!(bert_vocab.id_to_token(&(1 as i64)), "world");
         assert_eq!(bert_vocab.id_to_token(&(3 as i64)), "!");

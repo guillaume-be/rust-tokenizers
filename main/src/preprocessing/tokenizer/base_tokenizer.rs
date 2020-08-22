@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::tokenization_utils::{tokenize_cjk_chars, whitespace_tokenize, strip_accents, split_on_punct, split_on_special_tokens, clean_text, truncate_sequences};
-use std::sync::Arc;
-use rayon::prelude::*;
-use itertools::Itertools;
-use serde::{Serialize, Deserialize};
-use crate::tokenization_utils::lowercase;
 use crate::preprocessing::error::TokenizerError;
+use crate::preprocessing::tokenizer::tokenization_utils::{
+    clean_text, split_on_punct, split_on_special_tokens, strip_accents, tokenize_cjk_chars,
+    truncate_sequences, whitespace_tokenize,
+};
+use crate::preprocessing::vocab::base_vocab::Vocab;
+use crate::tokenization_utils::lowercase;
+use itertools::Itertools;
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 pub enum TruncationStrategy {
     LongestFirst,
@@ -65,13 +68,11 @@ impl Default for Mask {
     }
 }
 
-
 pub trait TokenTrait {
     fn offset(&self) -> Option<Offset>;
     fn mask(&self) -> Mask;
     fn as_str(&self) -> &str;
 }
-
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 ///A token that references the original text
@@ -86,13 +87,17 @@ impl<'a> TokenRef<'a> {
     pub fn new(text: &'a str, offsets: &'a [OffsetSize]) -> TokenRef<'a> {
         TokenRef {
             text,
-            offset: Offset { begin: 0, end: offsets.len() as OffsetSize },
+            offset: Offset {
+                begin: 0,
+                end: offsets.len() as OffsetSize,
+            },
             reference_offsets: offsets,
             mask: Mask::None,
         }
     }
 
-    pub fn to_owned(self) -> Token { //not a real implementation of ToOwned because that can't work in the current setup
+    pub fn to_owned(self) -> Token {
+        //not a real implementation of ToOwned because that can't work in the current setup
         Token::from(self)
     }
 }
@@ -136,7 +141,6 @@ impl<'a> From<&'a Token> for TokenRef<'a> {
     }
 }
 
-
 impl From<&str> for Token {
     fn from(text: &str) -> Self {
         Token::new(text.to_owned())
@@ -159,7 +163,8 @@ impl<'a> From<TokenRef<'a>> for Token {
 /// This iterator loops over collections of tokens (i.e. things that implement `TokenTrait`)
 /// and groups all subtokens that belong together (forming a word or something similar).
 pub struct ConsolidatedTokenIterator<'a, T>
-    where T: TokenTrait
+where
+    T: TokenTrait,
 {
     pub tokens: &'a Vec<T>,
     pub begin: usize,
@@ -167,7 +172,9 @@ pub struct ConsolidatedTokenIterator<'a, T>
 }
 
 impl<'a, T> ConsolidatedTokenIterator<'a, T>
-    where T: TokenTrait {
+where
+    T: TokenTrait,
+{
     pub fn new(tokens: &'a Vec<T>) -> Self {
         ConsolidatedTokenIterator {
             tokens,
@@ -178,7 +185,9 @@ impl<'a, T> ConsolidatedTokenIterator<'a, T>
 }
 
 impl<'a, T> Iterator for ConsolidatedTokenIterator<'a, T>
-    where T: TokenTrait {
+where
+    T: TokenTrait,
+{
     type Item = &'a [T];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -224,7 +233,9 @@ impl<'a, T> Iterator for ConsolidatedTokenIterator<'a, T>
 /// }
 /// ```
 pub trait ConsolidatableTokens<T>
-    where T: TokenTrait {
+where
+    T: TokenTrait,
+{
     fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<T>;
 }
 
@@ -250,19 +261,22 @@ pub struct Token {
     pub mask: Mask,
 }
 
-
 impl Token {
     pub fn new(text: String) -> Token {
         let text_size: OffsetSize = text.chars().count() as OffsetSize;
         Token {
             text,
-            offset: Offset { begin: 0, end: text_size },
+            offset: Offset {
+                begin: 0,
+                end: text_size,
+            },
             reference_offsets: (0..text_size).collect(),
             mask: Mask::None,
         }
     }
 
-    pub fn as_ref(&self) -> TokenRef { //not a real implementation of AsRef because we do something slightly different
+    pub fn as_ref(&self) -> TokenRef {
+        //not a real implementation of AsRef because we do something slightly different
         TokenRef::from(self)
     }
 }
@@ -316,9 +330,17 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a string, return offset information
-    fn tokenize_with_offsets(&self, text: &str) -> (Vec<String>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
+    fn tokenize_with_offsets(
+        &self,
+        text: &str,
+    ) -> (
+        Vec<String>,
+        Vec<Option<Offset>>,
+        Vec<Vec<OffsetSize>>,
+        Vec<Mask>,
+    ) {
         if text.trim().is_empty() {
-            return (vec!(), vec!(), vec!(), vec!());
+            return (vec![], vec![], vec![], vec![]);
         }
         let initial_offsets = (0..text.chars().count() as OffsetSize).collect::<Vec<OffsetSize>>();
         let initial_token: TokenRef<'_> = TokenRef::new(text, &initial_offsets);
@@ -341,7 +363,7 @@ pub trait Tokenizer<T: Vocab> {
             });
             original_positions.push(token.reference_offsets);
             masks.push(token.mask);
-        };
+        }
         (texts, offsets, original_positions, masks)
     }
 
@@ -351,42 +373,84 @@ pub trait Tokenizer<T: Vocab> {
     ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of vectors of strings.
     ///Use `tokenize_list_with_offsets` if you also want offset information.
     fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
-        text_list.
-            into_iter().
-            map(|text| self.tokenize(text)).
-            collect()
+        text_list
+            .into_iter()
+            .map(|text| self.tokenize(text))
+            .collect()
     }
 
     ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of pairs consists of a vector of tokens and a list of offset information.
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>)> {
-        text_list.
-            into_iter().
-            map(|text| self.tokenize_with_offsets(text)).
-            collect()
+    fn tokenize_list_with_offsets(
+        &self,
+        text_list: Vec<&str>,
+    ) -> Vec<(
+        Vec<String>,
+        Vec<Option<Offset>>,
+        Vec<Vec<OffsetSize>>,
+        Vec<Mask>,
+    )> {
+        text_list
+            .into_iter()
+            .map(|text| self.tokenize_with_offsets(text))
+            .collect()
     }
 
     fn convert_tokens_to_ids(&self, tokens: &Vec<String>) -> Vec<i64> {
-        tokens.into_iter().map(|v| self.vocab().token_to_id(v)).collect()
+        tokens
+            .into_iter()
+            .map(|v| self.vocab().token_to_id(v))
+            .collect()
     }
 
-    fn encode(&self, text_1: &str, text_2: Option<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<TokenizedInput, TokenizerError> {
-        let (token_strings, token_offsets, original_positions, token_mask) = self.tokenize_with_offsets(text_1);
+    fn encode(
+        &self,
+        text_1: &str,
+        text_2: Option<&str>,
+        max_len: usize,
+        truncation_strategy: &TruncationStrategy,
+        stride: usize,
+    ) -> TokenizedInput {
+        let (token_strings, token_offsets, original_positions, token_mask) =
+            self.tokenize_with_offsets(text_1);
         let token_ids_1 = self.convert_tokens_to_ids(&token_strings);
         let len_1 = token_ids_1.len();
         let (token_ids_2, token_offsets_2, original_positions_2, token_mask_2, len_2, pair) = {
             if let Some(text) = text_2 {
-                let (token_strings_2, token_offsets_2, original_positions_2, token_mask_2) = self.tokenize_with_offsets(text);
+                let (token_strings_2, token_offsets_2, original_positions_2, token_mask_2) =
+                    self.tokenize_with_offsets(text);
                 let token_ids_2: Vec<i64> = self.convert_tokens_to_ids(&token_strings_2);
                 let len_2 = token_ids_2.len();
-                (Some(token_ids_2), Some(token_offsets_2), Some(original_positions_2), Some(token_mask_2), len_2, Some(vec!()))
+                (
+                    Some(token_ids_2),
+                    Some(token_offsets_2),
+                    Some(original_positions_2),
+                    Some(token_mask_2),
+                    len_2,
+                    Some(vec![]),
+                )
             } else {
                 (None, None, None, None, 0, None)
             }
         };
-        let (additional_tokens, _, _, _, _additional_offsets, _additional_mask) = self.build_input_with_special_tokens(vec!(), pair, vec!(), Some(vec!()), vec!(), Some(vec!()), vec!(), Some(vec!()));
+        let (additional_tokens, _, _, _, _additional_offsets, _additional_mask) = self
+            .build_input_with_special_tokens(
+                vec![],
+                pair,
+                vec![],
+                Some(vec![]),
+                vec![],
+                Some(vec![]),
+                vec![],
+                Some(vec![]),
+            );
         let total_len = len_1 + len_2 + additional_tokens.len();
-        let num_truncated_tokens = if total_len > max_len { total_len - max_len } else { 0 };
-        let (token_ids_1,
+        let num_truncated_tokens = if total_len > max_len {
+            total_len - max_len
+        } else {
+            0
+        };
+        let (
+            token_ids_1,
             token_ids_2,
             token_offsets,
             token_offsets_2,
@@ -394,36 +458,73 @@ pub trait Tokenizer<T: Vocab> {
             original_positions_2,
             token_mask,
             token_mask_2,
-            overflowing_tokens, _overflowing_offsets) = truncate_sequences(token_ids_1,
-                                                                           token_ids_2,
-                                                                           token_offsets,
-                                                                           token_offsets_2,
-                                                                           original_positions,
-                                                                           original_positions_2,
-                                                                           token_mask,
-                                                                           token_mask_2,
-                                                                           num_truncated_tokens,
-                                                                           truncation_strategy,
-                                                                           stride).unwrap();
+            overflowing_tokens,
+            _overflowing_offsets,
+        ) = truncate_sequences(
+            token_ids_1,
+            token_ids_2,
+            token_offsets,
+            token_offsets_2,
+            original_positions,
+            original_positions_2,
+            token_mask,
+            token_mask_2,
+            num_truncated_tokens,
+            truncation_strategy,
+            stride,
+        )
+        .unwrap();
 
-        let (token_ids,
+        let (
+            token_ids,
             segment_ids,
             special_tokens_mask,
             token_offsets,
             reference_offsets,
-            token_mask) = self.build_input_with_special_tokens(token_ids_1, token_ids_2, token_offsets, token_offsets_2, original_positions, original_positions_2, token_mask, token_mask_2);
+            token_mask,
+        ) = self.build_input_with_special_tokens(
+            token_ids_1,
+            token_ids_2,
+            token_offsets,
+            token_offsets_2,
+            original_positions,
+            original_positions_2,
+            token_mask,
+            token_mask_2,
+        );
 
-        Ok(TokenizedInput { token_ids, segment_ids, special_tokens_mask, overflowing_tokens, num_truncated_tokens, token_offsets, reference_offsets, mask: token_mask })
+        TokenizedInput {
+            token_ids,
+            segment_ids,
+            special_tokens_mask,
+            overflowing_tokens,
+            num_truncated_tokens,
+            token_offsets,
+            reference_offsets,
+            mask: token_mask,
+        }
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &TruncationStrategy,
+        stride: usize,
+    ) -> Vec<TokenizedInput> {
         text_list
             .into_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &TruncationStrategy,
+        stride: usize,
+    ) -> Vec<TokenizedInput> {
         text_list
             .into_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
@@ -435,12 +536,12 @@ pub trait Tokenizer<T: Vocab> {
             token_ids
                 .iter()
                 .filter(|id| !self.vocab().special_indices().contains_key(id))
-                .map(|id| { self.vocab().id_to_token(id) })
+                .map(|id| self.vocab().id_to_token(id))
                 .collect_vec()
         } else {
             token_ids
                 .iter()
-                .map(|id| { self.vocab().id_to_token(id) })
+                .map(|id| self.vocab().id_to_token(id))
                 .collect_vec()
         };
         tokens
@@ -452,18 +553,23 @@ pub trait Tokenizer<T: Vocab> {
     ///   * token_ids: list of tokenized input ids. Can be obtained using the `encode` or `encode_plus` methods.
     ///   * skip_special_tokens: if set to True, will replace special tokens.
     ///   * clean_up_tokenization_spaces: if set to True, will clean up the tokenization spaces.
-    fn decode(&self, token_ids: Vec<i64>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Result<String, TokenizerError> {
+    fn decode(
+        &self,
+        token_ids: Vec<i64>,
+        skip_special_tokens: bool,
+        clean_up_tokenization_spaces: bool,
+    ) -> String {
         let tokens = self.decode_to_vec(token_ids, skip_special_tokens);
-        let decoded_string = self.convert_tokens_to_string(tokens)?;
+        let decoded_string = self.convert_tokens_to_string(tokens);
         if clean_up_tokenization_spaces {
-            Ok(self.clean_up_tokenization(decoded_string))
+            self.clean_up_tokenization(decoded_string)
         } else {
-            Ok(decoded_string)
+            decoded_string
         }
     }
 
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> Result<String, TokenizerError> {
-        Ok(tokens.join(" "))
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens.join(" ")
     }
 
     fn clean_up_tokenization(&self, input_string: String) -> String {
@@ -481,13 +587,19 @@ pub trait Tokenizer<T: Vocab> {
             .replace(" 're", "'re")
     }
 
-    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Result<Vec<String>, TokenizerError> {
+    fn decode_list(
+        &self,
+        token_ids_list: Vec<Vec<i64>>,
+        skip_special_tokens: bool,
+        clean_up_tokenization_spaces: bool,
+    ) -> Vec<String> {
         token_ids_list
             .into_iter()
-            .map(|token_ids| self.decode(token_ids, skip_special_tokens, clean_up_tokenization_spaces))
+            .map(|token_ids| {
+                self.decode(token_ids, skip_special_tokens, clean_up_tokenization_spaces)
+            })
             .collect()
     }
-
 
     /// Build model inputs from a sequence or a pair of sequence for sequence classification tasks
     /// by concatenating and adding special tokens.
@@ -501,10 +613,24 @@ pub trait Tokenizer<T: Vocab> {
     ///  * special token mask
     ///  * offsets (as a vector of `Option<Offset>` because some added markers may not have associated offsets
     ///  * token mask
-    fn build_input_with_special_tokens(&self, mut tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
-                                       mut offsets_1: Vec<Option<Offset>>, offsets_2: Option<Vec<Option<Offset>>>,
-                                       original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
-                                       mut mask: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
+    fn build_input_with_special_tokens(
+        &self,
+        mut tokens_1: Vec<i64>,
+        tokens_2: Option<Vec<i64>>,
+        mut offsets_1: Vec<Option<Offset>>,
+        offsets_2: Option<Vec<Option<Offset>>>,
+        original_offsets_1: Vec<Vec<OffsetSize>>,
+        original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
+        mut mask: Vec<Mask>,
+        mask_2: Option<Vec<Mask>>,
+    ) -> (
+        Vec<i64>,
+        Vec<i8>,
+        Vec<i8>,
+        Vec<Option<Offset>>,
+        Vec<Vec<OffsetSize>>,
+        Vec<Mask>,
+    ) {
         let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
         let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
         let mut original_offsets: Vec<Vec<OffsetSize>> = original_offsets_1;
@@ -529,55 +655,93 @@ pub trait Tokenizer<T: Vocab> {
                 }
                 tokens_1
             }
-            None => tokens_1
+            None => tokens_1,
         };
-        (output, token_segment_ids, special_tokens_mask, offsets_1, original_offsets, mask)
+        (
+            output,
+            token_segment_ids,
+            special_tokens_mask,
+            offsets_1,
+            original_offsets,
+            mask,
+        )
     }
 }
 
 pub trait MultiThreadedTokenizer<T: Vocab>
-    where Self: std::marker::Sync + Send + Tokenizer<T> {
-    fn vocab(&self) -> &T
-    {
+where
+    Self: std::marker::Sync + Send + Tokenizer<T>,
+{
+    fn vocab(&self) -> &T {
         Tokenizer::<T>::vocab(self)
     }
 
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<(Vec<String>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>)> {
-        text_list.
-            par_iter().
-            map(|text| self.tokenize_with_offsets(text)).
-            collect()
+    fn tokenize_list_with_offsets(
+        &self,
+        text_list: Vec<&str>,
+    ) -> Vec<(
+        Vec<String>,
+        Vec<Option<Offset>>,
+        Vec<Vec<OffsetSize>>,
+        Vec<Mask>,
+    )> {
+        text_list
+            .par_iter()
+            .map(|text| self.tokenize_with_offsets(text))
+            .collect()
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
-        text_list.
-            par_iter().
-            map(|text| self.tokenize(text)).
-            collect()
+        text_list
+            .par_iter()
+            .map(|text| self.tokenize(text))
+            .collect()
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &TruncationStrategy,
+        stride: usize,
+    ) -> Vec<TokenizedInput> {
         text_list
             .par_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &TruncationStrategy, stride: usize) -> Result<Vec<TokenizedInput>, TokenizerError> {
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &TruncationStrategy,
+        stride: usize,
+    ) -> Vec<TokenizedInput> {
         text_list
             .par_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn decode_list(&self, token_ids_list: Vec<Vec<i64>>, skip_special_tokens: bool, clean_up_tokenization_spaces: bool) -> Result<Vec<String>, TokenizerError> {
+    fn decode_list(
+        &self,
+        token_ids_list: Vec<Vec<i64>>,
+        skip_special_tokens: bool,
+        clean_up_tokenization_spaces: bool,
+    ) -> Vec<String> {
         token_ids_list
             .par_iter()
-            .map(|token_ids| self.decode(token_ids.to_vec(), skip_special_tokens, clean_up_tokenization_spaces))
+            .map(|token_ids| {
+                self.decode(
+                    token_ids.to_vec(),
+                    skip_special_tokens,
+                    clean_up_tokenization_spaces,
+                )
+            })
             .collect()
     }
 }
-
 
 pub struct BaseTokenizer<T: Vocab> {
     vocab: Arc<T>,
@@ -586,13 +750,29 @@ pub struct BaseTokenizer<T: Vocab> {
 }
 
 impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
-    pub fn from_file(path: &str, lower_case: bool, strip_accents: bool) -> Result<BaseTokenizer<T>, TokenizerError> {
+    pub fn from_file(
+        path: &str,
+        lower_case: bool,
+        strip_accents: bool,
+    ) -> Result<BaseTokenizer<T>, TokenizerError> {
         let vocab = T::from_file(path)?;
-        Ok(BaseTokenizer { vocab: Arc::new(vocab), lower_case, strip_accents })
+        Ok(BaseTokenizer {
+            vocab: Arc::new(vocab),
+            lower_case,
+            strip_accents,
+        })
     }
 
-    pub fn from_existing_vocab(vocab: Arc<T>, lower_case: bool, strip_accents: bool) -> BaseTokenizer<T> {
-        BaseTokenizer { vocab, lower_case, strip_accents }
+    pub fn from_existing_vocab(
+        vocab: Arc<T>,
+        lower_case: bool,
+        strip_accents: bool,
+    ) -> BaseTokenizer<T> {
+        BaseTokenizer {
+            vocab,
+            lower_case,
+            strip_accents,
+        }
     }
 }
 
@@ -603,7 +783,8 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         //split on whitespace
-        let tokens: Vec<Token> = whitespace_tokenize(initial_token).into_iter()
+        let tokens: Vec<Token> = whitespace_tokenize(initial_token)
+            .into_iter()
             .map(|token| {
                 //split on special tokens
                 split_on_special_tokens(token, self.vocab.as_ref())
@@ -656,9 +837,9 @@ mod tests {
     extern crate anyhow;
 
     use super::*;
+    use crate::preprocessing::vocab::base_vocab::swap_key_values;
     use crate::BertVocab;
     use std::collections::HashMap;
-    use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -675,91 +856,214 @@ mod tests {
             ("[PAD]".to_owned(), 10),
             ("una".to_owned(), 11),
             ("##ffa".to_owned(), 12),
-            ("##ble".to_owned(), 13)
-        ].iter().cloned().collect();
+            ("##ble".to_owned(), 13),
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
             ("[CLS]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
-            ("[PAD]".to_owned(), 10)
-        ].iter().cloned().collect();
+            ("[PAD]".to_owned(), 10),
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        BertVocab { values, indices, unknown_value: "[UNK]", special_values, special_indices }
+        BertVocab {
+            values,
+            indices,
+            unknown_value: "[UNK]",
+            special_values,
+            special_indices,
+        }
     }
 
     #[test]
     fn test_base_tokenizer() -> anyhow::Result<()> {
-//        Given
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, true, true);
         let test_tuples = [
             (
                 "Sentence with [MASK] token.",
-                (vec!("sentence", "with", "[MASK]", "token", "."),
-                 vec!(Some(Offset::new(0, 8)), Some(Offset::new(9, 13)), Some(Offset::new(14, 20)), Some(Offset::new(21, 26)), Some(Offset::new(26, 27))),
-                 vec!(vec!(0, 1, 2, 3, 4, 5, 6, 7), vec!(9, 10, 11, 12), vec!(14, 15, 16, 17, 18, 19), vec!(21, 22, 23, 24, 25), vec!(26)),
-                 vec!(Mask::None, Mask::None, Mask::Special, Mask::None, Mask::Punctuation))
+                (
+                    vec!["sentence", "with", "[MASK]", "token", "."],
+                    vec![
+                        Some(Offset::new(0, 8)),
+                        Some(Offset::new(9, 13)),
+                        Some(Offset::new(14, 20)),
+                        Some(Offset::new(21, 26)),
+                        Some(Offset::new(26, 27)),
+                    ],
+                    vec![
+                        vec![0, 1, 2, 3, 4, 5, 6, 7],
+                        vec![9, 10, 11, 12],
+                        vec![14, 15, 16, 17, 18, 19],
+                        vec![21, 22, 23, 24, 25],
+                        vec![26],
+                    ],
+                    vec![
+                        Mask::None,
+                        Mask::None,
+                        Mask::Special,
+                        Mask::None,
+                        Mask::Punctuation,
+                    ],
+                ),
             ),
             (
                 "[CLS]",
-                (vec!("[CLS]"),
-                 vec!(Some(Offset::new(0, 5))),
-                 vec!(vec!(0, 1, 2, 3, 4)),
-                 vec!(Mask::Special))
+                (
+                    vec!["[CLS]"],
+                    vec![Some(Offset::new(0, 5))],
+                    vec![vec![0, 1, 2, 3, 4]],
+                    vec![Mask::Special],
+                ),
             ),
             (
                 "[CLS] [PAD]",
-                (vec!("[CLS]", "[PAD]"),
-                 vec!(Some(Offset::new(0, 5)), Some(Offset::new(6, 11))),
-                 vec!(vec!(0, 1, 2, 3, 4), vec!(6, 7, 8, 9, 10)),
-                 vec!(Mask::Special, Mask::Special))
+                (
+                    vec!["[CLS]", "[PAD]"],
+                    vec![Some(Offset::new(0, 5)), Some(Offset::new(6, 11))],
+                    vec![vec![0, 1, 2, 3, 4], vec![6, 7, 8, 9, 10]],
+                    vec![Mask::Special, Mask::Special],
+                ),
             ),
             (
                 "[CLS]       [PAD]",
-                (vec!("[CLS]", "[PAD]"),
-                 vec!(Some(Offset::new(0, 5)), Some(Offset::new(12, 17))),
-                 vec!(vec!(0, 1, 2, 3, 4), vec!(12, 13, 14, 15, 16)),
-                 vec!(Mask::Special, Mask::Special))
+                (
+                    vec!["[CLS]", "[PAD]"],
+                    vec![Some(Offset::new(0, 5)), Some(Offset::new(12, 17))],
+                    vec![vec![0, 1, 2, 3, 4], vec![12, 13, 14, 15, 16]],
+                    vec![Mask::Special, Mask::Special],
+                ),
             ),
             (
                 "asdf",
-                (vec!("asdf"),
-                 vec!(Some(Offset::new(0, 4))),
-                 vec!(vec!(0, 1, 2, 3)),
-                 vec!(Mask::None))
+                (
+                    vec!["asdf"],
+                    vec![Some(Offset::new(0, 4))],
+                    vec![vec![0, 1, 2, 3]],
+                    vec![Mask::None],
+                ),
             ),
-            (
-                "",
-                (vec!(), vec!(), vec!(), vec!()),
-            ),
+            ("", (vec![], vec![], vec![], vec![])),
             (
                 "Allons, Flipote, allons; que d'eux je me délivre.",
-                (vec!("allons", ",", "flipote", ",", "allons", ";", "que", "d", "\'", "eux", "je", "me", "delivre", "."),
-                 vec!(
-                     Some(Offset { begin: 0, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 8, end: 15 }), Some(Offset { begin: 15, end: 16 }), Some(Offset { begin: 17, end: 23 }), Some(Offset { begin: 23, end: 24 }), Some(Offset { begin: 25, end: 28 }), Some(Offset { begin: 29, end: 30 }), Some(Offset { begin: 30, end: 31 }), Some(Offset { begin: 31, end: 34 }), Some(Offset { begin: 35, end: 37 }), Some(Offset { begin: 38, end: 40 }), Some(Offset { begin: 41, end: 48 }), Some(Offset { begin: 48, end: 49 })
-                 ),
-                 vec!(vec!(0, 1, 2, 3, 4, 5), vec!(6), vec!(8, 9, 10, 11, 12, 13, 14), vec!(15), vec!(17, 18, 19, 20, 21, 22), vec!(23), vec!(25, 26, 27), vec!(29), vec!(30), vec!(31, 32, 33), vec!(35, 36), vec!(38, 39), vec!(41, 42, 43, 44, 45, 46, 47), vec!(48)),
-                 vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation)),
+                (
+                    vec![
+                        "allons", ",", "flipote", ",", "allons", ";", "que", "d", "\'", "eux",
+                        "je", "me", "delivre", ".",
+                    ],
+                    vec![
+                        Some(Offset { begin: 0, end: 6 }),
+                        Some(Offset { begin: 6, end: 7 }),
+                        Some(Offset { begin: 8, end: 15 }),
+                        Some(Offset { begin: 15, end: 16 }),
+                        Some(Offset { begin: 17, end: 23 }),
+                        Some(Offset { begin: 23, end: 24 }),
+                        Some(Offset { begin: 25, end: 28 }),
+                        Some(Offset { begin: 29, end: 30 }),
+                        Some(Offset { begin: 30, end: 31 }),
+                        Some(Offset { begin: 31, end: 34 }),
+                        Some(Offset { begin: 35, end: 37 }),
+                        Some(Offset { begin: 38, end: 40 }),
+                        Some(Offset { begin: 41, end: 48 }),
+                        Some(Offset { begin: 48, end: 49 }),
+                    ],
+                    vec![
+                        vec![0, 1, 2, 3, 4, 5],
+                        vec![6],
+                        vec![8, 9, 10, 11, 12, 13, 14],
+                        vec![15],
+                        vec![17, 18, 19, 20, 21, 22],
+                        vec![23],
+                        vec![25, 26, 27],
+                        vec![29],
+                        vec![30],
+                        vec![31, 32, 33],
+                        vec![35, 36],
+                        vec![38, 39],
+                        vec![41, 42, 43, 44, 45, 46, 47],
+                        vec![48],
+                    ],
+                    vec![
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::None,
+                        Mask::None,
+                        Mask::None,
+                        Mask::Punctuation,
+                    ],
+                ),
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                (vec!("[UNK]", "中", "华", "人", "民", "共", "和", "国", "[PAD]", "asdf"),
-                 vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 19, end: 23 })),
-                 vec!(vec!(0, 1, 2, 3, 4), vec!(5), vec!(6), vec!(7), vec!(8), vec!(9), vec!(10), vec!(11), vec!(13, 14, 15, 16, 17), vec!(19, 20, 21, 22)),
-                 vec!(Mask::Unknown, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::Special, Mask::None)
+                (
+                    vec![
+                        "[UNK]", "中", "华", "人", "民", "共", "和", "国", "[PAD]", "asdf",
+                    ],
+                    vec![
+                        Some(Offset { begin: 0, end: 5 }),
+                        Some(Offset { begin: 5, end: 6 }),
+                        Some(Offset { begin: 6, end: 7 }),
+                        Some(Offset { begin: 7, end: 8 }),
+                        Some(Offset { begin: 8, end: 9 }),
+                        Some(Offset { begin: 9, end: 10 }),
+                        Some(Offset { begin: 10, end: 11 }),
+                        Some(Offset { begin: 11, end: 12 }),
+                        Some(Offset { begin: 13, end: 18 }),
+                        Some(Offset { begin: 19, end: 23 }),
+                    ],
+                    vec![
+                        vec![0, 1, 2, 3, 4],
+                        vec![5],
+                        vec![6],
+                        vec![7],
+                        vec![8],
+                        vec![9],
+                        vec![10],
+                        vec![11],
+                        vec![13, 14, 15, 16, 17],
+                        vec![19, 20, 21, 22],
+                    ],
+                    vec![
+                        Mask::Unknown,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::Special,
+                        Mask::None,
+                    ],
                 ),
-            )
+            ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let (tokens, offsets, offset_positions, mask) = base_tokenizer.tokenize_with_offsets(*source_text);
+            let (tokens, offsets, offset_positions, mask) =
+                base_tokenizer.tokenize_with_offsets(*source_text);
             let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(offsets, expected_result.1);
@@ -768,7 +1072,9 @@ mod tests {
         }
 
         let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
-        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in test_tuples.iter().zip(results.iter()) {
+        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in
+            test_tuples.iter().zip(results.iter())
+        {
             let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
@@ -776,84 +1082,201 @@ mod tests {
             assert_eq!(*mask, expected_result.3);
         }
 
-        let results = MultiThreadedTokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
-        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in test_tuples.iter().zip(results.iter()) {
+        let results = MultiThreadedTokenizer::tokenize_list_with_offsets(
+            &base_tokenizer,
+            source_texts.clone(),
+        );
+        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in
+            test_tuples.iter().zip(results.iter())
+        {
             let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
             assert_eq!(*offset_positions, expected_result.2);
             assert_eq!(*mask, expected_result.3);
-        };
+        }
         Ok(())
     }
 
     #[test]
-    fn test_no_lower_casing()-> anyhow::Result<()>  {
-//        Given
+    fn test_no_lower_casing() {
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, false, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, false, true);
         let test_tuples = [
             (
                 "Sentence with [MASK] token.",
-                (vec!("Sentence", "with", "[MASK]", "token", "."),
-                 vec!(Some(Offset::new(0, 8)), Some(Offset::new(9, 13)), Some(Offset::new(14, 20)), Some(Offset::new(21, 26)), Some(Offset::new(26, 27))),
-                 vec!(vec!(0, 1, 2, 3, 4, 5, 6, 7), vec!(9, 10, 11, 12), vec!(14, 15, 16, 17, 18, 19), vec!(21, 22, 23, 24, 25), vec!(26)),
-                 vec!(Mask::None, Mask::None, Mask::Special, Mask::None, Mask::Punctuation))
+                (
+                    vec!["Sentence", "with", "[MASK]", "token", "."],
+                    vec![
+                        Some(Offset::new(0, 8)),
+                        Some(Offset::new(9, 13)),
+                        Some(Offset::new(14, 20)),
+                        Some(Offset::new(21, 26)),
+                        Some(Offset::new(26, 27)),
+                    ],
+                    vec![
+                        vec![0, 1, 2, 3, 4, 5, 6, 7],
+                        vec![9, 10, 11, 12],
+                        vec![14, 15, 16, 17, 18, 19],
+                        vec![21, 22, 23, 24, 25],
+                        vec![26],
+                    ],
+                    vec![
+                        Mask::None,
+                        Mask::None,
+                        Mask::Special,
+                        Mask::None,
+                        Mask::Punctuation,
+                    ],
+                ),
             ),
             (
                 "[CLS]",
-                (vec!("[CLS]"),
-                 vec!(Some(Offset::new(0, 5))),
-                 vec!(vec!(0, 1, 2, 3, 4)),
-                 vec!(Mask::Special))
+                (
+                    vec!["[CLS]"],
+                    vec![Some(Offset::new(0, 5))],
+                    vec![vec![0, 1, 2, 3, 4]],
+                    vec![Mask::Special],
+                ),
             ),
             (
                 "[CLS] [PAD]",
-                (vec!("[CLS]", "[PAD]"),
-                 vec!(Some(Offset::new(0, 5)), Some(Offset::new(6, 11))),
-                 vec!(vec!(0, 1, 2, 3, 4), vec!(6, 7, 8, 9, 10)),
-                 vec!(Mask::Special, Mask::Special))
+                (
+                    vec!["[CLS]", "[PAD]"],
+                    vec![Some(Offset::new(0, 5)), Some(Offset::new(6, 11))],
+                    vec![vec![0, 1, 2, 3, 4], vec![6, 7, 8, 9, 10]],
+                    vec![Mask::Special, Mask::Special],
+                ),
             ),
             (
                 "[CLS]       [PAD]",
-                (vec!("[CLS]", "[PAD]"),
-                 vec!(Some(Offset::new(0, 5)), Some(Offset::new(12, 17))),
-                 vec!(vec!(0, 1, 2, 3, 4), vec!(12, 13, 14, 15, 16)),
-                 vec!(Mask::Special, Mask::Special))
+                (
+                    vec!["[CLS]", "[PAD]"],
+                    vec![Some(Offset::new(0, 5)), Some(Offset::new(12, 17))],
+                    vec![vec![0, 1, 2, 3, 4], vec![12, 13, 14, 15, 16]],
+                    vec![Mask::Special, Mask::Special],
+                ),
             ),
             (
                 "aSdF",
-                (vec!("aSdF"),
-                 vec!(Some(Offset::new(0, 4))),
-                 vec!(vec!(0, 1, 2, 3)),
-                 vec!(Mask::None))
+                (
+                    vec!["aSdF"],
+                    vec![Some(Offset::new(0, 4))],
+                    vec![vec![0, 1, 2, 3]],
+                    vec![Mask::None],
+                ),
             ),
-            (
-                "",
-                (vec!(), vec!(), vec!(), vec!())
-            ),
+            ("", (vec![], vec![], vec![], vec![])),
             (
                 "Allons, Flipote, allons; que d'eux je me délivre.",
-                (vec!("Allons", ",", "Flipote", ",", "allons", ";", "que", "d", "\'", "eux", "je", "me", "delivre", "."),
-                 vec!(
-                     Some(Offset { begin: 0, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 8, end: 15 }), Some(Offset { begin: 15, end: 16 }), Some(Offset { begin: 17, end: 23 }), Some(Offset { begin: 23, end: 24 }), Some(Offset { begin: 25, end: 28 }), Some(Offset { begin: 29, end: 30 }), Some(Offset { begin: 30, end: 31 }), Some(Offset { begin: 31, end: 34 }), Some(Offset { begin: 35, end: 37 }), Some(Offset { begin: 38, end: 40 }), Some(Offset { begin: 41, end: 48 }), Some(Offset { begin: 48, end: 49 })
-                 ),
-                 vec!(vec!(0, 1, 2, 3, 4, 5), vec!(6), vec!(8, 9, 10, 11, 12, 13, 14), vec!(15), vec!(17, 18, 19, 20, 21, 22), vec!(23), vec!(25, 26, 27), vec!(29), vec!(30), vec!(31, 32, 33), vec!(35, 36), vec!(38, 39), vec!(41, 42, 43, 44, 45, 46, 47), vec!(48)),
-                 vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::None, Mask::None, Mask::Punctuation)),
+                (
+                    vec![
+                        "Allons", ",", "Flipote", ",", "allons", ";", "que", "d", "\'", "eux",
+                        "je", "me", "delivre", ".",
+                    ],
+                    vec![
+                        Some(Offset { begin: 0, end: 6 }),
+                        Some(Offset { begin: 6, end: 7 }),
+                        Some(Offset { begin: 8, end: 15 }),
+                        Some(Offset { begin: 15, end: 16 }),
+                        Some(Offset { begin: 17, end: 23 }),
+                        Some(Offset { begin: 23, end: 24 }),
+                        Some(Offset { begin: 25, end: 28 }),
+                        Some(Offset { begin: 29, end: 30 }),
+                        Some(Offset { begin: 30, end: 31 }),
+                        Some(Offset { begin: 31, end: 34 }),
+                        Some(Offset { begin: 35, end: 37 }),
+                        Some(Offset { begin: 38, end: 40 }),
+                        Some(Offset { begin: 41, end: 48 }),
+                        Some(Offset { begin: 48, end: 49 }),
+                    ],
+                    vec![
+                        vec![0, 1, 2, 3, 4, 5],
+                        vec![6],
+                        vec![8, 9, 10, 11, 12, 13, 14],
+                        vec![15],
+                        vec![17, 18, 19, 20, 21, 22],
+                        vec![23],
+                        vec![25, 26, 27],
+                        vec![29],
+                        vec![30],
+                        vec![31, 32, 33],
+                        vec![35, 36],
+                        vec![38, 39],
+                        vec![41, 42, 43, 44, 45, 46, 47],
+                        vec![48],
+                    ],
+                    vec![
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::None,
+                        Mask::None,
+                        Mask::None,
+                        Mask::Punctuation,
+                    ],
+                ),
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
-                (vec!("[UNK]", "中", "华", "人", "民", "共", "和", "国", "[PAD]", "asdf"),
-                 vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 19, end: 23 })),
-                 vec!(vec!(0, 1, 2, 3, 4), vec!(5), vec!(6), vec!(7), vec!(8), vec!(9), vec!(10), vec!(11), vec!(13, 14, 15, 16, 17), vec!(19, 20, 21, 22)),
-                 vec!(Mask::Unknown, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::Special, Mask::None))
-            )
+                (
+                    vec![
+                        "[UNK]", "中", "华", "人", "民", "共", "和", "国", "[PAD]", "asdf",
+                    ],
+                    vec![
+                        Some(Offset { begin: 0, end: 5 }),
+                        Some(Offset { begin: 5, end: 6 }),
+                        Some(Offset { begin: 6, end: 7 }),
+                        Some(Offset { begin: 7, end: 8 }),
+                        Some(Offset { begin: 8, end: 9 }),
+                        Some(Offset { begin: 9, end: 10 }),
+                        Some(Offset { begin: 10, end: 11 }),
+                        Some(Offset { begin: 11, end: 12 }),
+                        Some(Offset { begin: 13, end: 18 }),
+                        Some(Offset { begin: 19, end: 23 }),
+                    ],
+                    vec![
+                        vec![0, 1, 2, 3, 4],
+                        vec![5],
+                        vec![6],
+                        vec![7],
+                        vec![8],
+                        vec![9],
+                        vec![10],
+                        vec![11],
+                        vec![13, 14, 15, 16, 17],
+                        vec![19, 20, 21, 22],
+                    ],
+                    vec![
+                        Mask::Unknown,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::Special,
+                        Mask::None,
+                    ],
+                ),
+            ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let (tokens, offsets, offset_positions, mask) = base_tokenizer.tokenize_with_offsets(*source_text);
+            let (tokens, offsets, offset_positions, mask) =
+                base_tokenizer.tokenize_with_offsets(*source_text);
             let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(offsets, expected_result.1);
@@ -862,7 +1285,9 @@ mod tests {
         }
 
         let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
-        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in test_tuples.iter().zip(results.iter()) {
+        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in
+            test_tuples.iter().zip(results.iter())
+        {
             let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
@@ -870,125 +1295,249 @@ mod tests {
             assert_eq!(*mask, expected_result.3);
         }
 
-        let results = MultiThreadedTokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
-        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in test_tuples.iter().zip(results.iter()) {
+        let results = MultiThreadedTokenizer::tokenize_list_with_offsets(
+            &base_tokenizer,
+            source_texts.clone(),
+        );
+        for ((_, expected_result), (tokens, offsets, offset_positions, mask)) in
+            test_tuples.iter().zip(results.iter())
+        {
             let tokens: Vec<&str> = tokens.iter().map(|t| t.as_str()).collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(*offsets, expected_result.1);
             assert_eq!(*offset_positions, expected_result.2);
             assert_eq!(*mask, expected_result.3);
         }
-        Ok(())
     }
 
     #[test]
     fn test_convert_tokens_to_ids() {
-//        Given
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, true, true);
         let test_tuples = [
+            (vec!["hello", "[MASK]", "world", "!"], vec![0, 6, 1, 3]),
             (
-                vec!("hello", "[MASK]", "world", "!"),
-                vec!(0, 6, 1, 3)
+                vec!["hello", ",", "una", "##ffa", "##ble", "world", "!"],
+                vec![0, 2, 11, 12, 13, 1, 3],
             ),
             (
-                vec!("hello", ",", "una", "##ffa", "##ble", "world", "!"),
-                vec!(0, 2, 11, 12, 13, 1, 3)
+                vec![
+                    "[UNK]", "[UNK]", "华", "[UNK]", "[UNK]", "[UNK]", "[UNK]", "[UNK]", "[PAD]",
+                    "[UNK]",
+                ],
+                vec![2, 2, 8, 2, 2, 2, 2, 2, 10, 2],
             ),
-            (
-                vec!("[UNK]", "[UNK]", "华", "[UNK]", "[UNK]", "[UNK]", "[UNK]", "[UNK]", "[PAD]", "[UNK]"),
-                vec!(2, 2, 8, 2, 2, 2, 2, 2, 10, 2)
-            )
         ];
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.convert_tokens_to_ids(source_text.iter().map(|v| String::from(*v)).collect::<Vec<_>>().as_ref()),
-                       *expected_result);
+            assert_eq!(
+                base_tokenizer.convert_tokens_to_ids(
+                    source_text
+                        .iter()
+                        .map(|v| String::from(*v))
+                        .collect::<Vec<_>>()
+                        .as_ref()
+                ),
+                *expected_result
+            );
         }
     }
 
     #[test]
-    fn test_encode_single_sentence() -> anyhow::Result<()> {
-//        Given
+    fn test_encode_single_sentence() {
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, true, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (
                 "hello world!",
                 TokenizedInput {
-                    token_ids: vec!(0, 1, 3),
-                    segment_ids: vec!(0, 0, 0),
-                    special_tokens_mask: vec!(0, 0, 0),
-                    overflowing_tokens: vec!(),
+                    token_ids: vec![0, 1, 3],
+                    segment_ids: vec![0, 0, 0],
+                    special_tokens_mask: vec![0, 0, 0],
+                    overflowing_tokens: vec![],
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(Some(Offset::new(0, 5)), Some(Offset::new(6, 11)), Some(Offset::new(11, 12))),
-                    reference_offsets: vec!(vec!(0, 1, 2, 3, 4), vec!(6, 7, 8, 9, 10), vec!(11)),
-                    mask: vec!(Mask::None, Mask::None, Mask::Punctuation),
-                }
+                    token_offsets: vec![
+                        Some(Offset::new(0, 5)),
+                        Some(Offset::new(6, 11)),
+                        Some(Offset::new(11, 12)),
+                    ],
+                    reference_offsets: vec![vec![0, 1, 2, 3, 4], vec![6, 7, 8, 9, 10], vec![11]],
+                    mask: vec![Mask::None, Mask::None, Mask::Punctuation],
+                },
             ),
             (
                 "hello, unaffable world!",
                 TokenizedInput {
-                    token_ids: vec!(0, 2, 2, 1, 3),
-                    segment_ids: vec!(0, 0, 0, 0, 0),
-                    special_tokens_mask: vec!(0, 0, 0, 0, 0),
-                    overflowing_tokens: vec!(),
+                    token_ids: vec![0, 2, 2, 1, 3],
+                    segment_ids: vec![0, 0, 0, 0, 0],
+                    special_tokens_mask: vec![0, 0, 0, 0, 0],
+                    overflowing_tokens: vec![],
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(Some(Offset::new(0, 5)), Some(Offset::new(5, 6)), Some(Offset::new(7, 16)), Some(Offset::new(17, 22)), Some(Offset::new(22, 23))),
-                    reference_offsets: vec!(vec!(0, 1, 2, 3, 4), vec!(5), vec!(7, 8, 9, 10, 11, 12, 13, 14, 15), vec!(17, 18, 19, 20, 21), vec!(22)),
-                    mask: vec!(Mask::None, Mask::Punctuation, Mask::None, Mask::None, Mask::Punctuation),
-                }
+                    token_offsets: vec![
+                        Some(Offset::new(0, 5)),
+                        Some(Offset::new(5, 6)),
+                        Some(Offset::new(7, 16)),
+                        Some(Offset::new(17, 22)),
+                        Some(Offset::new(22, 23)),
+                    ],
+                    reference_offsets: vec![
+                        vec![0, 1, 2, 3, 4],
+                        vec![5],
+                        vec![7, 8, 9, 10, 11, 12, 13, 14, 15],
+                        vec![17, 18, 19, 20, 21],
+                        vec![22],
+                    ],
+                    mask: vec![
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::None,
+                        Mask::Punctuation,
+                    ],
+                },
             ),
             (
                 "[UNK]中华人民共和国 [PAD] asdf",
                 TokenizedInput {
-                    token_ids: vec!(2, 7, 8, 9, 2, 2, 2, 2, 10, 2),
-                    segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    overflowing_tokens: vec!(),
+                    token_ids: vec![2, 7, 8, 9, 2, 2, 2, 2, 10, 2],
+                    segment_ids: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    special_tokens_mask: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    overflowing_tokens: vec![],
                     num_truncated_tokens: 0,
-                    token_offsets:
-                    vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 5, end: 6 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 7, end: 8 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 9, end: 10 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 19, end: 23 })),
-                    reference_offsets: vec!(vec!(0, 1, 2, 3, 4), vec!(5), vec!(6), vec!(7), vec!(8), vec!(9), vec!(10), vec!(11), vec!(13, 14, 15, 16, 17), vec!(19, 20, 21, 22)),
-                    mask:
-                    vec!(Mask::Unknown, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::CJK, Mask::Special, Mask::None),
-                }
+                    token_offsets: vec![
+                        Some(Offset { begin: 0, end: 5 }),
+                        Some(Offset { begin: 5, end: 6 }),
+                        Some(Offset { begin: 6, end: 7 }),
+                        Some(Offset { begin: 7, end: 8 }),
+                        Some(Offset { begin: 8, end: 9 }),
+                        Some(Offset { begin: 9, end: 10 }),
+                        Some(Offset { begin: 10, end: 11 }),
+                        Some(Offset { begin: 11, end: 12 }),
+                        Some(Offset { begin: 13, end: 18 }),
+                        Some(Offset { begin: 19, end: 23 }),
+                    ],
+                    reference_offsets: vec![
+                        vec![0, 1, 2, 3, 4],
+                        vec![5],
+                        vec![6],
+                        vec![7],
+                        vec![8],
+                        vec![9],
+                        vec![10],
+                        vec![11],
+                        vec![13, 14, 15, 16, 17],
+                        vec![19, 20, 21, 22],
+                    ],
+                    mask: vec![
+                        Mask::Unknown,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::CJK,
+                        Mask::Special,
+                        Mask::None,
+                    ],
+                },
             ),
             (
                 "[UNK] a ! c ! e ! g ! i ! [PAD] a ! c ! e ! g ! i !",
                 TokenizedInput {
-                    token_ids: vec!(2, 2, 3, 2, 3, 2, 3, 2, 3, 2),
-                    segment_ids: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    overflowing_tokens: vec!(3, 10, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3),
+                    token_ids: vec![2, 2, 3, 2, 3, 2, 3, 2, 3, 2],
+                    segment_ids: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    special_tokens_mask: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    overflowing_tokens: vec![3, 10, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
                     num_truncated_tokens: 12,
-                    token_offsets: vec!(Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 7 }), Some(Offset { begin: 8, end: 9 }), Some(Offset { begin: 10, end: 11 }), Some(Offset { begin: 12, end: 13 }), Some(Offset { begin: 14, end: 15 }), Some(Offset { begin: 16, end: 17 }), Some(Offset { begin: 18, end: 19 }), Some(Offset { begin: 20, end: 21 }), Some(Offset { begin: 22, end: 23 })),
-                    reference_offsets: vec!(vec!(0, 1, 2, 3, 4), vec!(6), vec!(8), vec!(10), vec!(12), vec!(14), vec!(16), vec!(18), vec!(20), vec!(22)),
-                    mask: vec!(Mask::Unknown, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None, Mask::Punctuation, Mask::None),
-                }
-            )
+                    token_offsets: vec![
+                        Some(Offset { begin: 0, end: 5 }),
+                        Some(Offset { begin: 6, end: 7 }),
+                        Some(Offset { begin: 8, end: 9 }),
+                        Some(Offset { begin: 10, end: 11 }),
+                        Some(Offset { begin: 12, end: 13 }),
+                        Some(Offset { begin: 14, end: 15 }),
+                        Some(Offset { begin: 16, end: 17 }),
+                        Some(Offset { begin: 18, end: 19 }),
+                        Some(Offset { begin: 20, end: 21 }),
+                        Some(Offset { begin: 22, end: 23 }),
+                    ],
+                    reference_offsets: vec![
+                        vec![0, 1, 2, 3, 4],
+                        vec![6],
+                        vec![8],
+                        vec![10],
+                        vec![12],
+                        vec![14],
+                        vec![16],
+                        vec![18],
+                        vec![20],
+                        vec![22],
+                    ],
+                    mask: vec![
+                        Mask::Unknown,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                        Mask::Punctuation,
+                        Mask::None,
+                    ],
+                },
+            ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
+        let expected_results: Vec<TokenizedInput> =
+            test_tuples.iter().map(|v| v.1.clone()).collect();
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let tokenized_input = base_tokenizer.encode(source_text, None, 10, &truncation_strategy, 0)?;
-            assert_eq!(tokenized_input.token_ids.len(), tokenized_input.token_offsets.len(), "Offsets and tokens must have same length");
+            let tokenized_input =
+                base_tokenizer.encode(source_text, None, 10, &truncation_strategy, 0);
+            assert_eq!(
+                tokenized_input.token_ids.len(),
+                tokenized_input.token_offsets.len(),
+                "Offsets and tokens must have same length"
+            );
             assert_eq!(tokenized_input, *expected_result, "Testing results");
         }
-        assert_eq!(Tokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
-        assert_eq!(MultiThreadedTokenizer::encode_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
-        Ok(())
+        assert_eq!(
+            Tokenizer::encode_list(
+                &base_tokenizer,
+                source_texts.clone(),
+                10,
+                &truncation_strategy,
+                0
+            ),
+            expected_results
+        );
+        assert_eq!(
+            MultiThreadedTokenizer::encode_list(
+                &base_tokenizer,
+                source_texts.clone(),
+                10,
+                &truncation_strategy,
+                0
+            ),
+            expected_results
+        );
     }
 
     #[test]
-    fn test_encode_sentence_pair() -> anyhow::Result<()> {
-//        Given
+    fn test_encode_sentence_pair() {
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, true, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
 //            No truncation required
@@ -1055,130 +1604,216 @@ mod tests {
             )
         ];
         let source_texts: Vec<(&str, &str)> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
+        let expected_results: Vec<TokenizedInput> =
+            test_tuples.iter().map(|v| v.1.clone()).collect();
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let tokenized_input = base_tokenizer.encode(source_text.0, Some(source_text.1), 10, &truncation_strategy, 0)?;
-            assert_eq!(tokenized_input.token_ids.len(), tokenized_input.token_offsets.len(), "Offsets and tokens must have same length");
+            let tokenized_input = base_tokenizer.encode(
+                source_text.0,
+                Some(source_text.1),
+                10,
+                &truncation_strategy,
+                0,
+            );
+            assert_eq!(
+                tokenized_input.token_ids.len(),
+                tokenized_input.token_offsets.len(),
+                "Offsets and tokens must have same length"
+            );
             assert_eq!(tokenized_input, *expected_result, "Testing results");
         }
-        assert_eq!(Tokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
-        assert_eq!(MultiThreadedTokenizer::encode_pair_list(&base_tokenizer, source_texts.clone(), 10, &truncation_strategy, 0)?, expected_results);
-        Ok(())
+        assert_eq!(
+            Tokenizer::encode_pair_list(
+                &base_tokenizer,
+                source_texts.clone(),
+                10,
+                &truncation_strategy,
+                0
+            ),
+            expected_results
+        );
+        assert_eq!(
+            MultiThreadedTokenizer::encode_pair_list(
+                &base_tokenizer,
+                source_texts.clone(),
+                10,
+                &truncation_strategy,
+                0
+            ),
+            expected_results
+        );
     }
 
     #[test]
-    fn test_decode() -> anyhow::Result<()> {
-//        Given
+    fn test_decode() {
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, true, true);
         let skip_special_tokens = false;
         let clean_up_tokenization_spaces = false;
         let test_tuples = [
-            (
-                vec!(0, 1, 3),
-                "hello world !",
-            ),
-            (
-                vec!(10, 0, 1, 3),
-                "[PAD] hello world !",
-            ),
-            (
-                vec!(10, 0, 1, 2, 3),
-                "[PAD] hello world [UNK] !",
-            )
+            (vec![0, 1, 3], "hello world !"),
+            (vec![10, 0, 1, 3], "[PAD] hello world !"),
+            (vec![10, 0, 1, 2, 3], "[PAD] hello world [UNK] !"),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
         let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
 
-//        When & Then
+        //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
-                       *expected_result);
+            assert_eq!(
+                base_tokenizer.decode(
+                    source_ids.clone(),
+                    skip_special_tokens,
+                    clean_up_tokenization_spaces
+                ),
+                *expected_result
+            );
         }
-        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
-        Ok(())
+        assert_eq!(
+            Tokenizer::decode_list(
+                &base_tokenizer,
+                source_ids.clone(),
+                skip_special_tokens,
+                clean_up_tokenization_spaces
+            ),
+            expected_results
+        );
+        assert_eq!(
+            MultiThreadedTokenizer::decode_list(
+                &base_tokenizer,
+                source_ids.clone(),
+                skip_special_tokens,
+                clean_up_tokenization_spaces
+            ),
+            expected_results
+        );
     }
 
     #[test]
-    fn test_decode_skip_special_tokens() -> anyhow::Result<()> {
-//        Given
+    fn test_decode_skip_special_tokens() {
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, true, true);
         let skip_special_tokens = true;
         let clean_up_tokenization_spaces = false;
         let test_tuples = [
-            (
-                vec!(0, 1, 3),
-                "hello world !",
-            ),
-            (
-                vec!(10, 0, 1, 3),
-                "hello world !",
-            ),
-            (
-                vec!(10, 0, 1, 2, 3),
-                "hello world !",
-            )
+            (vec![0, 1, 3], "hello world !"),
+            (vec![10, 0, 1, 3], "hello world !"),
+            (vec![10, 0, 1, 2, 3], "hello world !"),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
         let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
 
-//        When & Then
+        //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
-                       *expected_result);
+            assert_eq!(
+                base_tokenizer.decode(
+                    source_ids.clone(),
+                    skip_special_tokens,
+                    clean_up_tokenization_spaces
+                ),
+                *expected_result
+            );
         }
-        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
-        Ok(())
+        assert_eq!(
+            Tokenizer::decode_list(
+                &base_tokenizer,
+                source_ids.clone(),
+                skip_special_tokens,
+                clean_up_tokenization_spaces
+            ),
+            expected_results
+        );
+        assert_eq!(
+            MultiThreadedTokenizer::decode_list(
+                &base_tokenizer,
+                source_ids.clone(),
+                skip_special_tokens,
+                clean_up_tokenization_spaces
+            ),
+            expected_results
+        );
     }
 
     #[test]
-    fn test_decode_clean_up_tokenization_spaces() -> anyhow::Result<()> {
-//        Given
+    fn test_decode_clean_up_tokenization_spaces() {
+        //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let base_tokenizer: BaseTokenizer<BertVocab> = BaseTokenizer::from_existing_vocab(vocab, true, true);
+        let base_tokenizer: BaseTokenizer<BertVocab> =
+            BaseTokenizer::from_existing_vocab(vocab, true, true);
         let skip_special_tokens = true;
         let clean_up_tokenization_spaces = true;
         let test_tuples = [
-            (
-                vec!(0, 1, 3),
-                "hello world!",
-            ),
-            (
-                vec!(10, 0, 1, 3),
-                "hello world!",
-            ),
-            (
-                vec!(10, 0, 1, 2, 3),
-                "hello world!",
-            )
+            (vec![0, 1, 3], "hello world!"),
+            (vec![10, 0, 1, 3], "hello world!"),
+            (vec![10, 0, 1, 2, 3], "hello world!"),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
         let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
 
-//        When & Then
+        //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(base_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?,
-                       *expected_result);
+            assert_eq!(
+                base_tokenizer.decode(
+                    source_ids.clone(),
+                    skip_special_tokens,
+                    clean_up_tokenization_spaces
+                ),
+                *expected_result
+            );
         }
-        assert_eq!(Tokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
-        assert_eq!(MultiThreadedTokenizer::decode_list(&base_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces)?, expected_results);
-        Ok(())
+        assert_eq!(
+            Tokenizer::decode_list(
+                &base_tokenizer,
+                source_ids.clone(),
+                skip_special_tokens,
+                clean_up_tokenization_spaces
+            ),
+            expected_results
+        );
+        assert_eq!(
+            MultiThreadedTokenizer::decode_list(
+                &base_tokenizer,
+                source_ids.clone(),
+                skip_special_tokens,
+                clean_up_tokenization_spaces
+            ),
+            expected_results
+        );
     }
 
     #[test]
     fn test_consolidated_token_iterator() {
-        let tokens = vec!(
-            Token { text: "he".to_owned(), offset: Offset::new(0, 2), reference_offsets: vec!(0, 1), mask: Mask::Begin },
-            Token { text: "llo".to_owned(), offset: Offset::new(2, 5), reference_offsets: vec!(2, 3, 4), mask: Mask::Continuation },
-            Token { text: "world".to_owned(), offset: Offset::new(6, 11), reference_offsets: vec!(6, 7, 8, 9, 10), mask: Mask::None },
-            Token { text: "!".to_owned(), offset: Offset::new(11, 12), reference_offsets: vec!(11), mask: Mask::Punctuation },
-        );
-
+        let tokens = vec![
+            Token {
+                text: "he".to_owned(),
+                offset: Offset::new(0, 2),
+                reference_offsets: vec![0, 1],
+                mask: Mask::Begin,
+            },
+            Token {
+                text: "llo".to_owned(),
+                offset: Offset::new(2, 5),
+                reference_offsets: vec![2, 3, 4],
+                mask: Mask::Continuation,
+            },
+            Token {
+                text: "world".to_owned(),
+                offset: Offset::new(6, 11),
+                reference_offsets: vec![6, 7, 8, 9, 10],
+                mask: Mask::None,
+            },
+            Token {
+                text: "!".to_owned(),
+                offset: Offset::new(11, 12),
+                reference_offsets: vec![11],
+                mask: Mask::Punctuation,
+            },
+        ];
 
         let mut iter = tokens.iter_consolidate_tokens();
         assert_eq!(iter.next(), Some(&tokens[0..2]));
