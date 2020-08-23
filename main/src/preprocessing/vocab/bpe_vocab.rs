@@ -10,11 +10,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::preprocessing::error::TokenizerError;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
-use std::ptr;
+use std::io::{BufRead, BufReader};
 use std::mem::ManuallyDrop;
+use std::ptr;
 
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
 pub struct BpePairRef<'a> {
@@ -23,24 +24,32 @@ pub struct BpePairRef<'a> {
 }
 
 pub struct BpePairVocab {
-    pub values: HashMap<(String, String), i64>
+    pub values: HashMap<(String, String), i64>,
 }
 
 impl BpePairVocab {
-    pub fn from_file(path: &str) -> BpePairVocab {
-        let f = File::open(path).expect("Could not open vocabulary file.");
+    pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizerError> {
+        let f = File::open(path).map_err(|e| {
+            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        })?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
         for line in br.lines().skip(1) {
-            let tuple: Vec<String> = line.unwrap().trim().split(' ').map(|v| v.to_owned()).collect();
+            let line = match line {
+                Ok(value) => value,
+                Err(e) => {
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+                }
+            };
+            let tuple: Vec<String> = line.trim().split(' ').map(|v| v.to_owned()).collect();
             if tuple.len() > 1 {
                 data.insert((tuple[0].clone(), tuple[1].clone()), index);
                 index += 1;
             }
-        };
+        }
 
-        BpePairVocab { values: data }
+        Ok(BpePairVocab { values: data })
     }
 
     pub fn byte_pair_to_id(&self, byte_pair: &BpePairRef) -> Option<&i64> {
@@ -60,27 +69,27 @@ impl BpePairVocab {
 //==============================
 #[cfg(test)]
 mod tests {
+    extern crate anyhow;
     use super::*;
-    use std::io;
     use std::io::Write;
 
     #[test]
     fn test_create_pair_vocab() {
-//        Given
+        //        Given
         let values: HashMap<(String, String), i64> = HashMap::new();
 
-//        When
+        //        When
         let pair_vocab = BpePairVocab {
             values: values.clone(),
         };
 
-//        Then
+        //        Then
         assert_eq!(pair_vocab.values, values);
     }
 
     #[test]
-    fn test_create_pair_vocab_from_file() -> Result<(), io::Error> {
-//        Given
+    fn test_create_pair_vocab_from_file() -> anyhow::Result<()> {
+        //        Given
         let mut merges_file = tempfile::NamedTempFile::new()?;
         write!(merges_file, "#version: 0.1\n t h\na n\ni n\nth e</w>")?;
         let path = merges_file.into_temp_path();
@@ -89,26 +98,29 @@ mod tests {
             (("a".to_owned(), "n".to_owned()), 1),
             (("i".to_owned(), "n".to_owned()), 2),
             (("th".to_owned(), "e</w>".to_owned()), 3),
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
-//        When
-        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap());
+        //        When
+        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        Then
+        //        Then
         assert_eq!(pair_vocab.values, target_values);
         drop(path);
         Ok(())
     }
 
     #[test]
-    fn test_encode_byte_pairs() -> Result<(), io::Error> {
-//        Given
+    fn test_encode_byte_pairs() -> anyhow::Result<()> {
+        //        Given
         let mut merges_file = tempfile::NamedTempFile::new()?;
         write!(merges_file, "#version: 0.1\n t h\na n\ni n\nth e</w>")?;
         let path = merges_file.into_temp_path();
-        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        Given
+        //        Given
         let t = String::from("t");
         let h = String::from("h");
         let a = String::from("a");
@@ -118,31 +130,22 @@ mod tests {
         let e_eow = String::from("e</w>");
 
         let test_tuples = [
-            (
-                (t.clone(), h.clone()),
-                Some(&(0 as i64))
-            ),
-            (
-                (a.clone(), n.clone()),
-                Some(&(1 as i64))
-            ),
-            (
-                (i.clone(), n.clone()),
-                Some(&(2 as i64))
-            ),
-            (
-                (th.clone(), e_eow.clone()),
-                Some(&(3 as i64))
-            ),
-            (
-                (a.clone(), e_eow.clone()),
-                None
-            )
+            ((t.clone(), h.clone()), Some(&(0 as i64))),
+            ((a.clone(), n.clone()), Some(&(1 as i64))),
+            ((i.clone(), n.clone()), Some(&(2 as i64))),
+            ((th.clone(), e_eow.clone()), Some(&(3 as i64))),
+            ((a.clone(), e_eow.clone()), None),
         ];
 
-//        When & Then
+        //        When & Then
         for (input, expected_output) in &test_tuples {
-            assert_eq!(pair_vocab.byte_pair_to_id(&BpePairRef { byte_1: &input.0, byte_2: &input.1 }), *expected_output);
+            assert_eq!(
+                pair_vocab.byte_pair_to_id(&BpePairRef {
+                    byte_1: &input.0,
+                    byte_2: &input.1
+                }),
+                *expected_output
+            );
         }
 
         drop(path);

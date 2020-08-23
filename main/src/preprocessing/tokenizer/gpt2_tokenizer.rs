@@ -12,19 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::Gpt2Vocab;
-use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::tokenizer::base_tokenizer::{Tokenizer, Token, TokenRef, Mask};
-use std::collections::HashMap;
-use crate::preprocessing::tokenizer::tokenization_utils::{bpe, split_on_special_tokens, split_on_regex_with_lookahead, split_on_bpe_pairs, fix_mask};
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
-use regex::Regex;
+use crate::preprocessing::error::TokenizerError;
+use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Token, TokenRef, Tokenizer};
 use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
-use std::iter::Iterator;
-use itertools::Itertools;
+use crate::preprocessing::tokenizer::tokenization_utils::{
+    bpe, fix_mask, split_on_bpe_pairs, split_on_regex_with_lookahead, split_on_special_tokens,
+};
+use crate::preprocessing::vocab::base_vocab::Vocab;
+use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
 use crate::tokenization_utils::lowercase;
+use crate::Gpt2Vocab;
+use itertools::Itertools;
+use regex::Regex;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::iter::Iterator;
+use std::rc::Rc;
 
 pub struct Gpt2Tokenizer {
     vocab: Rc<Gpt2Vocab>,
@@ -36,20 +39,46 @@ pub struct Gpt2Tokenizer {
 }
 
 impl Gpt2Tokenizer {
-    pub fn from_file(vocab_path: &str, merges_path: &str, lower_case: bool) -> Gpt2Tokenizer {
-        let vocab = Rc::new(Gpt2Vocab::from_file(vocab_path));
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path));
+    pub fn from_file(
+        vocab_path: &str,
+        merges_path: &str,
+        lower_case: bool,
+    ) -> Result<Gpt2Tokenizer, TokenizerError> {
+        let vocab = Rc::new(Gpt2Vocab::from_file(vocab_path)?);
+        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
         let cache = RefCell::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
-        let pattern_tokenization = Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+").unwrap();
-        Gpt2Tokenizer { vocab, bpe_ranks, cache, pattern_lookahead, pattern_tokenization, lower_case }
+        let pattern_tokenization =
+            Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
+                .unwrap();
+        Ok(Gpt2Tokenizer {
+            vocab,
+            bpe_ranks,
+            cache,
+            pattern_lookahead,
+            pattern_tokenization,
+            lower_case,
+        })
     }
 
-    pub fn from_existing_vocab_and_merges(vocab: Rc<Gpt2Vocab>, merges: Rc<BpePairVocab>, lower_case: bool) -> Gpt2Tokenizer {
+    pub fn from_existing_vocab_and_merges(
+        vocab: Rc<Gpt2Vocab>,
+        merges: Rc<BpePairVocab>,
+        lower_case: bool,
+    ) -> Gpt2Tokenizer {
         let cache = RefCell::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
-        let pattern_tokenization = Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+").unwrap();
-        Gpt2Tokenizer { vocab, bpe_ranks: merges, cache, pattern_lookahead, pattern_tokenization, lower_case }
+        let pattern_tokenization =
+            Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
+                .unwrap();
+        Gpt2Tokenizer {
+            vocab,
+            bpe_ranks: merges,
+            cache,
+            pattern_lookahead,
+            pattern_tokenization,
+            lower_case,
+        }
     }
 }
 
@@ -70,8 +99,18 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
                 if self.lower_case {
                     lowercase(token);
                 }
-                for token in split_on_regex_with_lookahead(token.as_ref(), &self.pattern_lookahead, &self.pattern_tokenization) {
-                    sub_tokens.extend(split_on_bpe_pairs(token, bpe, (&self.bpe_ranks).as_ref(), &self.cache, true));
+                for token in split_on_regex_with_lookahead(
+                    token.as_ref(),
+                    &self.pattern_lookahead,
+                    &self.pattern_tokenization,
+                ) {
+                    sub_tokens.extend(split_on_bpe_pairs(
+                        token,
+                        bpe,
+                        (&self.bpe_ranks).as_ref(),
+                        &self.cache,
+                        true,
+                    ));
                 }
             } else {
                 sub_tokens.push(token.clone());
@@ -89,19 +128,21 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
             .replace(" ##", "")
             .trim()
             .chars()
-            .map(|character| UNICODE_TO_BYTES.get(&character).unwrap().clone())
-            .collect_vec();
-        String::from_utf8_lossy(&tokens).to_string()
+            .map(|character| *UNICODE_TO_BYTES.get(&character).unwrap())
+            .collect::<Vec<u8>>();
+        String::from_utf8_lossy(tokens.as_slice()).to_string()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::preprocessing::tokenizer::base_tokenizer::{
+        Offset, TokenizedInput, TruncationStrategy,
+    };
+    use crate::preprocessing::vocab::base_vocab::swap_key_values;
     use crate::Gpt2Vocab;
     use std::collections::HashMap;
-    use crate::preprocessing::tokenizer::base_tokenizer::{TruncationStrategy, TokenizedInput, Offset};
-    use crate::preprocessing::vocab::base_vocab::swap_key_values;
 
     fn generate_test_vocab() -> Gpt2Vocab {
         let values: HashMap<String, i64> = [
@@ -115,16 +156,24 @@ mod tests {
             ("o@@".to_owned(), 7),
             ("Ġear".to_owned(), 8),
             ("th".to_owned(), 9),
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
-        let special_values: HashMap<String, i64> = [
-            ("<|endoftext|>".to_owned(), 6),
-        ].iter().cloned().collect();
+        let special_values: HashMap<String, i64> =
+            [("<|endoftext|>".to_owned(), 6)].iter().cloned().collect();
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        Gpt2Vocab { values, indices, unknown_value: "<|endoftext|>", special_values, special_indices }
+        Gpt2Vocab {
+            values,
+            indices,
+            unknown_value: "<|endoftext|>",
+            special_values,
+            special_indices,
+        }
     }
 
     fn generate_test_merges() -> BpePairVocab {
@@ -139,178 +188,173 @@ mod tests {
             (("Ġ".to_owned(), "e".to_owned()), 7),
             (("Ġe".to_owned(), "a".to_owned()), 8),
             (("Ġea".to_owned(), "r".to_owned()), 9),
-        ].iter().cloned().collect();
-
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         BpePairVocab { values }
     }
 
     #[test]
     fn test_gpt2_tokenizer() {
-//        Given
+        //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let gpt2_tokenizer: Gpt2Tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+        let gpt2_tokenizer: Gpt2Tokenizer =
+            Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let test_tuples = [
-            (
-                "the Earth",
-                vec!("the", "Ġear", "th")
-            ),
-            (
-                "",
-                vec!()
-            ),
-            (
-                " ",
-                vec!()
-            ),
-            (
-                "   t",
-                vec!("Ġ", "Ġ", "Ġt")
-            ),
-            (
-                "t ",
-                vec!("t")
-            ),
-            (
-                " \n ",
-                vec!()
-            ),
+            ("the Earth", vec!["the", "Ġear", "th"]),
+            ("", vec![]),
+            (" ", vec![]),
+            ("   t", vec!["Ġ", "Ġ", "Ġt"]),
+            ("t ", vec!["t"]),
+            (" \n ", vec![]),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
         let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
             assert_eq!(gpt2_tokenizer.tokenize(*source_text), *expected_result);
         }
 
-        assert_eq!(gpt2_tokenizer.tokenize_list(source_texts.clone()), expected_results);
+        assert_eq!(
+            gpt2_tokenizer.tokenize_list(source_texts.clone()),
+            expected_results
+        );
     }
 
     #[test]
     fn test_gpt2_tokenizer_no_lower_casing() {
-//        Given
+        //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let gpt2_tokenizer: Gpt2Tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, false);
+        let gpt2_tokenizer: Gpt2Tokenizer =
+            Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let test_tuples = [
-            (
-                "the Earth",
-                vec!("the", "Ġ", "E", "a", "r", "th")
-            ),
-            (
-                "",
-                vec!()
-            ),
-            (
-                " ",
-                vec!()
-            ),
-            (
-                "   t",
-                vec!("Ġ", "Ġ", "Ġt")
-            ),
-            (
-                " \n ",
-                vec!()
-            ),
+            ("the Earth", vec!["the", "Ġ", "E", "a", "r", "th"]),
+            ("", vec![]),
+            (" ", vec![]),
+            ("   t", vec!["Ġ", "Ġ", "Ġt"]),
+            (" \n ", vec![]),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
         let expected_results: Vec<Vec<&str>> = test_tuples.iter().map(|v| v.1.clone()).collect();
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
             assert_eq!(gpt2_tokenizer.tokenize(*source_text), *expected_result);
         }
 
-        assert_eq!(gpt2_tokenizer.tokenize_list(source_texts.clone()), expected_results);
+        assert_eq!(
+            gpt2_tokenizer.tokenize_list(source_texts.clone()),
+            expected_results
+        );
     }
 
     #[test]
     fn test_encode() {
-//        Given
+        //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let gpt2_tokenizer: Gpt2Tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+        let gpt2_tokenizer: Gpt2Tokenizer =
+            Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (
                 "the earth",
                 TokenizedInput {
-                    token_ids: vec!(4, 8, 9),
-                    segment_ids: vec!(0, 0, 0),
-                    special_tokens_mask: vec!(0, 0, 0),
-                    overflowing_tokens: vec!(),
+                    token_ids: vec![4, 8, 9],
+                    segment_ids: vec![0, 0, 0],
+                    special_tokens_mask: vec![0, 0, 0],
+                    overflowing_tokens: vec![],
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(
-                        Some(Offset { begin: 0, end: 3 }), Some(Offset { begin: 3, end: 7 }), Some(Offset { begin: 7, end: 9 })
-                    ),
-                    reference_offsets: vec!(vec!(0, 1, 2), vec!(3, 4, 5, 6), vec!(7, 8)),
-                    mask: vec!(Mask::None, Mask::Begin, Mask::Continuation),
-                }
+                    token_offsets: vec![
+                        Some(Offset { begin: 0, end: 3 }),
+                        Some(Offset { begin: 3, end: 7 }),
+                        Some(Offset { begin: 7, end: 9 }),
+                    ],
+                    reference_offsets: vec![vec![0, 1, 2], vec![3, 4, 5, 6], vec![7, 8]],
+                    mask: vec![Mask::None, Mask::Begin, Mask::Continuation],
+                },
             ),
             (
                 " ",
                 TokenizedInput {
-                    token_ids: vec!(),
-                    segment_ids: vec!(),
-                    special_tokens_mask: vec!(),
-                    overflowing_tokens:
-                    vec!(),
+                    token_ids: vec![],
+                    segment_ids: vec![],
+                    special_tokens_mask: vec![],
+                    overflowing_tokens: vec![],
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(),
-                    reference_offsets: vec!(),
-                    mask: vec!(),
-                }
+                    token_offsets: vec![],
+                    reference_offsets: vec![],
+                    mask: vec![],
+                },
             ),
             (
                 "",
                 TokenizedInput {
-                    token_ids: vec!(),
-                    segment_ids: vec!(),
-                    special_tokens_mask: vec!(),
-                    overflowing_tokens: vec!(),
+                    token_ids: vec![],
+                    segment_ids: vec![],
+                    special_tokens_mask: vec![],
+                    overflowing_tokens: vec![],
                     num_truncated_tokens: 0,
-                    token_offsets: vec!(),
-                    reference_offsets: vec!(),
-                    mask: vec!(),
-                }
-            )
+                    token_offsets: vec![],
+                    reference_offsets: vec![],
+                    mask: vec![],
+                },
+            ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
-        let expected_results: Vec<TokenizedInput> = test_tuples.iter().map(|v| v.1.clone()).collect();
+        let expected_results: Vec<TokenizedInput> =
+            test_tuples.iter().map(|v| v.1.clone()).collect();
 
-//        When & Then
+        //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(gpt2_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
-                       *expected_result);
+            assert_eq!(
+                gpt2_tokenizer.encode(source_text, None, 128, &truncation_strategy, 0),
+                *expected_result
+            );
         }
-        assert_eq!(gpt2_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0), expected_results);
+        assert_eq!(
+            gpt2_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0),
+            expected_results
+        );
     }
 
     #[test]
     fn test_decode() {
-//        Given
+        //        Given
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
-        let gpt2_tokenizer: Gpt2Tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+        let gpt2_tokenizer: Gpt2Tokenizer =
+            Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let skip_special_tokens = false;
         let clean_up_tokenization_spaces = false;
-        let test_tuples = [
-            (
-                vec!(4, 8, 9),
-                "the earth",
-            )
-        ];
+        let test_tuples = [(vec![4, 8, 9], "the earth")];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
         let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
 
-//        When & Then
+        //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
-            assert_eq!(gpt2_tokenizer.decode(source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces),
-                       *expected_result);
+            assert_eq!(
+                gpt2_tokenizer.decode(
+                    source_ids.clone(),
+                    skip_special_tokens,
+                    clean_up_tokenization_spaces
+                ),
+                *expected_result
+            );
         }
-        assert_eq!(Tokenizer::decode_list(&gpt2_tokenizer, source_ids.clone(), skip_special_tokens, clean_up_tokenization_spaces), expected_results);
+        assert_eq!(
+            Tokenizer::decode_list(
+                &gpt2_tokenizer,
+                source_ids.clone(),
+                skip_special_tokens,
+                clean_up_tokenization_spaces
+            ),
+            expected_results
+        );
     }
 }

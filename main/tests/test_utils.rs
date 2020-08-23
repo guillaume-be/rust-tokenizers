@@ -1,7 +1,7 @@
-use std::path::PathBuf;
 use std::fs;
 use std::fs::File;
 use std::io::copy;
+use std::path::PathBuf;
 
 pub fn download_file_to_cache(src: &str, target: &str) -> Result<PathBuf, reqwest::Error> {
     let mut home = dirs::home_dir().unwrap();

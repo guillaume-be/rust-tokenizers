@@ -5,6 +5,16 @@ matrix:
       rust: stable
       os:
         - linux
+      before_script:
+        - rustup component add rustfmt
+      script:
+        - cargo fmt --manifest-path ./main/Cargo.toml -- --check
+        - cargo fmt --manifest-path ./python-bindings/Cargo.toml -- --check
+
+    - language: rust
+      rust: stable
+      os:
+        - linux
       script:
         - cargo build --manifest-path ./main/Cargo.toml --verbose
         - cargo test --manifest-path ./main/Cargo.toml

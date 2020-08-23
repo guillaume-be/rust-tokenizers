@@ -11,9 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::preprocessing::error::TokenizerError;
+use crate::preprocessing::vocab::base_vocab::{swap_key_values, Vocab};
 use std::collections::HashMap;
-use crate::preprocessing::vocab::base_vocab::{Vocab, swap_key_values};
-use std::process;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -37,105 +37,136 @@ pub struct RobertaVocab {
 }
 
 impl RobertaVocab {
-    pub fn pad_value() -> &'static str { "<pad>" }
-    pub fn bos_value() -> &'static str { "<s>" }
-    pub fn eos_value() -> &'static str { "</s>" }
-    pub fn sep_value() -> &'static str { "</s>" }
-    pub fn cls_value() -> &'static str { "<s>" }
-    pub fn mask_value() -> &'static str { "<mask>" }
+    pub fn pad_value() -> &'static str {
+        "<pad>"
+    }
+    pub fn bos_value() -> &'static str {
+        "<s>"
+    }
+    pub fn eos_value() -> &'static str {
+        "</s>"
+    }
+    pub fn sep_value() -> &'static str {
+        "</s>"
+    }
+    pub fn cls_value() -> &'static str {
+        "<s>"
+    }
+    pub fn mask_value() -> &'static str {
+        "<mask>"
+    }
 }
 
 impl Vocab for RobertaVocab {
-    fn unknown_value() -> &'static str { "<unk>" }
+    fn unknown_value() -> &'static str {
+        "<unk>"
+    }
 
-    fn get_unknown_value(&self) -> &'static str { "<unk>" }
+    fn get_unknown_value(&self) -> &'static str {
+        "<unk>"
+    }
 
     fn values(&self) -> &HashMap<String, i64> {
         &self.values
     }
 
-    fn indices(&self) -> &HashMap<i64, String> { &self.indices }
+    fn indices(&self) -> &HashMap<i64, String> {
+        &self.indices
+    }
 
     fn special_values(&self) -> &HashMap<String, i64> {
         &self.special_values
     }
 
-    fn special_indices(&self) -> &HashMap<i64, String> { &self.special_indices }
+    fn special_indices(&self) -> &HashMap<i64, String> {
+        &self.special_indices
+    }
 
     ///Read a Roberta-style vocab.json file
-    fn from_file(path: &str) -> RobertaVocab {
-        let f = File::open(path).expect("Could not open vocabulary file.");
+    fn from_file(path: &str) -> Result<RobertaVocab, TokenizerError> {
+        let f = File::open(path).map_err(|e| {
+            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        })?;
         let br = BufReader::new(f);
-        let values: HashMap<String, i64> = serde_json::from_reader(br).expect("could not parse vocabulary");
+        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+            }
+        };
         let mut special_values = HashMap::new();
         let unknown_value = RobertaVocab::unknown_value();
-        RobertaVocab::_register_as_special_value(unknown_value, &values, &mut special_values);
+        RobertaVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
         let pad_value = RobertaVocab::pad_value();
-        RobertaVocab::_register_as_special_value(pad_value, &values, &mut special_values);
+        RobertaVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
         let sep_value = RobertaVocab::sep_value();
-        RobertaVocab::_register_as_special_value(sep_value, &values, &mut special_values);
+        RobertaVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
 
         let cls_value = RobertaVocab::cls_value();
-        RobertaVocab::_register_as_special_value(cls_value, &values, &mut special_values);
+        RobertaVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
 
         let mask_value = RobertaVocab::mask_value();
-        RobertaVocab::_register_as_special_value(mask_value, &values, &mut special_values);
+        RobertaVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
 
         let bos_value = RobertaVocab::bos_value();
-        RobertaVocab::_register_as_special_value(bos_value, &values, &mut special_values);
+        RobertaVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
 
         let eos_value = RobertaVocab::eos_value();
-        RobertaVocab::_register_as_special_value(eos_value, &values, &mut special_values);
+        RobertaVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        RobertaVocab { values, indices, unknown_value, special_values, special_indices }
+        Ok(RobertaVocab {
+            values,
+            indices,
+            unknown_value,
+            special_values,
+            special_indices,
+        })
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
-        match self._token_to_id(token, &self.values, &self.special_values, &self.unknown_value) {
-            Ok(index) => index,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._token_to_id(
+            token,
+            &self.values,
+            &self.special_values,
+            &self.unknown_value,
+        )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        match self._id_to_token(&id, &self.indices, &self.special_indices, &self.unknown_value) {
-            Ok(token) => token,
-            Err(err) => {
-                println!("{}", err);
-                process::exit(1);
-            }
-        }
+        self._id_to_token(
+            &id,
+            &self.indices,
+            &self.special_indices,
+            &self.unknown_value,
+        )
     }
 }
-
 
 //==============================
 // Unit tests
 //==============================
 #[cfg(test)]
 mod tests {
+    extern crate anyhow;
+
     use super::*;
-    use std::io;
     use std::io::Write;
 
     #[test]
     fn test_create_vocab() {
-//        Given
+        //        Given
         let values: HashMap<String, i64> = HashMap::new();
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
         let unknown_value = RobertaVocab::unknown_value();
 
-//        When
+        //        When
         let roberta_vocab = RobertaVocab {
             values,
             indices,
@@ -144,7 +175,7 @@ mod tests {
             special_values,
         };
 
-//        Then
+        //        Then
         assert_eq!(roberta_vocab.unknown_value, "<unk>");
         assert_eq!(RobertaVocab::pad_value(), "<pad>");
         assert_eq!(RobertaVocab::sep_value(), "</s>");
@@ -154,12 +185,15 @@ mod tests {
         assert_eq!(RobertaVocab::mask_value(), "<mask>");
         assert_eq!(roberta_vocab.unknown_value, RobertaVocab::unknown_value());
         assert_eq!(roberta_vocab.values, *roberta_vocab.values());
-        assert_eq!(roberta_vocab.special_values, *roberta_vocab.special_values());
+        assert_eq!(
+            roberta_vocab.special_values,
+            *roberta_vocab.special_values()
+        );
     }
 
     #[test]
-    fn test_create_object_from_file() -> Result<(), io::Error> {
-//        Given
+    fn test_create_object_from_file() -> anyhow::Result<()> {
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n, \"<pad>\": 4\n, \"<s>\": 5\n, \"</s>\": 6\n, \"<mask>\": 7\n}}")?;
         let path = vocab_file.into_temp_path();
@@ -172,7 +206,10 @@ mod tests {
             ("<s>".to_owned(), 5),
             ("</s>".to_owned(), 6),
             ("<mask>".to_owned(), 7),
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         let special_values: HashMap<String, i64> = [
             ("<unk>".to_owned(), 2),
@@ -180,12 +217,15 @@ mod tests {
             ("<s>".to_owned(), 5),
             ("</s>".to_owned(), 6),
             ("<mask>".to_owned(), 7),
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
-//        When
-        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap());
+        //        When
+        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        Then
+        //        Then
         assert_eq!(roberta_vocab.unknown_value, "<unk>");
         assert_eq!(roberta_vocab.values, target_values);
         assert_eq!(roberta_vocab.special_values, special_values);
@@ -196,24 +236,24 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_create_object_from_file_without_unknown_token() {
-//        Given
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new().unwrap();
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"!\": 3\n}}").unwrap();
         let path = vocab_file.into_temp_path();
 
-//        When & Then
-        let _roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap());
+        //        When & Then
+        let _roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
     }
 
     #[test]
-    fn test_encode_tokens() -> Result<(), io::Error> {
-//        Given
+    fn test_encode_tokens() -> anyhow::Result<()> {
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n, \"<pad>\": 4\n, \"<s>\": 5\n, \"</s>\": 6\n, \"<mask>\": 7\n}}")?;
         let path = vocab_file.into_temp_path();
-        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        When & Then
+        //        When & Then
         assert_eq!(roberta_vocab.token_to_id("hello"), 1);
         assert_eq!(roberta_vocab.token_to_id("world"), 0);
         assert_eq!(roberta_vocab.token_to_id("!"), 3);
@@ -228,14 +268,14 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_tokens() -> Result<(), io::Error> {
-//        Given
+    fn test_decode_tokens() -> anyhow::Result<()> {
+        //        Given
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n, \"<pad>\": 4\n, \"<s>\": 5\n, \"</s>\": 6\n, \"<mask>\": 7\n}}")?;
         let path = vocab_file.into_temp_path();
-        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap());
+        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
-//        When & Then
+        //        When & Then
         assert_eq!(roberta_vocab.id_to_token(&(1 as i64)), "hello");
         assert_eq!(roberta_vocab.id_to_token(&(0 as i64)), "world");
         assert_eq!(roberta_vocab.id_to_token(&(3 as i64)), "!");

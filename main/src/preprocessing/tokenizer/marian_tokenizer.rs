@@ -11,12 +11,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::vocab::sentence_piece_vocab::{SentencePieceModel};
-use regex::Regex;
-use crate::{Vocab, Tokenizer, MultiThreadedTokenizer};
-use crate::preprocessing::tokenizer::base_tokenizer::{Token, TokenRef, Offset, OffsetSize, Mask};
-use crate::tokenization_utils::{clean_text, decompose_nfkc, lowercase, is_whitespace, split_at_regex};
+use crate::preprocessing::error::TokenizerError;
+use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
 use crate::preprocessing::vocab::marian_vocab::MarianVocab;
+use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
+use crate::tokenization_utils::{
+    clean_text, decompose_nfkc, is_whitespace, lowercase, split_at_regex,
+};
+use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
+use regex::Regex;
 
 pub struct MarianTokenizer {
     model: SentencePieceModel,
@@ -26,33 +29,57 @@ pub struct MarianTokenizer {
 }
 
 impl MarianTokenizer {
-    pub fn from_files(vocab_path: &str, model_path: &str, lower_case: bool) -> MarianTokenizer {
-        let vocab = MarianVocab::from_file(vocab_path);
-        let model = SentencePieceModel::from_file(model_path);
+    pub fn from_files(
+        vocab_path: &str,
+        model_path: &str,
+        lower_case: bool,
+    ) -> Result<MarianTokenizer, TokenizerError> {
+        let vocab = MarianVocab::from_file(vocab_path)?;
+        let model = SentencePieceModel::from_file(model_path)?;
         let pattern_language_code = Regex::new(r">>.+<<").unwrap();
-        MarianTokenizer { model, vocab, pattern_language_code, lower_case }
+        Ok(MarianTokenizer {
+            model,
+            vocab,
+            pattern_language_code,
+            lower_case,
+        })
     }
 
-    pub fn from_existing_vocab_and_model(vocab: MarianVocab, model: SentencePieceModel, lower_case: bool) -> MarianTokenizer {
+    pub fn from_existing_vocab_and_model(
+        vocab: MarianVocab,
+        model: SentencePieceModel,
+        lower_case: bool,
+    ) -> MarianTokenizer {
         let pattern_language_code = Regex::new(r">>.+<<").unwrap();
-        MarianTokenizer { model, vocab, pattern_language_code, lower_case }
+        MarianTokenizer {
+            model,
+            vocab,
+            pattern_language_code,
+            lower_case,
+        }
     }
 }
 
 impl Tokenizer<MarianVocab> for MarianTokenizer {
-    fn vocab(&self) -> &MarianVocab { &self.vocab }
+    fn vocab(&self) -> &MarianVocab {
+        &self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let tokens = split_at_regex(text, &self.pattern_language_code);
         let (code_token, mut token) = match tokens.len() {
-            0 => { return vec!(); }
+            0 => {
+                return vec![];
+            }
             1 => (None, tokens[0].to_owned()),
             2 => (Some(tokens[0].to_owned()), tokens[1].to_owned()),
             _ => {
                 let mut token = Token::new("".to_string());
                 for token_ref in tokens[1..].iter() {
                     token.text.push_str(token_ref.text);
-                    token.reference_offsets.extend_from_slice(token_ref.reference_offsets);
+                    token
+                        .reference_offsets
+                        .extend_from_slice(token_ref.reference_offsets);
                     token.offset.end = token_ref.offset.end;
                 }
                 (Some(tokens[0].to_owned()), token)
@@ -107,21 +134,38 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
         output
     }
 
-
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens.into_iter().map(|v| v.replace('\u{2581}', " ")).collect::<Vec<String>>().join("")
+        tokens
+            .into_iter()
+            .map(|v| v.replace('\u{2581}', " "))
+            .collect::<Vec<String>>()
+            .join("")
     }
 
-    fn build_input_with_special_tokens(&self, tokens_1: Vec<i64>, tokens_2: Option<Vec<i64>>,
-                                       offsets_1: Vec<Option<Offset>>, offsets_2: Option<Vec<Option<Offset>>>,
-                                       original_offsets_1: Vec<Vec<OffsetSize>>, original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
-                                       mask_1: Vec<Mask>, mask_2: Option<Vec<Mask>>) -> (Vec<i64>, Vec<i8>, Vec<i8>, Vec<Option<Offset>>, Vec<Vec<OffsetSize>>, Vec<Mask>) {
-        let mut output: Vec<i64> = vec!();
-        let mut token_segment_ids: Vec<i8> = vec!();
-        let mut special_tokens_mask: Vec<i8> = vec!();
-        let mut offsets: Vec<Option<Offset>> = vec!();
-        let mut original_offsets: Vec<Vec<OffsetSize>> = vec!();
-        let mut mask: Vec<Mask> = vec!();
+    fn build_input_with_special_tokens(
+        &self,
+        tokens_1: Vec<i64>,
+        tokens_2: Option<Vec<i64>>,
+        offsets_1: Vec<Option<Offset>>,
+        offsets_2: Option<Vec<Option<Offset>>>,
+        original_offsets_1: Vec<Vec<OffsetSize>>,
+        original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
+        mask_1: Vec<Mask>,
+        mask_2: Option<Vec<Mask>>,
+    ) -> (
+        Vec<i64>,
+        Vec<i8>,
+        Vec<i8>,
+        Vec<Option<Offset>>,
+        Vec<Vec<OffsetSize>>,
+        Vec<Mask>,
+    ) {
+        let mut output: Vec<i64> = vec![];
+        let mut token_segment_ids: Vec<i8> = vec![];
+        let mut special_tokens_mask: Vec<i8> = vec![];
+        let mut offsets: Vec<Option<Offset>> = vec![];
+        let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
+        let mut mask: Vec<Mask> = vec![];
         special_tokens_mask.extend(vec![0; tokens_1.len()]);
         token_segment_ids.extend(vec![0; tokens_1.len()]);
         output.extend(tokens_1);
@@ -152,10 +196,17 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
         token_segment_ids.push(1);
         output.push(self.vocab.token_to_id(MarianVocab::eos_value()));
         offsets.push(None);
-        original_offsets.push(vec!());
+        original_offsets.push(vec![]);
         mask.push(Mask::Special);
 
-        (output, token_segment_ids, special_tokens_mask, offsets, original_offsets, mask)
+        (
+            output,
+            token_segment_ids,
+            special_tokens_mask,
+            offsets,
+            original_offsets,
+            mask,
+        )
     }
 }
 
