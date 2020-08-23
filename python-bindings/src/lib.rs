@@ -1,14 +1,18 @@
-use pyo3::{PyResult, PyRawObject, Python};
-use pyo3::prelude::*;
 use pyo3::exceptions;
-use rust_tokenizers::{Tokenizer, Vocab, TruncationStrategy, MultiThreadedTokenizer, BertTokenizer, BertVocab, CtrlTokenizer, OpenAiGptVocab, Gpt2Tokenizer, Gpt2Vocab, RobertaTokenizer, RobertaVocab, OpenAiGptTokenizer, XLMRobertaVocab};
-use rust_tokenizers::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
-use rust_tokenizers::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
-use rust_tokenizers::preprocessing::vocab::albert_vocab::AlbertVocab;
+use pyo3::prelude::*;
+use pyo3::{PyRawObject, PyResult, Python};
 use rust_tokenizers::preprocessing::tokenizer::albert_tokenizer::AlbertTokenizer;
+use rust_tokenizers::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
 use rust_tokenizers::preprocessing::tokenizer::t5_tokenizer::T5Tokenizer;
-use rust_tokenizers::preprocessing::vocab::t5_vocab::T5Vocab;
 use rust_tokenizers::preprocessing::tokenizer::xlm_roberta_tokenizer::XLMRobertaTokenizer;
+use rust_tokenizers::preprocessing::vocab::albert_vocab::AlbertVocab;
+use rust_tokenizers::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
+use rust_tokenizers::preprocessing::vocab::t5_vocab::T5Vocab;
+use rust_tokenizers::{
+    BertTokenizer, BertVocab, CtrlTokenizer, Gpt2Tokenizer, Gpt2Vocab, MultiThreadedTokenizer,
+    OpenAiGptTokenizer, OpenAiGptVocab, RobertaTokenizer, RobertaVocab, Tokenizer,
+    TruncationStrategy, Vocab, XLMRobertaVocab,
+};
 
 #[pyclass]
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
@@ -25,7 +29,6 @@ pub struct PyTokenizedInput {
     pub num_truncated_tokens: usize,
 }
 
-
 trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
     fn tokenizer(&self) -> &T;
 
@@ -37,7 +40,13 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         Ok(self.tokenizer().tokenize_list(text_list))
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
@@ -47,7 +56,9 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_input = self.tokenizer().encode(&text, None, max_len, &truncation_strategy, stride);
+                let tokenized_input =
+                    self.tokenizer()
+                        .encode(&text, None, max_len, &truncation_strategy, stride);
                 Ok(PyTokenizedInput {
                     token_ids: tokenized_input.token_ids,
                     segment_ids: tokenized_input.segment_ids,
@@ -56,11 +67,18 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     num_truncated_tokens: tokenized_input.num_truncated_tokens,
                 })
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e))
+            Err(e) => Err(exceptions::ValueError::py_err(e)),
         }
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
@@ -70,7 +88,13 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_input = self.tokenizer().encode(&text_a, Some(&text_b), max_len, &truncation_strategy, stride);
+                let tokenized_input = self.tokenizer().encode(
+                    &text_a,
+                    Some(&text_b),
+                    max_len,
+                    &truncation_strategy,
+                    stride,
+                );
                 Ok(PyTokenizedInput {
                     token_ids: tokenized_input.token_ids,
                     segment_ids: tokenized_input.segment_ids,
@@ -79,11 +103,17 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     num_truncated_tokens: tokenized_input.num_truncated_tokens,
                 })
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e))
+            Err(e) => Err(exceptions::ValueError::py_err(e)),
         }
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
@@ -93,7 +123,9 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_inputs = self.tokenizer().encode_list(text_list, max_len, &truncation_strategy, stride);
+                let tokenized_inputs =
+                    self.tokenizer()
+                        .encode_list(text_list, max_len, &truncation_strategy, stride);
                 Ok(tokenized_inputs
                     .into_iter()
                     .map(|tokenized_input| PyTokenizedInput {
@@ -105,11 +137,17 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e))
+            Err(e) => Err(exceptions::ValueError::py_err(e)),
         }
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
@@ -119,7 +157,12 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_inputs = self.tokenizer().encode_pair_list(text_list, max_len, &truncation_strategy, stride);
+                let tokenized_inputs = self.tokenizer().encode_pair_list(
+                    text_list,
+                    max_len,
+                    &truncation_strategy,
+                    stride,
+                );
                 Ok(tokenized_inputs
                     .into_iter()
                     .map(|tokenized_input| PyTokenizedInput {
@@ -131,18 +174,29 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e))
+            Err(e) => Err(exceptions::ValueError::py_err(e)),
         }
     }
 }
 
 trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
-    where Self: PyTokenizer<T, U> {
+where
+    Self: PyTokenizer<T, U>,
+{
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        Ok(MultiThreadedTokenizer::tokenize_list(self.tokenizer(), text_list))
+        Ok(MultiThreadedTokenizer::tokenize_list(
+            self.tokenizer(),
+            text_list,
+        ))
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
@@ -152,7 +206,13 @@ trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_inputs = MultiThreadedTokenizer::encode_list(self.tokenizer(), text_list, max_len, &truncation_strategy, stride);
+                let tokenized_inputs = MultiThreadedTokenizer::encode_list(
+                    self.tokenizer(),
+                    text_list,
+                    max_len,
+                    &truncation_strategy,
+                    stride,
+                );
                 Ok(tokenized_inputs
                     .into_iter()
                     .map(|tokenized_input| PyTokenizedInput {
@@ -164,11 +224,17 @@ trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e))
+            Err(e) => Err(exceptions::ValueError::py_err(e)),
         }
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
         let truncation_strategy = match truncation_strategy {
             "longest_first" => Ok(TruncationStrategy::LongestFirst),
             "only_first" => Ok(TruncationStrategy::OnlyFirst),
@@ -178,7 +244,13 @@ trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_inputs = MultiThreadedTokenizer::encode_pair_list(self.tokenizer(), text_list, max_len, &truncation_strategy, stride);
+                let tokenized_inputs = MultiThreadedTokenizer::encode_pair_list(
+                    self.tokenizer(),
+                    text_list,
+                    max_len,
+                    &truncation_strategy,
+                    stride,
+                );
                 Ok(tokenized_inputs
                     .into_iter()
                     .map(|tokenized_input| PyTokenizedInput {
@@ -190,11 +262,10 @@ trait PyMultiThreadTokenizer<T: MultiThreadedTokenizer<U>, U: Vocab>
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e))
+            Err(e) => Err(exceptions::ValueError::py_err(e)),
         }
     }
 }
-
 
 #[pyclass(module = "rust_tokenizers")]
 struct PyBertTokenizer {
@@ -226,20 +297,70 @@ impl PyBertTokenizer {
         <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::tokenize_list(&self, text_list)
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<BertTokenizer, BertVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<BertTokenizer, BertVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
 
@@ -259,7 +380,12 @@ impl PyCtrlTokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyCtrlTokenizer {
-            tokenizer: CtrlTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case).unwrap(),
+            tokenizer: CtrlTokenizer::from_file(
+                vocab_path.as_str(),
+                merges_path.as_str(),
+                do_lower_case,
+            )
+            .unwrap(),
         });
     }
 
@@ -271,23 +397,72 @@ impl PyCtrlTokenizer {
         <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::tokenize_list(&self, text_list)
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
-
 
 #[pyclass(module = "rust_tokenizers")]
 struct PyGpt2Tokenizer {
@@ -305,7 +480,12 @@ impl PyGpt2Tokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyGpt2Tokenizer {
-            tokenizer: Gpt2Tokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case).unwrap(),
+            tokenizer: Gpt2Tokenizer::from_file(
+                vocab_path.as_str(),
+                &merges_path.as_str(),
+                do_lower_case,
+            )
+            .unwrap(),
         });
     }
 
@@ -317,20 +497,70 @@ impl PyGpt2Tokenizer {
         <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::tokenize_list(&self, text_list)
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
 
@@ -350,7 +580,12 @@ impl PyRobertaTokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyRobertaTokenizer {
-            tokenizer: RobertaTokenizer::from_file(vocab_path.as_str(), &merges_path.as_str(), do_lower_case).unwrap(),
+            tokenizer: RobertaTokenizer::from_file(
+                vocab_path.as_str(),
+                &merges_path.as_str(),
+                do_lower_case,
+            )
+            .unwrap(),
         });
     }
 
@@ -362,20 +597,70 @@ impl PyRobertaTokenizer {
         <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::tokenize_list(&self, text_list)
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
 
@@ -395,7 +680,12 @@ impl PyOpenAiGptTokenizer {
     #[new]
     fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
         obj.init(PyOpenAiGptTokenizer {
-            tokenizer: OpenAiGptTokenizer::from_file(vocab_path.as_str(), merges_path.as_str(), do_lower_case).unwrap(),
+            tokenizer: OpenAiGptTokenizer::from_file(
+                vocab_path.as_str(),
+                merges_path.as_str(),
+                do_lower_case,
+            )
+            .unwrap(),
         });
     }
 
@@ -407,20 +697,70 @@ impl PyOpenAiGptTokenizer {
         <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::tokenize_list(&self, text_list)
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
 
@@ -435,7 +775,10 @@ impl PyTokenizer<SentencePieceTokenizer, SentencePieceVocab> for PySentencePiece
     }
 }
 
-impl PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab> for PySentencePieceTokenizer {}
+impl PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>
+    for PySentencePieceTokenizer
+{
+}
 
 #[pymethods]
 impl PySentencePieceTokenizer {
@@ -451,22 +794,68 @@ impl PySentencePieceTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::tokenize_list(
+            &self, text_list,
+        )
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
     }
 }
@@ -489,7 +878,8 @@ impl PyAlbertTokenizer {
     #[new]
     fn new(obj: &PyRawObject, path: String, do_lower_case: bool, keep_accents: bool) {
         obj.init(PyAlbertTokenizer {
-            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, keep_accents).unwrap(),
+            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, keep_accents)
+                .unwrap(),
         });
     }
 
@@ -498,23 +888,75 @@ impl PyAlbertTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::tokenize_list(
+            &self, text_list,
+        )
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
 
@@ -548,20 +990,70 @@ impl PyT5Tokenizer {
         <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::tokenize_list(&self, text_list)
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
 
@@ -592,26 +1084,77 @@ impl PyXLMRobertaTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::tokenize_list(
+            &self, text_list,
+        )
     }
 
-    fn encode(&self, text: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode(&self, text, max_len, truncation_strategy, stride)
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair(&self, text_a: &str, text_b: &str, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<PyTokenizedInput> {
-        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair(&self, text_a, text_b, max_len, truncation_strategy, stride)
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_list(&self, text_list: Vec<&str>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 
-    fn encode_pair_list(&self, text_list: Vec<(&str, &str)>, max_len: usize, truncation_strategy: &str, stride: usize) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
     }
 }
-
 
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
