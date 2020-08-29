@@ -474,10 +474,11 @@ where
             if matched_chars > 0 {
                 if char_begin < char_idx {
                     //add previous token
-                    let text = &token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)];
-                    let trimmed_text_len = text.chars().count();
+                    let trimmed_text =
+                        token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)].trim_end();
+                    let trimmed_text_len = trimmed_text.chars().count();
                     tokens.push(TokenRef {
-                        text,
+                        text: trimmed_text,
                         offset: Offset {
                             begin: token.offset.begin + char_begin as OffsetSize,
                             end: token.offset.begin + (char_begin + trimmed_text_len) as OffsetSize,
