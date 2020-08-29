@@ -474,11 +474,10 @@ where
             if matched_chars > 0 {
                 if char_begin < char_idx {
                     //add previous token
-                    let trimmed_text =
-                        token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)].trim_end();
-                    let trimmed_text_len = trimmed_text.chars().count();
+                    let text = &token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)];
+                    let trimmed_text_len = text.chars().count();
                     tokens.push(TokenRef {
-                        text: trimmed_text,
+                        text,
                         offset: Offset {
                             begin: token.offset.begin + char_begin as OffsetSize,
                             end: token.offset.begin + (char_begin + trimmed_text_len) as OffsetSize,
@@ -510,13 +509,12 @@ where
     if bytes_begin < token.text.len() {
         //add last buffered token if there is anything left
         let bytes_idx = token.text.len();
-        let trimmed_text =
-            token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)].trim_end();
+        let text = &token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)];
         if char_count == 0 {
-            char_count = trimmed_text.chars().count();
+            char_count = text.chars().count();
         }
         tokens.push(TokenRef {
-            text: trimmed_text,
+            text,
             offset: Offset {
                 begin: token.offset.begin + char_begin as OffsetSize,
                 end: token.offset.begin + char_count as OffsetSize,

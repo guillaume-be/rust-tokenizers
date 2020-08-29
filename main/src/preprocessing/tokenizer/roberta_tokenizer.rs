@@ -39,6 +39,7 @@ pub struct RobertaTokenizer {
     pattern_lookahead: Regex,
     pattern_tokenization: Regex,
     lower_case: bool,
+    add_prefix_space: bool,
 }
 
 impl RobertaTokenizer {
@@ -46,6 +47,7 @@ impl RobertaTokenizer {
         vocab_path: &str,
         merges_path: &str,
         lower_case: bool,
+        add_prefix_space: bool,
     ) -> Result<RobertaTokenizer, TokenizerError> {
         let vocab = Rc::new(RobertaVocab::from_file(vocab_path)?);
         let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
@@ -61,6 +63,7 @@ impl RobertaTokenizer {
             pattern_lookahead,
             pattern_tokenization,
             lower_case,
+            add_prefix_space,
         })
     }
 
@@ -68,6 +71,7 @@ impl RobertaTokenizer {
         vocab: Rc<RobertaVocab>,
         merges: Rc<BpePairVocab>,
         lower_case: bool,
+        add_prefix_space: bool,
     ) -> RobertaTokenizer {
         let cache = RefCell::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
@@ -81,6 +85,7 @@ impl RobertaTokenizer {
             pattern_lookahead,
             pattern_tokenization,
             lower_case,
+            add_prefix_space,
         }
     }
 }
@@ -95,8 +100,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             return vec![];
         }
         let mut initial_token: Token = initial_token.to_owned();
-        if !is_whitespace(&initial_token.text.chars().next().unwrap()) {
-            //text should always start with an initial whitespace
+        if !is_whitespace(&initial_token.text.chars().next().unwrap()) & self.add_prefix_space {
             initial_token.text.insert(0, ' ');
             initial_token.reference_offsets.insert(0, 0);
         };
@@ -303,36 +307,30 @@ mod tests {
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
         let roberta_tokenizer: RobertaTokenizer =
-            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true, false);
         let test_tuples = [
             (
                 "The Earth",
-                vec!["Ġthe", "Ġear", "th"],
+                vec!["the", "Ġear", "th"],
                 vec![
                     Some(Offset { begin: 0, end: 3 }),
                     Some(Offset { begin: 3, end: 7 }),
                     Some(Offset { begin: 7, end: 9 }),
                 ],
-                vec![vec![0, 0, 1, 2], vec![3, 4, 5, 6], vec![7, 8]],
+                vec![vec![0, 1, 2], vec![3, 4, 5, 6], vec![7, 8]],
                 vec![Mask::None, Mask::Begin, Mask::Continuation],
             ),
             ("", vec![], vec![], vec![], vec![]),
             (
                 "✿",
-                vec!["Ġ", "â", "ľ", "¿"],
+                vec!["â", "ľ", "¿"],
                 vec![
                     Some(Offset { begin: 0, end: 1 }),
                     Some(Offset { begin: 0, end: 1 }),
                     Some(Offset { begin: 0, end: 1 }),
-                    Some(Offset { begin: 0, end: 1 }),
                 ],
-                vec![vec![0], vec![0], vec![0], vec![0]],
-                vec![
-                    Mask::Begin,
-                    Mask::Continuation,
-                    Mask::Continuation,
-                    Mask::Continuation,
-                ],
+                vec![vec![0], vec![0], vec![0]],
+                vec![Mask::Begin, Mask::Continuation, Mask::Continuation],
             ),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();
@@ -367,7 +365,7 @@ mod tests {
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
         let roberta_tokenizer: RobertaTokenizer =
-            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
+            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, false, true);
         let test_tuples = [
             (
                 "The Earth",
@@ -454,7 +452,7 @@ mod tests {
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
         let roberta_tokenizer: RobertaTokenizer =
-            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
             (
@@ -552,7 +550,7 @@ mod tests {
         let vocab = Rc::new(generate_test_vocab());
         let merges = Rc::new(generate_test_merges());
         let roberta_tokenizer: RobertaTokenizer =
-            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
+            RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true, true);
         let skip_special_tokens = false;
         let clean_up_tokenization_spaces = false;
         let test_tuples = [(vec![8, 4, 12, 13, 9], "<s> the earth</s>")];
@@ -565,7 +563,7 @@ mod tests {
                 roberta_tokenizer.decode(
                     source_ids.clone(),
                     skip_special_tokens,
-                    clean_up_tokenization_spaces
+                    clean_up_tokenization_spaces,
                 ),
                 *expected_result
             );
@@ -575,7 +573,7 @@ mod tests {
                 &roberta_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );

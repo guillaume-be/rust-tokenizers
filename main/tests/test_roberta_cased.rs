@@ -23,6 +23,7 @@ fn test_roberta_tokenization() -> anyhow::Result<()> {
         vocab_path.to_str().unwrap(),
         merges_path.to_str().unwrap(),
         false,
+        true,
     )?;
 
     let original_strings = [
