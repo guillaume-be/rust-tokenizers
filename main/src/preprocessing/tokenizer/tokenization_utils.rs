@@ -33,7 +33,7 @@ use unicode_normalization::char::decompose_canonical;
 use unicode_normalization_alignments::UnicodeNormalization;
 
 ///Cleans text by removing control characters and normalizing whitespace
-pub fn clean_text(token: &mut Token, strict: bool) {
+pub fn _clean_text(token: &mut Token, strict: bool) {
     let capacity = token.text.capacity();
     let mut cleaned_string = String::with_capacity(capacity);
     let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
@@ -1198,13 +1198,13 @@ mod tests {
         //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
             let mut token = Token::new(source_text.to_string());
-            clean_text(&mut token, true);
+            _clean_text(&mut token, true);
             assert_eq!(token.text, *expected_result);
         }
 
         for (source_text, expected_result) in test_tuples.iter() {
             let mut token = Token::new(source_text.to_string());
-            clean_text(&mut token, false);
+            _clean_text(&mut token, false);
             assert_eq!(token.text, *expected_result);
         }
     }

@@ -98,7 +98,8 @@ class TestBenchmarkRoberta:
         self.rust_tokenizer = PyRobertaTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['roberta-base']),
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['merges_file']['roberta-base']),
-            do_lower_case=True
+            do_lower_case=True,
+            add_prefix_space=True
         )
 
     def baseline_batch(self):

@@ -884,9 +884,9 @@ impl PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab> for PyAlbertTokenizer 
 #[pymethods]
 impl PyAlbertTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, keep_accents: bool) {
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
         obj.init(PyAlbertTokenizer {
-            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, keep_accents)
+            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
                 .unwrap(),
         });
     }

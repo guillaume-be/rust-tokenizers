@@ -168,17 +168,28 @@ fn test_openai_gpt_tokenization() -> anyhow::Result<()> {
         },
         TokenizedInput {
             token_ids: vec![
-                544, 663, 267, 252, 0, 0, 14, 411, 16, 2041, 28, 2519, 643, 254, 10591, 268,
+                120, 358, 544, 663, 267, 252, 120, 120, 120, 358, 0, 0, 14, 411, 16, 2041, 28,
+                2519, 643, 254, 10591, 268,
             ],
-            segment_ids: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            special_tokens_mask: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            segment_ids: vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
+            special_tokens_mask: vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            ],
             overflowing_tokens: vec![],
             num_truncated_tokens: 0,
             token_offsets: vec![
+                Some(Offset { begin: 2, end: 3 }),
+                Some(Offset { begin: 3, end: 4 }),
                 Some(Offset { begin: 5, end: 7 }),
                 Some(Offset { begin: 8, end: 10 }),
                 Some(Offset { begin: 10, end: 11 }),
                 Some(Offset { begin: 11, end: 12 }),
+                Some(Offset { begin: 15, end: 16 }),
+                Some(Offset { begin: 16, end: 17 }),
+                Some(Offset { begin: 17, end: 18 }),
+                Some(Offset { begin: 18, end: 19 }),
                 Some(Offset { begin: 20, end: 21 }),
                 Some(Offset { begin: 22, end: 23 }),
                 Some(Offset { begin: 24, end: 25 }),

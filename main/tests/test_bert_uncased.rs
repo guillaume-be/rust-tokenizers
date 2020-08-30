@@ -1,7 +1,9 @@
 use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
 use rust_tokenizers::{BertTokenizer, TokenizedInput, Tokenizer, TruncationStrategy, Vocab};
 use std::sync::Arc;
+
 mod test_utils;
+
 use test_utils::download_file_to_cache;
 
 #[test]
@@ -178,19 +180,21 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
         },
         TokenizedInput {
             token_ids: vec![
-                101, 2003, 16215, 999, 1055, 100, 100, 1055, 29674, 1057, 23296, 22578, 2594, 4830,
-                2226, 16660, 2290, 102,
+                101, 100, 2003, 16215, 999, 1055, 100, 100, 100, 1055, 29674, 1057, 23296, 22578,
+                2594, 4830, 2226, 16660, 2290, 102,
             ],
             segment_ids: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            special_tokens_mask: vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            special_tokens_mask: vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             overflowing_tokens: vec![],
             num_truncated_tokens: 0,
             token_offsets: vec![
                 None,
+                Some(Offset { begin: 2, end: 4 }),
                 Some(Offset { begin: 5, end: 7 }),
                 Some(Offset { begin: 8, end: 10 }),
                 Some(Offset { begin: 10, end: 11 }),
                 Some(Offset { begin: 11, end: 12 }),
+                Some(Offset { begin: 15, end: 19 }),
                 Some(Offset { begin: 20, end: 21 }),
                 Some(Offset { begin: 22, end: 23 }),
                 Some(Offset { begin: 24, end: 25 }),

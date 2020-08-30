@@ -291,7 +291,7 @@ class TestTokenizationSST2:
         self.rust_tokenizer = PyAlbertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['albert-base-v2']),
             do_lower_case=True,
-            keep_accents=False)
+            strip_accents=True)
 
         output_baseline = []
         for example in self.examples:
