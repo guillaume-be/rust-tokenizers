@@ -47,7 +47,7 @@ class TestBenchmarkAlbert:
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyAlbertTokenizer(str(self.test_dir / 'albert-base-v2-spiece.model'),
                                                 do_lower_case=False,
-                                                keep_accents=False)
+                                                strip_accents=False)
 
     def python_albert_tokenizer(self):
         output_baseline = []

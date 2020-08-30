@@ -208,7 +208,7 @@ mod tests {
             ("", vec![]),
             (" ", vec![]),
             ("   t", vec!["Ġ", "Ġ", "Ġt"]),
-            ("t ", vec!["t"]),
+            ("t ", vec!["t", "Ġ"]),
             (" \n ", vec![]),
         ];
         let source_texts: Vec<&str> = test_tuples.iter().map(|v| v.0).collect();

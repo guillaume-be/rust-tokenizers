@@ -13,7 +13,7 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
         "albert-base-v2-spiece.model",
     )?;
 
-    let albert_tokenizer = AlbertTokenizer::from_file(vocab_path.to_str().unwrap(), true, false)?;
+    let albert_tokenizer = AlbertTokenizer::from_file(vocab_path.to_str().unwrap(), true, true)?;
 
     let original_strings = [
         "This is a sample sentence to be tokénized",
@@ -111,7 +111,7 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 2, 13, 13, 25, 13, 96, 187, 18, 13, 13, 13, 13, 1, 13, 1, 13, 18, 1, 13, 13, 13,
-                5127, 15664, 7820, 13, 18758, 13, 103, 1712, 3,
+                5127, 15664, 7820, 13, 18758, 13, 103, 1712, 13, 13, 13, 13, 13, 3,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -147,6 +147,11 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 35, end: 36 }),
                 Some(Offset { begin: 36, end: 37 }),
                 Some(Offset { begin: 37, end: 40 }),
+                Some(Offset { begin: 40, end: 41 }),
+                Some(Offset { begin: 41, end: 42 }),
+                Some(Offset { begin: 42, end: 43 }),
+                Some(Offset { begin: 43, end: 44 }),
+                Some(Offset { begin: 44, end: 45 }),
                 None,
             ],
             reference_offsets: vec![],
@@ -155,7 +160,7 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 2, 13, 25, 13, 96, 187, 18, 13, 13, 1, 13, 1, 13, 18, 1, 13, 13, 13, 5127, 15664,
-                7820, 13, 18758, 13, 103, 1712, 3,
+                7820, 13, 18758, 13, 103, 1712, 13, 13, 13, 13, 13, 3,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -188,6 +193,11 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 35, end: 36 }),
                 Some(Offset { begin: 36, end: 37 }),
                 Some(Offset { begin: 37, end: 40 }),
+                Some(Offset { begin: 40, end: 41 }),
+                Some(Offset { begin: 41, end: 42 }),
+                Some(Offset { begin: 42, end: 43 }),
+                Some(Offset { begin: 43, end: 44 }),
+                Some(Offset { begin: 44, end: 45 }),
                 None,
             ],
             reference_offsets: vec![],

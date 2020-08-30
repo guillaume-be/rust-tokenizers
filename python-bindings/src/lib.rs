@@ -283,9 +283,10 @@ impl PyMultiThreadTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {}
 #[pymethods]
 impl PyBertTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
         obj.init(PyBertTokenizer {
-            tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
+            tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
+                .unwrap(),
         });
     }
 

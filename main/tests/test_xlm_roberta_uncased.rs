@@ -110,7 +110,7 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 0, 6, 6, 63770, 5675, 38, 7, 6, 6, 6, 6, 3, 6, 3, 3608, 52908, 6, 6, 345, 11016,
-                170, 36277, 6, 39973, 55315, 2,
+                170, 36277, 6, 39973, 55315, 6, 6, 6, 6, 6, 2,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -142,6 +142,11 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 30, end: 31 }),
                 Some(Offset { begin: 31, end: 35 }),
                 Some(Offset { begin: 35, end: 40 }),
+                Some(Offset { begin: 40, end: 41 }),
+                Some(Offset { begin: 41, end: 42 }),
+                Some(Offset { begin: 42, end: 43 }),
+                Some(Offset { begin: 43, end: 44 }),
+                Some(Offset { begin: 44, end: 45 }),
                 None,
             ],
             reference_offsets: vec![],
@@ -150,7 +155,7 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 0, 6, 63770, 5675, 38, 7, 6, 6, 3, 6, 3, 3608, 52908, 6, 6, 345, 11016, 170, 36277,
-                6, 39973, 55315, 2,
+                6, 39973, 55315, 6, 6, 6, 6, 6, 2,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -179,6 +184,11 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 30, end: 31 }),
                 Some(Offset { begin: 31, end: 35 }),
                 Some(Offset { begin: 35, end: 40 }),
+                Some(Offset { begin: 40, end: 41 }),
+                Some(Offset { begin: 41, end: 42 }),
+                Some(Offset { begin: 42, end: 43 }),
+                Some(Offset { begin: 43, end: 44 }),
+                Some(Offset { begin: 44, end: 45 }),
                 None,
             ],
             reference_offsets: vec![],

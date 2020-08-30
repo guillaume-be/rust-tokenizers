@@ -52,7 +52,8 @@ class TestTokenizationSST2:
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
-            do_lower_case=True)
+            do_lower_case=True,
+            strip_accents=True)
         output_baseline = []
         for example in self.examples:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
@@ -86,7 +87,8 @@ class TestTokenizationSST2:
                                                                   cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['distilbert-base-cased']),
-            do_lower_case=False)
+            do_lower_case=False,
+            strip_accents=False)
         output_baseline = []
         for example in self.examples:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
@@ -109,7 +111,7 @@ class TestTokenizationSST2:
                               f'Sentence b: {self.examples[idx].text_b} \n' \
                               f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
                               f'Rust: {rust.token_ids} \n' \
-                              f' Python {baseline["input_ids"]}'
+                              f'Python {baseline["input_ids"]}'
 
     def test_tokenization_ctrl(self):
         # Given
@@ -143,7 +145,7 @@ class TestTokenizationSST2:
                               f'Sentence b: {self.examples[idx].text_b} \n' \
                               f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
                               f'Rust: {rust.token_ids} \n' \
-                              f' Python {baseline["input_ids"]}'
+                              f'Python {baseline["input_ids"]}'
             assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
@@ -178,7 +180,7 @@ class TestTokenizationSST2:
                               f'Sentence b: {self.examples[idx].text_b} \n' \
                               f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
                               f'Rust: {rust.token_ids} \n' \
-                              f' Python {baseline["input_ids"]}'
+                              f'Python {baseline["input_ids"]}'
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_roberta(self):
@@ -215,7 +217,7 @@ class TestTokenizationSST2:
                               f'Sentence b: {self.examples[idx].text_b} \n' \
                               f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
                               f'Rust: {rust.token_ids} \n' \
-                              f' Python {baseline["input_ids"]}'
+                              f'Python {baseline["input_ids"]}'
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_openai_gpt(self):
@@ -250,7 +252,7 @@ class TestTokenizationSST2:
                               f'Sentence b: {self.examples[idx].text_b} \n' \
                               f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
                               f'Rust: {rust.token_ids} \n' \
-                              f' Python {baseline["input_ids"]}'
+                              f'Python {baseline["input_ids"]}'
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_sentence_piece(self):
@@ -279,7 +281,7 @@ class TestTokenizationSST2:
                     f'Sentence b: {self.examples[idx].text_b} \n' \
                     f'Token mismatch: {self.get_token_diff_sentence_piece(rust.token_ids, baseline)} \n' \
                     f'Rust: {rust.token_ids} \n' \
-                    f' Python {baseline}'
+                    f'Python {baseline}'
 
     def test_tokenization_albert(self):
         # Given
@@ -322,7 +324,7 @@ class TestTokenizationSST2:
                                     f'Sentence b: {self.examples[idx].text_b} \n'
                                     f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
                                     f'Rust: {rust.token_ids} \n'
-                                    f' Python {baseline["input_ids"]}')
+                                    f'Python {baseline["input_ids"]}')
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_t5(self):
@@ -365,7 +367,7 @@ class TestTokenizationSST2:
                                     f'Sentence b: {self.examples[idx].text_b} \n'
                                     f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
                                     f'Rust: {rust.token_ids} \n'
-                                    f' Python {baseline["input_ids"]}')
+                                    f'Python {baseline["input_ids"]}')
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_xlm_roberta(self):
@@ -409,7 +411,7 @@ class TestTokenizationSST2:
                                     f'Sentence b: {self.examples[idx].text_b} \n'
                                     f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
                                     f'Rust: {rust.token_ids} \n'
-                                    f' Python {baseline["input_ids"]}')
+                                    f'Python {baseline["input_ids"]}')
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def get_token_diff(self, rust_tokens, python_tokens):

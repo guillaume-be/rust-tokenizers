@@ -24,14 +24,14 @@ pub struct AlbertTokenizer {
     model: SentencePieceModel,
     vocab: AlbertVocab,
     lower_case: bool,
-    keep_accents: bool,
+    strip_accents: bool,
 }
 
 impl AlbertTokenizer {
     pub fn from_file(
         path: &str,
         lower_case: bool,
-        keep_accents: bool,
+        strip_accents: bool,
     ) -> Result<AlbertTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = AlbertVocab::from_file(path)?;
@@ -39,7 +39,7 @@ impl AlbertTokenizer {
             model,
             vocab,
             lower_case,
-            keep_accents,
+            strip_accents,
         })
     }
 
@@ -47,13 +47,13 @@ impl AlbertTokenizer {
         vocab: AlbertVocab,
         model: SentencePieceModel,
         lower_case: bool,
-        keep_accents: bool,
+        strip_accents: bool,
     ) -> AlbertTokenizer {
         AlbertTokenizer {
             model,
             vocab,
             lower_case,
-            keep_accents,
+            strip_accents,
         }
     }
 
@@ -126,7 +126,7 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
                 if self.lower_case {
                     lowercase(token);
                 }
-                if !self.keep_accents {
+                if self.strip_accents {
                     strip_accents(token);
                 }
                 token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");

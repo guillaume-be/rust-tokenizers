@@ -47,7 +47,8 @@ class TestBenchmarkBert:
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
-            do_lower_case=True)
+            do_lower_case=True,
+            strip_accents=True)
 
     def python_bert_tokenizer(self):
         output_baseline = []
