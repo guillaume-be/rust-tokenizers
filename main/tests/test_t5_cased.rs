@@ -118,7 +118,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 3, 3, 3, 2, 7, 3, 189, 55, 7, 3, 3, 3, 3, 2, 3, 2, 3, 2, 3, 3, 412, 122, 40, 354,
-                2, 23, 2, 3, 3, 26, 2, 76, 3, 29, 2, 1725,
+                2, 23, 2, 3, 3, 26, 2, 76, 3, 29, 2, 1725, 3, 3, 3, 3, 3,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -161,6 +161,11 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 36, end: 37 }),
                 Some(Offset { begin: 37, end: 38 }),
                 Some(Offset { begin: 38, end: 40 }),
+                Some(Offset { begin: 40, end: 41 }),
+                Some(Offset { begin: 41, end: 42 }),
+                Some(Offset { begin: 42, end: 43 }),
+                Some(Offset { begin: 43, end: 44 }),
+                Some(Offset { begin: 44, end: 45 }),
             ],
             reference_offsets: vec![],
             mask: vec![],
@@ -168,7 +173,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 3, 3, 2, 7, 3, 189, 55, 7, 3, 3, 2, 3, 2, 3, 2, 3, 3, 412, 122, 40, 354, 2, 23, 2,
-                3, 3, 26, 2, 76, 3, 29, 2, 1725,
+                3, 3, 26, 2, 76, 3, 29, 2, 1725, 3, 3, 3, 3, 3,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -208,6 +213,11 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 36, end: 37 }),
                 Some(Offset { begin: 37, end: 38 }),
                 Some(Offset { begin: 38, end: 40 }),
+                Some(Offset { begin: 40, end: 41 }),
+                Some(Offset { begin: 41, end: 42 }),
+                Some(Offset { begin: 42, end: 43 }),
+                Some(Offset { begin: 43, end: 44 }),
+                Some(Offset { begin: 44, end: 45 }),
             ],
             reference_offsets: vec![],
             mask: vec![],

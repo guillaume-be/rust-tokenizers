@@ -37,7 +37,8 @@ class TestBenchmarkBert:
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
-            do_lower_case=True)
+            do_lower_case=True,
+            strip_accents=True)
 
     def setup_python_tokenizer(self):
         self.base_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased',
@@ -47,7 +48,8 @@ class TestBenchmarkBert:
     def setup_rust_tokenizer(self):
         self.rust_tokenizer = PyBertTokenizer(
             get_from_cache(self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['bert-base-uncased']),
-            do_lower_case=True)
+            do_lower_case=True,
+            strip_accents=True)
 
     def python_bert_tokenizer(self):
         output_baseline = []
@@ -76,7 +78,9 @@ class TestBenchmarkBert:
         benchmark.pedantic(self.python_bert_tokenizer, setup=self.setup_python_tokenizer, iterations=1, rounds=3)
 
     def test_rust_bert_tokenizer_single_threaded(self, benchmark):
-        benchmark.pedantic(self.rust_bert_tokenizer_single_threaded, setup=self.setup_rust_tokenizer, iterations=1, rounds=3)
+        benchmark.pedantic(self.rust_bert_tokenizer_single_threaded, setup=self.setup_rust_tokenizer, iterations=1,
+                           rounds=3)
 
     def test_rust_bert_tokenizer_multi_threaded(self, benchmark):
-        benchmark.pedantic(self.rust_bert_tokenizer_multi_threaded, setup=self.setup_rust_tokenizer, iterations=1, rounds=3)
+        benchmark.pedantic(self.rust_bert_tokenizer_multi_threaded, setup=self.setup_rust_tokenizer, iterations=1,
+                           rounds=3)

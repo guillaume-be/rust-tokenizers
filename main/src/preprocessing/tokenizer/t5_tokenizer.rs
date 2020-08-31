@@ -15,7 +15,7 @@ use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Token, TokenRef};
 use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
 use crate::preprocessing::vocab::t5_vocab::T5Vocab;
 use crate::tokenization_utils::{
-    clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
+    _clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
 };
 use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
 
@@ -63,7 +63,7 @@ impl Tokenizer<T5Vocab> for T5Tokenizer {
         let mut sub_tokens: Vec<Token> = Vec::new();
         for token in tokens.iter_mut() {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                clean_text(token, true);
+                _clean_text(token, true);
                 decompose_nfkc(token);
                 if self.lower_case {
                     lowercase(token);

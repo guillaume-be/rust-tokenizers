@@ -50,7 +50,7 @@ matrix:
         - bash install_rust.sh
         - export PATH=$PATH:$HOME/rust/bin:$HOME/.cargo/bin
         - pip install -r requirements-dev.txt
-        - pip install transformers==2.8.0
+        - pip install transformers==3.0.2
       script:
         - python setup.py install
         - pytest ./tests/test_tokenization_sst2.py

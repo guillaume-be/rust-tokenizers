@@ -283,9 +283,10 @@ impl PyMultiThreadTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {}
 #[pymethods]
 impl PyBertTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
         obj.init(PyBertTokenizer {
-            tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
+            tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
+                .unwrap(),
         });
     }
 
@@ -578,12 +579,19 @@ impl PyTokenizer<RobertaTokenizer, RobertaVocab> for PyRobertaTokenizer {
 #[pymethods]
 impl PyRobertaTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
+    fn new(
+        obj: &PyRawObject,
+        vocab_path: String,
+        merges_path: String,
+        do_lower_case: bool,
+        add_prefix_space: bool,
+    ) {
         obj.init(PyRobertaTokenizer {
             tokenizer: RobertaTokenizer::from_file(
                 vocab_path.as_str(),
                 &merges_path.as_str(),
                 do_lower_case,
+                add_prefix_space,
             )
             .unwrap(),
         });
@@ -876,9 +884,9 @@ impl PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab> for PyAlbertTokenizer 
 #[pymethods]
 impl PyAlbertTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, keep_accents: bool) {
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
         obj.init(PyAlbertTokenizer {
-            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, keep_accents)
+            tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
                 .unwrap(),
         });
     }

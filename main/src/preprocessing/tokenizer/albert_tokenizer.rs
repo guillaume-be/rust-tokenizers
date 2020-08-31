@@ -16,7 +16,7 @@ use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
 use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
 use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
 use crate::tokenization_utils::{
-    clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
+    _clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
 };
 use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
 
@@ -24,14 +24,14 @@ pub struct AlbertTokenizer {
     model: SentencePieceModel,
     vocab: AlbertVocab,
     lower_case: bool,
-    keep_accents: bool,
+    strip_accents: bool,
 }
 
 impl AlbertTokenizer {
     pub fn from_file(
         path: &str,
         lower_case: bool,
-        keep_accents: bool,
+        strip_accents: bool,
     ) -> Result<AlbertTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = AlbertVocab::from_file(path)?;
@@ -39,7 +39,7 @@ impl AlbertTokenizer {
             model,
             vocab,
             lower_case,
-            keep_accents,
+            strip_accents,
         })
     }
 
@@ -47,13 +47,13 @@ impl AlbertTokenizer {
         vocab: AlbertVocab,
         model: SentencePieceModel,
         lower_case: bool,
-        keep_accents: bool,
+        strip_accents: bool,
     ) -> AlbertTokenizer {
         AlbertTokenizer {
             model,
             vocab,
             lower_case,
-            keep_accents,
+            strip_accents,
         }
     }
 
@@ -121,12 +121,12 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
                 replace_string(token, "``", "\"");
                 replace_string(token, "\'\'", "\"");
-                clean_text(token, true);
+                _clean_text(token, true);
                 decompose_nfkc(token);
                 if self.lower_case {
                     lowercase(token);
                 }
-                if !self.keep_accents {
+                if self.strip_accents {
                     strip_accents(token);
                 }
                 token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");

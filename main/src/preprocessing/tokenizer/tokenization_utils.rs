@@ -33,7 +33,7 @@ use unicode_normalization::char::decompose_canonical;
 use unicode_normalization_alignments::UnicodeNormalization;
 
 ///Cleans text by removing control characters and normalizing whitespace
-pub fn clean_text(token: &mut Token, strict: bool) {
+pub fn _clean_text(token: &mut Token, strict: bool) {
     let capacity = token.text.capacity();
     let mut cleaned_string = String::with_capacity(capacity);
     let mut character_mapping: Vec<OffsetSize> = Vec::with_capacity(capacity);
@@ -510,13 +510,12 @@ where
     if bytes_begin < token.text.len() {
         //add last buffered token if there is anything left
         let bytes_idx = token.text.len();
-        let trimmed_text =
-            token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)].trim_end();
+        let text = &token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)];
         if char_count == 0 {
-            char_count = trimmed_text.chars().count();
+            char_count = text.chars().count();
         }
         tokens.push(TokenRef {
-            text: trimmed_text,
+            text,
             offset: Offset {
                 begin: token.offset.begin + char_begin as OffsetSize,
                 end: token.offset.begin + char_count as OffsetSize,
@@ -1199,13 +1198,13 @@ mod tests {
         //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
             let mut token = Token::new(source_text.to_string());
-            clean_text(&mut token, true);
+            _clean_text(&mut token, true);
             assert_eq!(token.text, *expected_result);
         }
 
         for (source_text, expected_result) in test_tuples.iter() {
             let mut token = Token::new(source_text.to_string());
-            clean_text(&mut token, false);
+            _clean_text(&mut token, false);
             assert_eq!(token.text, *expected_result);
         }
     }
