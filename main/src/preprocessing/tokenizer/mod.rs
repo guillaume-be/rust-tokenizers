@@ -22,3 +22,4 @@ pub mod sentence_piece_tokenizer;
 pub mod t5_tokenizer;
 pub mod tokenization_utils;
 pub mod xlm_roberta_tokenizer;
+pub mod xlnet_tokenizer;

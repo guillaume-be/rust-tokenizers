@@ -21,3 +21,4 @@ pub mod sentence_piece_vocab;
 pub mod sentencepiece_proto;
 pub mod t5_vocab;
 pub mod xlm_roberta_vocab;
+pub mod xlnet_vocab;
