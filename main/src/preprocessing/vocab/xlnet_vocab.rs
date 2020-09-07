@@ -120,6 +120,9 @@ impl Vocab for XLNetVocab {
         let pad_value = XLNetVocab::pad_value();
         XLNetVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
+        let sep_value = XLNetVocab::sep_value();
+        XLNetVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
+
         let eop_value = XLNetVocab::eop_value();
         XLNetVocab::_register_as_special_value(eop_value, &values, &mut special_values)?;
 

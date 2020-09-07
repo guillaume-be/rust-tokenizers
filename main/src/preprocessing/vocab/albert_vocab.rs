@@ -116,6 +116,9 @@ impl Vocab for AlbertVocab {
         let pad_value = AlbertVocab::pad_value();
         AlbertVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
+        let sep_value = AlbertVocab::sep_value();
+        AlbertVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
+
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
