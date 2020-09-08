@@ -1226,8 +1226,8 @@ mod tests {
                 vec!["[CLS]", "Sentence with", "[MASK]", " token."],
             ),
             ("[CLS]", vec!["[CLS]"]),
-            ("[CLS] [PAD]", vec!["[CLS]", "", "[PAD]"]),
-            ("[CLS]       [PAD]", vec!["[CLS]", "", "[PAD]"]),
+            ("[CLS] [PAD]", vec!["[CLS]", "[PAD]"]),
+            ("[CLS]       [PAD]", vec!["[CLS]", "[PAD]"]),
             ("asdf[CLS]", vec!["asdf", "[CLS]"]),
             (
                 "No special token in sentence",
