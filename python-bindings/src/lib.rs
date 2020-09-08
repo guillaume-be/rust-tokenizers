@@ -8,10 +8,11 @@ use rust_tokenizers::preprocessing::tokenizer::xlm_roberta_tokenizer::XLMRoberta
 use rust_tokenizers::preprocessing::vocab::albert_vocab::AlbertVocab;
 use rust_tokenizers::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
 use rust_tokenizers::preprocessing::vocab::t5_vocab::T5Vocab;
+use rust_tokenizers::preprocessing::vocab::xlnet_vocab::XLNetVocab;
 use rust_tokenizers::{
     BertTokenizer, BertVocab, CtrlTokenizer, Gpt2Tokenizer, Gpt2Vocab, MultiThreadedTokenizer,
     OpenAiGptTokenizer, OpenAiGptVocab, RobertaTokenizer, RobertaVocab, Tokenizer,
-    TruncationStrategy, Vocab, XLMRobertaVocab,
+    TruncationStrategy, Vocab, XLMRobertaVocab, XLNetTokenizer,
 };
 
 #[pyclass]
@@ -959,6 +960,106 @@ impl PyAlbertTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+}
+
+#[pyclass(module = "rust_tokenizers")]
+struct PyXLNetTokenizer {
+    tokenizer: XLNetTokenizer,
+}
+
+impl PyTokenizer<XLNetTokenizer, XLNetVocab> for PyXLNetTokenizer {
+    fn tokenizer(&self) -> &XLNetTokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab> for PyXLNetTokenizer {}
+
+#[pymethods]
+impl PyXLNetTokenizer {
+    #[new]
+    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
+        obj.init(PyXLNetTokenizer {
+            tokenizer: XLNetTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
+                .unwrap(),
+        });
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<XLNetTokenizer, XLNetVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::tokenize_list(
+            &self, text_list,
+        )
+    }
+
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<XLNetTokenizer, XLNetVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<XLNetTokenizer, XLNetVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::encode_pair_list(
             &self,
             text_list,
             max_len,
