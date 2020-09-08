@@ -1276,5 +1276,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyAlbertTokenizer>()?;
     m.add_class::<PyT5Tokenizer>()?;
     m.add_class::<PyXLMRobertaTokenizer>()?;
+    m.add_class::<PyXLNetTokenizer>()?;
     Ok(())
 }
