@@ -89,7 +89,7 @@ impl AlbertTokenizer {
                         text: last_char.to_string(),
                         offset: Offset {
                             begin: token.offset.end,
-                            end: token.offset.end - 1,
+                            end: token.offset.end,
                         },
                         reference_offsets: vec![*token.reference_offsets.last().unwrap()],
                         mask: token.mask,
