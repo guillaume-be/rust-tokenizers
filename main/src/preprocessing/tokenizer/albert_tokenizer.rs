@@ -67,7 +67,6 @@ impl AlbertTokenizer {
                 {
                     let mut new_token = token.clone();
                     let last_char = new_token.text.pop().unwrap();
-                    new_token.text = new_token.text.replace('\u{2581}', "");
                     let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
                     let updated_tokens = self.model.decode_backward(&updated_tokens);
                     let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);

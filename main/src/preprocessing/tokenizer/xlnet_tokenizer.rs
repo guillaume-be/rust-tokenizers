@@ -60,18 +60,16 @@ impl XLNetTokenizer {
     fn post_process_pieces<'a>(&self, tokens: &'a mut Vec<Token>) -> &'a Vec<Token> {
         let mut positions_to_update: Vec<(usize, Vec<Token>)> = vec![];
         for (token_idx, token) in tokens.iter().enumerate() {
-            let mut token_chars = token.text.chars().rev();
             if token.text.chars().count() > 1 {
+                let mut token_chars = token.text.chars().rev();
                 if (token_chars.next().unwrap() == ',')
                     & token_chars.next().unwrap().is_ascii_digit()
                 {
                     let mut new_token = token.clone();
                     let last_char = new_token.text.pop().unwrap();
-                    new_token.text = new_token.text.replace('\u{2581}', "");
                     let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
                     let updated_tokens = self.model.decode_backward(&updated_tokens);
                     let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);
-
                     if (token.text.chars().next().unwrap() != '\u{2581}')
                         & (updated_tokens[0].text.chars().next().unwrap() == '\u{2581}')
                     {
@@ -99,7 +97,7 @@ impl XLNetTokenizer {
             }
         }
         for (pos, new_tokens) in positions_to_update {
-            tokens.splice(pos..pos, new_tokens);
+            tokens.splice(pos..pos + 1, new_tokens);
         }
         tokens
     }
