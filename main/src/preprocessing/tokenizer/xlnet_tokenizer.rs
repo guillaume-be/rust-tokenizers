@@ -1,4 +1,4 @@
-// Copyright 2018 Google AI, Google Brain and the HuggingFace Inc. team.
+// Copyright 2018 Google AI, Google Brain and Carnegie Mellon University Authors and the HuggingFace Inc. team.
 // Copyright 2019-2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,29 +13,29 @@
 use crate::preprocessing::error::TokenizerError;
 use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
 use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
-use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
 use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
+use crate::preprocessing::vocab::xlnet_vocab::XLNetVocab;
 use crate::tokenization_utils::{
     _clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
 };
 use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
 
-pub struct AlbertTokenizer {
+pub struct XLNetTokenizer {
     model: SentencePieceModel,
-    vocab: AlbertVocab,
+    vocab: XLNetVocab,
     lower_case: bool,
     strip_accents: bool,
 }
 
-impl AlbertTokenizer {
+impl XLNetTokenizer {
     pub fn from_file(
         path: &str,
         lower_case: bool,
         strip_accents: bool,
-    ) -> Result<AlbertTokenizer, TokenizerError> {
+    ) -> Result<XLNetTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
-        let vocab = AlbertVocab::from_file(path)?;
-        Ok(AlbertTokenizer {
+        let vocab = XLNetVocab::from_file(path)?;
+        Ok(XLNetTokenizer {
             model,
             vocab,
             lower_case,
@@ -44,12 +44,12 @@ impl AlbertTokenizer {
     }
 
     pub fn from_existing_vocab_and_model(
-        vocab: AlbertVocab,
+        vocab: XLNetVocab,
         model: SentencePieceModel,
         lower_case: bool,
         strip_accents: bool,
-    ) -> AlbertTokenizer {
-        AlbertTokenizer {
+    ) -> XLNetTokenizer {
+        XLNetTokenizer {
             model,
             vocab,
             lower_case,
@@ -60,8 +60,8 @@ impl AlbertTokenizer {
     fn post_process_pieces<'a>(&self, tokens: &'a mut Vec<Token>) -> &'a Vec<Token> {
         let mut positions_to_update: Vec<(usize, Vec<Token>)> = vec![];
         for (token_idx, token) in tokens.iter().enumerate() {
-            let mut token_chars = token.text.chars().rev();
             if token.text.chars().count() > 1 {
+                let mut token_chars = token.text.chars().rev();
                 if (token_chars.next().unwrap() == ',')
                     & token_chars.next().unwrap().is_ascii_digit()
                 {
@@ -70,7 +70,6 @@ impl AlbertTokenizer {
                     let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
                     let updated_tokens = self.model.decode_backward(&updated_tokens);
                     let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);
-
                     if (token.text.chars().next().unwrap() != '\u{2581}')
                         & (updated_tokens[0].text.chars().next().unwrap() == '\u{2581}')
                     {
@@ -98,14 +97,14 @@ impl AlbertTokenizer {
             }
         }
         for (pos, new_tokens) in positions_to_update {
-            tokens.splice(pos..pos, new_tokens);
+            tokens.splice(pos..pos + 1, new_tokens);
         }
         tokens
     }
 }
 
-impl Tokenizer<AlbertVocab> for AlbertTokenizer {
-    fn vocab(&self) -> &AlbertVocab {
+impl Tokenizer<XLNetVocab> for XLNetTokenizer {
+    fn vocab(&self) -> &XLNetVocab {
         &self.vocab
     }
 
@@ -178,29 +177,26 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
         let mut offsets: Vec<Option<Offset>> = vec![];
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
         let mut mask: Vec<Mask> = vec![];
-        special_tokens_mask.push(1);
+        // Push the first sequence with a SEP token
         special_tokens_mask.extend(vec![0; tokens_1.len()]);
         special_tokens_mask.push(1);
-        token_segment_ids.extend(vec![0; tokens_1.len() + 2]);
-        output.push(self.vocab.token_to_id(AlbertVocab::cls_value()));
+        token_segment_ids.extend(vec![0; tokens_1.len() + 1]);
         output.extend(tokens_1);
-        output.push(self.vocab.token_to_id(AlbertVocab::sep_value()));
-        offsets.push(None);
+        output.push(self.vocab.token_to_id(XLNetVocab::sep_value()));
         offsets.extend(offsets_1);
         offsets.push(None);
-        original_offsets.push(vec![]);
         original_offsets.extend(original_offsets_1);
         original_offsets.push(vec![]);
-        mask.push(Mask::Special);
         mask.extend(mask_1);
         mask.push(Mask::Special);
+        // Push the second sequence with a SEP token if provided
         if let Some(add_tokens) = tokens_2 {
             let length = add_tokens.len();
             special_tokens_mask.extend(vec![0; length]);
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(add_tokens);
-            output.push(self.vocab.token_to_id(AlbertVocab::sep_value()));
+            output.push(self.vocab.token_to_id(XLNetVocab::sep_value()));
             if let Some(add_offsets) = offsets_2 {
                 offsets.extend(add_offsets);
             } else {
@@ -218,6 +214,12 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
             }
             mask.push(Mask::Special);
         }
+        // Push the CLS token at the end of the sequence
+        output.push(self.vocab.token_to_id(XLNetVocab::cls_value()));
+        special_tokens_mask.push(1);
+        offsets.push(None);
+        original_offsets.push(vec![]);
+        mask.push(Mask::Special);
         (
             output,
             token_segment_ids,
@@ -229,4 +231,4 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
     }
 }
 
-impl MultiThreadedTokenizer<AlbertVocab> for AlbertTokenizer {}
+impl MultiThreadedTokenizer<XLNetVocab> for XLNetTokenizer {}

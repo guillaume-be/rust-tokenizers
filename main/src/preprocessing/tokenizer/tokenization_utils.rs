@@ -477,16 +477,19 @@ where
                     let trimmed_text =
                         token.text[bytes_begin..bytes_begin + (bytes_idx - bytes_begin)].trim_end();
                     let trimmed_text_len = trimmed_text.chars().count();
-                    tokens.push(TokenRef {
-                        text: trimmed_text,
-                        offset: Offset {
-                            begin: token.offset.begin + char_begin as OffsetSize,
-                            end: token.offset.begin + (char_begin + trimmed_text_len) as OffsetSize,
-                        },
-                        reference_offsets: &token.reference_offsets
-                            [char_begin..(char_begin + trimmed_text_len)],
-                        mask: Mask::None,
-                    });
+                    if trimmed_text_len > 0 {
+                        tokens.push(TokenRef {
+                            text: trimmed_text,
+                            offset: Offset {
+                                begin: token.offset.begin + char_begin as OffsetSize,
+                                end: token.offset.begin
+                                    + (char_begin + trimmed_text_len) as OffsetSize,
+                            },
+                            reference_offsets: &token.reference_offsets
+                                [char_begin..(char_begin + trimmed_text_len)],
+                            mask: Mask::None,
+                        });
+                    }
                 }
                 if add_separators {
                     //add separator as a singleton token
@@ -1223,8 +1226,8 @@ mod tests {
                 vec!["[CLS]", "Sentence with", "[MASK]", " token."],
             ),
             ("[CLS]", vec!["[CLS]"]),
-            ("[CLS] [PAD]", vec!["[CLS]", "", "[PAD]"]),
-            ("[CLS]       [PAD]", vec!["[CLS]", "", "[PAD]"]),
+            ("[CLS] [PAD]", vec!["[CLS]", "[PAD]"]),
+            ("[CLS]       [PAD]", vec!["[CLS]", "[PAD]"]),
             ("asdf[CLS]", vec!["asdf", "[CLS]"]),
             (
                 "No special token in sentence",

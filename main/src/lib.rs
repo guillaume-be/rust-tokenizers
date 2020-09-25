@@ -23,13 +23,14 @@ pub use crate::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
 pub use crate::preprocessing::tokenizer::openai_gpt_tokenizer::OpenAiGptTokenizer;
 pub use crate::preprocessing::tokenizer::roberta_tokenizer::RobertaTokenizer;
 pub use crate::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
+pub use crate::preprocessing::tokenizer::xlnet_tokenizer::XLNetTokenizer;
 pub use crate::preprocessing::vocab::base_vocab::Vocab;
 pub use preprocessing::tokenizer::bert_tokenizer;
 pub use preprocessing::tokenizer::tokenization_utils;
 pub use preprocessing::vocab::{
     base_vocab::BaseVocab, bert_vocab::BertVocab, gpt2_vocab::Gpt2Vocab,
     openai_gpt_vocab::OpenAiGptVocab, roberta_vocab::RobertaVocab,
-    xlm_roberta_vocab::XLMRobertaVocab,
+    xlm_roberta_vocab::XLMRobertaVocab, xlnet_vocab::XLNetVocab,
 };
 
 #[macro_use]

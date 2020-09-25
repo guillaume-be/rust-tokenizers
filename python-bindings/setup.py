@@ -63,11 +63,11 @@ class PyTest(TestCommand):
 
 
 setup_requires = ["setuptools-rust>=0.10.6", "wheel"]
-test_requires = ["pytest", "pytest-benchmark", "torch>=1.5.0", "transformers==2.8.0"]
+test_requires = ["pytest", "pytest-benchmark", "torch>=1.5.0", "transformers==3.1.0"]
 
 setup(
     name="rust_tokenizers",
-    version="4.0.0",
+    version="5.0.1",
     packages=["rust_tokenizers"],
     rust_extensions=[RustExtension("rust_tokenizers.rust_tokenizers", "Cargo.toml", debug=False)],
     setup_requires=setup_requires,

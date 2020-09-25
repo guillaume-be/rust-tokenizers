@@ -1,6 +1,4 @@
-// Copyright 2018-2020 The HuggingFace Inc. team.
-// Copyright 2020 Marian Team Authors
-// Copyright 2019 Google LLC. All Rights Reserved.
+// Copyright 2018 Google AI, Google Brain and Carnegie Mellon University Authors and the HuggingFace Inc. team.
 // Copyright 2019-2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +19,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-pub struct AlbertVocab {
+pub struct XLNetVocab {
     pub values: HashMap<String, i64>,
     pub indices: HashMap<i64, String>,
     pub unknown_value: &'static str,
@@ -29,28 +27,34 @@ pub struct AlbertVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl AlbertVocab {
+impl XLNetVocab {
     pub fn bos_value() -> &'static str {
-        "[CLS]"
+        "<s>"
     }
     pub fn eos_value() -> &'static str {
-        "[SEP]"
+        "</s>"
     }
     pub fn sep_value() -> &'static str {
-        "[SEP]"
+        "<sep>"
     }
     pub fn cls_value() -> &'static str {
-        "[CLS]"
+        "<cls>"
     }
     pub fn mask_value() -> &'static str {
-        "[MASK]"
+        "<mask>"
     }
     pub fn pad_value() -> &'static str {
         "<pad>"
     }
+    pub fn eop_value() -> &'static str {
+        "<eop>"
+    }
+    pub fn eod_value() -> &'static str {
+        "<eod>"
+    }
 }
 
-impl Vocab for AlbertVocab {
+impl Vocab for XLNetVocab {
     fn unknown_value() -> &'static str {
         "<unk>"
     }
@@ -75,7 +79,7 @@ impl Vocab for AlbertVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<AlbertVocab, TokenizerError> {
+    fn from_file(path: &str) -> Result<XLNetVocab, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
         })?;
@@ -98,31 +102,37 @@ impl Vocab for AlbertVocab {
         }
 
         let mut special_values = HashMap::new();
-        let unknown_value = AlbertVocab::unknown_value();
-        AlbertVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        let unknown_value = XLNetVocab::unknown_value();
+        XLNetVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
-        let bos_value = AlbertVocab::bos_value();
-        AlbertVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
+        let bos_value = XLNetVocab::bos_value();
+        XLNetVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
 
-        let eos_value = AlbertVocab::eos_value();
-        AlbertVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
+        let eos_value = XLNetVocab::eos_value();
+        XLNetVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
 
-        let cls_value = AlbertVocab::cls_value();
-        AlbertVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
+        let cls_value = XLNetVocab::cls_value();
+        XLNetVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
 
-        let mask_value = AlbertVocab::mask_value();
-        AlbertVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
+        let mask_value = XLNetVocab::mask_value();
+        XLNetVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
 
-        let pad_value = AlbertVocab::pad_value();
-        AlbertVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
+        let pad_value = XLNetVocab::pad_value();
+        XLNetVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
-        let sep_value = AlbertVocab::sep_value();
-        AlbertVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
+        let sep_value = XLNetVocab::sep_value();
+        XLNetVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
+
+        let eop_value = XLNetVocab::eop_value();
+        XLNetVocab::_register_as_special_value(eop_value, &values, &mut special_values)?;
+
+        let eod_value = XLNetVocab::eod_value();
+        XLNetVocab::_register_as_special_value(eod_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        Ok(AlbertVocab {
+        Ok(XLNetVocab {
             values,
             indices,
             unknown_value,
