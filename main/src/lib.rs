@@ -30,7 +30,7 @@ pub use preprocessing::tokenizer::tokenization_utils;
 pub use preprocessing::vocab::{
     base_vocab::BaseVocab, bert_vocab::BertVocab, gpt2_vocab::Gpt2Vocab,
     openai_gpt_vocab::OpenAiGptVocab, roberta_vocab::RobertaVocab,
-    xlm_roberta_vocab::XLMRobertaVocab,
+    xlm_roberta_vocab::XLMRobertaVocab, xlnet_vocab::XLNetVocab
 };
 
 #[macro_use]
