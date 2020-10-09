@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::tokenization_utils::{
+use crate::error::TokenizerError;
+use crate::tokenizer::tokenization_utils::lowercase;
+use crate::tokenizer::tokenization_utils::{
     split_on_punct, split_on_special_tokens, strip_accents, tokenize_cjk_chars, truncate_sequences,
     whitespace_tokenize,
 };
-use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::tokenization_utils::lowercase;
+use crate::vocab::Vocab;
 use itertools::Itertools;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -226,7 +226,7 @@ where
 /// grouping subtokens into words.
 ///
 /// ```no_run
-/// use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::{Token, ConsolidatableTokens};
+/// use rust_tokenizers::{Token, ConsolidatableTokens};
 /// let tokens: Vec<Token> = vec!(); //add some tokens
 /// for (wordcount, word_tokens) in tokens.iter_consolidate_tokens().enumerate() {
 ///       eprintln!("word #{} - {:?}", wordcount+1, word_tokens);
@@ -836,8 +836,8 @@ mod tests {
     extern crate anyhow;
 
     use super::*;
-    use crate::preprocessing::vocab::base_vocab::swap_key_values;
-    use crate::BertVocab;
+    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::BertVocab;
     use std::collections::HashMap;
 
     fn generate_test_vocab() -> BertVocab {
@@ -1515,7 +1515,7 @@ mod tests {
                 source_texts.clone(),
                 10,
                 &truncation_strategy,
-                0
+                0,
             ),
             expected_results
         );
@@ -1525,7 +1525,7 @@ mod tests {
                 source_texts.clone(),
                 10,
                 &truncation_strategy,
-                0
+                0,
             ),
             expected_results
         );
@@ -1628,7 +1628,7 @@ mod tests {
                 source_texts.clone(),
                 10,
                 &truncation_strategy,
-                0
+                0,
             ),
             expected_results
         );
@@ -1638,7 +1638,7 @@ mod tests {
                 source_texts.clone(),
                 10,
                 &truncation_strategy,
-                0
+                0,
             ),
             expected_results
         );
@@ -1666,7 +1666,7 @@ mod tests {
                 base_tokenizer.decode(
                     source_ids.clone(),
                     skip_special_tokens,
-                    clean_up_tokenization_spaces
+                    clean_up_tokenization_spaces,
                 ),
                 *expected_result
             );
@@ -1676,7 +1676,7 @@ mod tests {
                 &base_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -1685,7 +1685,7 @@ mod tests {
                 &base_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -1713,7 +1713,7 @@ mod tests {
                 base_tokenizer.decode(
                     source_ids.clone(),
                     skip_special_tokens,
-                    clean_up_tokenization_spaces
+                    clean_up_tokenization_spaces,
                 ),
                 *expected_result
             );
@@ -1723,7 +1723,7 @@ mod tests {
                 &base_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -1732,7 +1732,7 @@ mod tests {
                 &base_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -1760,7 +1760,7 @@ mod tests {
                 base_tokenizer.decode(
                     source_ids.clone(),
                     skip_special_tokens,
-                    clean_up_tokenization_spaces
+                    clean_up_tokenization_spaces,
                 ),
                 *expected_result
             );
@@ -1770,7 +1770,7 @@ mod tests {
                 &base_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -1779,7 +1779,7 @@ mod tests {
                 &base_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );

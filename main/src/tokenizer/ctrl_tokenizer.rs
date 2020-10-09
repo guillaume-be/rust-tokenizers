@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Token, TokenRef, Tokenizer};
-use crate::preprocessing::tokenizer::tokenization_utils::{
+use crate::error::TokenizerError;
+use crate::tokenizer::tokenization_utils::{
     ctrl_bpe, fix_mask, lowercase, split_on_bpe_pairs, split_on_regex, split_on_special_tokens,
 };
-use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
-use crate::OpenAiGptVocab;
+use crate::tokenizer::Tokenizer;
+use crate::vocab::bpe_vocab::BpePairVocab;
+use crate::vocab::{OpenAiGptVocab, Vocab};
+use crate::{Mask, Token, TokenRef};
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -111,11 +111,10 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::preprocessing::tokenizer::base_tokenizer::{
-        Offset, TokenizedInput, TruncationStrategy,
-    };
-    use crate::preprocessing::vocab::base_vocab::swap_key_values;
-    use crate::OpenAiGptVocab;
+    use crate::tokenizer::base_tokenizer::{Offset, TokenizedInput, TruncationStrategy};
+    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::OpenAiGptVocab;
+    use crate::Mask;
     use itertools::Itertools;
     use std::collections::HashMap;
 

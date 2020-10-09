@@ -1,9 +1,8 @@
-use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
-use rust_tokenizers::{TokenizedInput, Tokenizer, TruncationStrategy};
-
 mod test_utils;
-
-use rust_tokenizers::preprocessing::tokenizer::xlm_roberta_tokenizer::XLMRobertaTokenizer;
+use rust_tokenizers::tokenizer::{
+    MultiThreadedTokenizer, Tokenizer, TruncationStrategy, XLMRobertaTokenizer,
+};
+use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
@@ -197,7 +196,8 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
     ]
     .to_vec();
 
-    let output = xlm_roberta_tokenizer.encode_list(
+    let output = MultiThreadedTokenizer::encode_list(
+        &xlm_roberta_tokenizer,
         original_strings.to_vec(),
         128,
         &TruncationStrategy::LongestFirst,

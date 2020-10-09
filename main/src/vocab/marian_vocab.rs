@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::vocab::base_vocab::swap_key_values;
-use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
-use crate::Vocab;
-use protobuf::parse_from_bytes;
+use crate::error::TokenizerError;
+use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::Vocab;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
+use std::io::BufReader;
 
-pub struct AlbertVocab {
+pub struct MarianVocab {
     pub values: HashMap<String, i64>,
     pub indices: HashMap<i64, String>,
     pub unknown_value: &'static str,
@@ -29,28 +27,16 @@ pub struct AlbertVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl AlbertVocab {
-    pub fn bos_value() -> &'static str {
-        "[CLS]"
-    }
-    pub fn eos_value() -> &'static str {
-        "[SEP]"
-    }
-    pub fn sep_value() -> &'static str {
-        "[SEP]"
-    }
-    pub fn cls_value() -> &'static str {
-        "[CLS]"
-    }
-    pub fn mask_value() -> &'static str {
-        "[MASK]"
-    }
+impl MarianVocab {
     pub fn pad_value() -> &'static str {
         "<pad>"
     }
+    pub fn eos_value() -> &'static str {
+        "</s>"
+    }
 }
 
-impl Vocab for AlbertVocab {
+impl Vocab for MarianVocab {
     fn unknown_value() -> &'static str {
         "<unk>"
     }
@@ -75,54 +61,32 @@ impl Vocab for AlbertVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<AlbertVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
+    fn from_file(path: &str) -> Result<MarianVocab, TokenizerError> {
+        let f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
         })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
+        let br = BufReader::new(f);
+        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
+            Ok(value) => value,
             Err(e) => {
                 return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
 
-        let mut values = HashMap::new();
-        for (idx, piece) in proto.get_pieces().iter().enumerate() {
-            values.insert(piece.get_piece().to_owned(), idx as i64);
-        }
-
         let mut special_values = HashMap::new();
-        let unknown_value = AlbertVocab::unknown_value();
-        AlbertVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        let unknown_value = MarianVocab::unknown_value();
+        MarianVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
-        let bos_value = AlbertVocab::bos_value();
-        AlbertVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
+        let pad_value = MarianVocab::pad_value();
+        MarianVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
-        let eos_value = AlbertVocab::eos_value();
-        AlbertVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
-
-        let cls_value = AlbertVocab::cls_value();
-        AlbertVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let mask_value = AlbertVocab::mask_value();
-        AlbertVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
-
-        let pad_value = AlbertVocab::pad_value();
-        AlbertVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let sep_value = AlbertVocab::sep_value();
-        AlbertVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
+        let eos_value = MarianVocab::eos_value();
+        MarianVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        Ok(AlbertVocab {
+        Ok(MarianVocab {
             values,
             indices,
             unknown_value,

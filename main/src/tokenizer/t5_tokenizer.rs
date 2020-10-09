@@ -10,14 +10,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Token, TokenRef};
-use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
-use crate::preprocessing::vocab::t5_vocab::T5Vocab;
-use crate::tokenization_utils::{
+use crate::error::TokenizerError;
+use crate::tokenizer::tokenization_utils::{
     _clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
 };
-use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
+use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
+use crate::vocab::{SentencePieceModel, T5Vocab, Vocab};
+use crate::{Mask, Token, TokenRef};
 
 pub struct T5Tokenizer {
     model: SentencePieceModel,

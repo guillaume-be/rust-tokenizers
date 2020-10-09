@@ -34,11 +34,12 @@
 //!
 //! ```no_run
 //! use std::sync::Arc;
-//! use rust_tokenizers::{Vocab, BertTokenizer, Tokenizer, TruncationStrategy};
-//! use rust_tokenizers::preprocessing::adapters::Example;
 //! # fn main() -> anyhow::Result<()> {
+//! use rust_tokenizers::adapters::Example;
+//! use rust_tokenizers::tokenizer::{BertTokenizer, TruncationStrategy, Tokenizer};
+//! use rust_tokenizers::vocab::{BertVocab, Vocab};
 //! let vocab_path = "path/to/vocab";
-//! let vocab = Arc::new(rust_tokenizers::BertVocab::from_file(&vocab_path)?);
+//! let vocab = Arc::new(BertVocab::from_file(&vocab_path)?);
 //!
 //! let test_sentence = Example::new_from_string("This is a sample sentence to be tokenized");
 //! let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab.clone(), true, true);
@@ -52,27 +53,14 @@
 //! # }
 //! ```
 
-pub mod preprocessing;
+pub mod tokenizer;
+pub mod vocab;
 
-pub use crate::preprocessing::error;
-pub use crate::preprocessing::tokenizer::albert_tokenizer::AlbertTokenizer;
-pub use crate::preprocessing::tokenizer::base_tokenizer::{
-    MultiThreadedTokenizer, TokenizedInput, Tokenizer, TruncationStrategy,
-};
-pub use crate::preprocessing::tokenizer::bert_tokenizer::BertTokenizer;
-pub use crate::preprocessing::tokenizer::ctrl_tokenizer::CtrlTokenizer;
-pub use crate::preprocessing::tokenizer::gpt2_tokenizer::Gpt2Tokenizer;
-pub use crate::preprocessing::tokenizer::openai_gpt_tokenizer::OpenAiGptTokenizer;
-pub use crate::preprocessing::tokenizer::roberta_tokenizer::RobertaTokenizer;
-pub use crate::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
-pub use crate::preprocessing::tokenizer::xlnet_tokenizer::XLNetTokenizer;
-pub use crate::preprocessing::vocab::base_vocab::Vocab;
-pub use preprocessing::tokenizer::bert_tokenizer;
-pub use preprocessing::tokenizer::tokenization_utils;
-pub use preprocessing::vocab::{
-    base_vocab::BaseVocab, bert_vocab::BertVocab, gpt2_vocab::Gpt2Vocab,
-    openai_gpt_vocab::OpenAiGptVocab, roberta_vocab::RobertaVocab,
-    xlm_roberta_vocab::XLMRobertaVocab, xlnet_vocab::XLNetVocab,
+pub mod adapters;
+pub mod error;
+pub use tokenizer::base_tokenizer::{
+    ConsolidatableTokens, ConsolidatedTokenIterator, Mask, Offset, OffsetSize, Token, TokenRef,
+    TokenTrait, TokenizedInput,
 };
 
 #[macro_use]

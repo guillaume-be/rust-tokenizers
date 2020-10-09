@@ -1,8 +1,9 @@
-use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
-use rust_tokenizers::{SentencePieceTokenizer, TokenizedInput, Tokenizer, TruncationStrategy};
-
 mod test_utils;
 
+use rust_tokenizers::tokenizer::{
+    MultiThreadedTokenizer, SentencePieceTokenizer, Tokenizer, TruncationStrategy,
+};
+use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
@@ -220,7 +221,8 @@ fn test_sentence_piece_tokenization() -> anyhow::Result<()> {
     ]
     .to_vec();
 
-    let output = sentence_piece_tokenizer.encode_list(
+    let output = MultiThreadedTokenizer::encode_list(
+        &sentence_piece_tokenizer,
         original_strings.to_vec(),
         128,
         &TruncationStrategy::LongestFirst,

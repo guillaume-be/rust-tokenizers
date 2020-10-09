@@ -11,14 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
-use crate::preprocessing::vocab::marian_vocab::MarianVocab;
-use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
-use crate::tokenization_utils::{
+use crate::error::TokenizerError;
+use crate::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
+use crate::tokenizer::tokenization_utils::{
     _clean_text, decompose_nfkc, is_whitespace, lowercase, split_at_regex,
 };
-use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
+use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
+use crate::vocab::{MarianVocab, SentencePieceModel, Vocab};
 use regex::Regex;
 
 pub struct MarianTokenizer {

@@ -10,15 +10,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
-use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
-use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
-use crate::preprocessing::vocab::xlnet_vocab::XLNetVocab;
-use crate::tokenization_utils::{
+use crate::error::TokenizerError;
+use crate::tokenizer::tokenization_utils::strip_accents;
+use crate::tokenizer::tokenization_utils::{
     _clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
 };
-use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
+use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
+use crate::vocab::{SentencePieceModel, Vocab, XLNetVocab};
+use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 
 pub struct XLNetTokenizer {
     model: SentencePieceModel,

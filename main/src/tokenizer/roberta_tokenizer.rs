@@ -12,19 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{
-    Mask, Offset, OffsetSize, Token, TokenRef, Tokenizer,
-};
-use crate::preprocessing::tokenizer::constants::UNICODE_TO_BYTES;
-use crate::preprocessing::tokenizer::tokenization_utils::{
+use crate::error::TokenizerError;
+use crate::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef, Tokenizer};
+use crate::tokenizer::constants::UNICODE_TO_BYTES;
+use crate::tokenizer::tokenization_utils::lowercase;
+use crate::tokenizer::tokenization_utils::{
     bpe, fix_mask, is_whitespace, split_on_bpe_pairs, split_on_regex_with_lookahead,
     split_on_special_tokens,
 };
-use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::vocab::bpe_vocab::BpePairVocab;
-use crate::tokenization_utils::lowercase;
-use crate::RobertaVocab;
+use crate::vocab::bpe_vocab::BpePairVocab;
+use crate::vocab::{RobertaVocab, Vocab};
 use itertools::Itertools;
 use regex::Regex;
 use std::cell::RefCell;
@@ -232,9 +229,9 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::preprocessing::tokenizer::base_tokenizer::{TokenizedInput, TruncationStrategy};
-    use crate::preprocessing::vocab::base_vocab::swap_key_values;
-    use crate::RobertaVocab;
+    use crate::tokenizer::base_tokenizer::{TokenizedInput, TruncationStrategy};
+    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::RobertaVocab;
     use std::collections::HashMap;
 
     fn generate_test_vocab() -> RobertaVocab {

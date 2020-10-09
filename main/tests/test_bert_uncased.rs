@@ -1,9 +1,9 @@
-use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
-use rust_tokenizers::{BertTokenizer, TokenizedInput, Tokenizer, TruncationStrategy, Vocab};
 use std::sync::Arc;
 
 mod test_utils;
-
+use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer, TruncationStrategy};
+use rust_tokenizers::vocab::{BertVocab, Vocab};
+use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
@@ -14,9 +14,7 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let vocab = Arc::new(rust_tokenizers::BertVocab::from_file(
-        vocab_path.to_str().unwrap(),
-    )?);
+    let vocab = Arc::new(BertVocab::from_file(vocab_path.to_str().unwrap())?);
     let bert_tokenizer: BertTokenizer =
         BertTokenizer::from_existing_vocab(vocab.clone(), true, true);
 

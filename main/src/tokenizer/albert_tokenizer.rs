@@ -10,15 +10,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
-use crate::preprocessing::tokenizer::tokenization_utils::strip_accents;
-use crate::preprocessing::vocab::albert_vocab::AlbertVocab;
-use crate::preprocessing::vocab::sentence_piece_vocab::SentencePieceModel;
-use crate::tokenization_utils::{
+use crate::error::TokenizerError;
+use crate::tokenizer::tokenization_utils::{
     _clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
+    strip_accents,
 };
-use crate::{MultiThreadedTokenizer, Tokenizer, Vocab};
+use crate::vocab::{AlbertVocab, SentencePieceModel};
+
+use crate::tokenizer::MultiThreadedTokenizer;
+use crate::tokenizer::Tokenizer;
+use crate::vocab::Vocab;
+use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 
 pub struct AlbertTokenizer {
     model: SentencePieceModel,

@@ -1,4 +1,6 @@
-// Copyright 2018 Mesh TensorFlow authors, T5 Authors and HuggingFace Inc. team.
+// Copyright 2018-2020 The HuggingFace Inc. team.
+// Copyright 2020 Marian Team Authors
+// Copyright 2019 Google LLC. All Rights Reserved.
 // Copyright 2019-2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -10,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::vocab::base_vocab::swap_key_values;
-use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
-use crate::Vocab;
+use crate::error::TokenizerError;
+use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::vocab::Vocab;
 use protobuf::parse_from_bytes;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-pub struct T5Vocab {
+pub struct AlbertVocab {
     pub values: HashMap<String, i64>,
     pub indices: HashMap<i64, String>,
     pub unknown_value: &'static str,
@@ -27,16 +29,28 @@ pub struct T5Vocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl T5Vocab {
+impl AlbertVocab {
+    pub fn bos_value() -> &'static str {
+        "[CLS]"
+    }
     pub fn eos_value() -> &'static str {
-        "</s>"
+        "[SEP]"
+    }
+    pub fn sep_value() -> &'static str {
+        "[SEP]"
+    }
+    pub fn cls_value() -> &'static str {
+        "[CLS]"
+    }
+    pub fn mask_value() -> &'static str {
+        "[MASK]"
     }
     pub fn pad_value() -> &'static str {
         "<pad>"
     }
 }
 
-impl Vocab for T5Vocab {
+impl Vocab for AlbertVocab {
     fn unknown_value() -> &'static str {
         "<unk>"
     }
@@ -61,7 +75,7 @@ impl Vocab for T5Vocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<T5Vocab, TokenizerError> {
+    fn from_file(path: &str) -> Result<AlbertVocab, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
         })?;
@@ -77,25 +91,38 @@ impl Vocab for T5Vocab {
                 return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
+
         let mut values = HashMap::new();
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             values.insert(piece.get_piece().to_owned(), idx as i64);
         }
 
         let mut special_values = HashMap::new();
-        let unknown_value = T5Vocab::unknown_value();
-        T5Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        let unknown_value = AlbertVocab::unknown_value();
+        AlbertVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
-        let eos_value = T5Vocab::eos_value();
-        T5Vocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
+        let bos_value = AlbertVocab::bos_value();
+        AlbertVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
 
-        let pad_value = T5Vocab::pad_value();
-        T5Vocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
+        let eos_value = AlbertVocab::eos_value();
+        AlbertVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
+
+        let cls_value = AlbertVocab::cls_value();
+        AlbertVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
+
+        let mask_value = AlbertVocab::mask_value();
+        AlbertVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
+
+        let pad_value = AlbertVocab::pad_value();
+        AlbertVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
+
+        let sep_value = AlbertVocab::sep_value();
+        AlbertVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        Ok(T5Vocab {
+        Ok(AlbertVocab {
             values,
             indices,
             unknown_value,

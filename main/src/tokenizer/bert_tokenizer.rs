@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{
+use crate::error::TokenizerError;
+use crate::tokenizer::base_tokenizer::{
     BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenRef, Tokenizer,
 };
-use crate::preprocessing::tokenizer::tokenization_utils::tokenize_wordpiece;
-use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::BertVocab;
+use crate::tokenizer::tokenization_utils::tokenize_wordpiece;
+use crate::vocab::{BertVocab, Vocab};
 use std::sync::Arc;
 
 pub struct BertTokenizer {
@@ -157,9 +156,10 @@ impl MultiThreadedTokenizer<BertVocab> for BertTokenizer {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::preprocessing::tokenizer::base_tokenizer::{TokenizedInput, TruncationStrategy};
-    use crate::preprocessing::vocab::base_vocab::swap_key_values;
-    use crate::BertVocab;
+    use crate::tokenizer::base_tokenizer::TruncationStrategy;
+    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::BertVocab;
+    use crate::TokenizedInput;
     use itertools::Itertools;
     use std::collections::HashMap;
 

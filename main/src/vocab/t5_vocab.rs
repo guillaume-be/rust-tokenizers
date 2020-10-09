@@ -1,6 +1,4 @@
-// Copyright 2018-2020 The HuggingFace Inc. team.
-// Copyright 2020 Marian Team Authors
-// Copyright 2019 Google LLC. All Rights Reserved.
+// Copyright 2018 Mesh TensorFlow authors, T5 Authors and HuggingFace Inc. team.
 // Copyright 2019-2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,13 +11,15 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::preprocessing::vocab::base_vocab::swap_key_values;
-use crate::Vocab;
+use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::vocab::Vocab;
+use protobuf::parse_from_bytes;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::Read;
 
-pub struct MarianVocab {
+pub struct T5Vocab {
     pub values: HashMap<String, i64>,
     pub indices: HashMap<i64, String>,
     pub unknown_value: &'static str,
@@ -27,16 +27,16 @@ pub struct MarianVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl MarianVocab {
-    pub fn pad_value() -> &'static str {
-        "<pad>"
-    }
+impl T5Vocab {
     pub fn eos_value() -> &'static str {
         "</s>"
     }
+    pub fn pad_value() -> &'static str {
+        "<pad>"
+    }
 }
 
-impl Vocab for MarianVocab {
+impl Vocab for T5Vocab {
     fn unknown_value() -> &'static str {
         "<unk>"
     }
@@ -61,32 +61,41 @@ impl Vocab for MarianVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<MarianVocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
+    fn from_file(path: &str) -> Result<T5Vocab, TokenizerError> {
+        let mut f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
         })?;
-        let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
+        let mut contents = Vec::new();
+        let proto = match f.read_to_end(&mut contents) {
+            Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
+                Ok(proto_value) => proto_value,
+                Err(e) => {
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+                }
+            },
             Err(e) => {
                 return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
+        let mut values = HashMap::new();
+        for (idx, piece) in proto.get_pieces().iter().enumerate() {
+            values.insert(piece.get_piece().to_owned(), idx as i64);
+        }
 
         let mut special_values = HashMap::new();
-        let unknown_value = MarianVocab::unknown_value();
-        MarianVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        let unknown_value = T5Vocab::unknown_value();
+        T5Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
-        let pad_value = MarianVocab::pad_value();
-        MarianVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
+        let eos_value = T5Vocab::eos_value();
+        T5Vocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
 
-        let eos_value = MarianVocab::eos_value();
-        MarianVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
+        let pad_value = T5Vocab::pad_value();
+        T5Vocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
 
-        Ok(MarianVocab {
+        Ok(T5Vocab {
             values,
             indices,
             unknown_value,

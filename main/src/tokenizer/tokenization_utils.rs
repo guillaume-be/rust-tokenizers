@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::tokenizer::base_tokenizer::{
-    Mask, Offset, OffsetSize, Token, TokenRef, TruncationStrategy,
-};
-use crate::preprocessing::tokenizer::constants::{
+use crate::tokenizer::base_tokenizer::TruncationStrategy;
+use crate::tokenizer::constants::{
     ACCENT_MARKERS, ADDITIONAL_WHITESPACE_CHARS, BYTES_TO_UNICODE, CONTROL_CHARS,
     PUNCTUATION_CHARS, WHITESPACE_CHARS,
 };
-use crate::preprocessing::vocab::base_vocab::Vocab;
-use crate::preprocessing::vocab::bpe_vocab::{BpePairRef, BpePairVocab};
-use crate::BertVocab;
+use crate::vocab::bpe_vocab::{BpePairRef, BpePairVocab};
+use crate::vocab::{BertVocab, Vocab};
+use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 use regex::Regex;
 use std::cell::RefCell;
 use std::char;
@@ -1127,7 +1125,7 @@ pub fn fix_mask(tokens: &mut Vec<Token>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::preprocessing::vocab::base_vocab::swap_key_values;
+    use crate::vocab::base_vocab::swap_key_values;
     use std::collections::HashMap;
     use std::iter::FromIterator;
 

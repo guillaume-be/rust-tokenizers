@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::preprocessing::error::TokenizerError;
-use crate::preprocessing::vocab::base_vocab::{swap_key_values, Vocab};
+use crate::error::TokenizerError;
+use crate::vocab::base_vocab::{swap_key_values, Vocab};
 use std::collections::HashMap;
 
 pub struct BertVocab {

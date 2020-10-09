@@ -1,8 +1,7 @@
-use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
-use rust_tokenizers::{CtrlTokenizer, TokenizedInput, Tokenizer, TruncationStrategy};
-
 mod test_utils;
 
+use rust_tokenizers::tokenizer::{CtrlTokenizer, Tokenizer, TruncationStrategy};
+use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]

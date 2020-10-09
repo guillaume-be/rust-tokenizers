@@ -11,11 +11,11 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::preprocessing::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
-use crate::preprocessing::tokenizer::tokenization_utils::{is_punctuation, is_whitespace};
-use crate::preprocessing::vocab::base_vocab::swap_key_values;
-use crate::preprocessing::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
-use crate::Vocab;
+use crate::tokenizer::tokenization_utils::{is_punctuation, is_whitespace};
+use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::vocab::Vocab;
+use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 use hashbrown::HashMap as BrownHashMap;
 use itertools::Itertools;
 use protobuf::parse_from_bytes;
