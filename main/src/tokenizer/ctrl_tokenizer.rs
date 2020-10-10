@@ -23,11 +23,10 @@ use crate::{Mask, Token, TokenRef};
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 pub struct CtrlTokenizer {
-    vocab: Rc<OpenAiGptVocab>,
-    bpe_ranks: Rc<BpePairVocab>,
+    vocab: OpenAiGptVocab,
+    bpe_ranks: BpePairVocab,
     cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
     regex_pattern: Regex,
     lower_case: bool,
@@ -39,8 +38,8 @@ impl CtrlTokenizer {
         merges_path: &str,
         lower_case: bool,
     ) -> Result<CtrlTokenizer, TokenizerError> {
-        let vocab = Rc::new(OpenAiGptVocab::from_file(vocab_path)?);
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
+        let vocab = OpenAiGptVocab::from_file(vocab_path)?;
+        let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RefCell::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
         Ok(CtrlTokenizer {
@@ -53,8 +52,8 @@ impl CtrlTokenizer {
     }
 
     pub fn from_existing_vocab_and_merges(
-        vocab: Rc<OpenAiGptVocab>,
-        merges: Rc<BpePairVocab>,
+        vocab: OpenAiGptVocab,
+        merges: BpePairVocab,
         lower_case: bool,
     ) -> CtrlTokenizer {
         let cache = RefCell::new(HashMap::new());
@@ -71,11 +70,11 @@ impl CtrlTokenizer {
 
 impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
     fn vocab(&self) -> &OpenAiGptVocab {
-        self.vocab.as_ref()
+        &self.vocab
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
-        let mut tokens = split_on_special_tokens(initial_token, self.vocab.as_ref())
+        let mut tokens = split_on_special_tokens(initial_token, &self.vocab)
             .into_iter()
             .map(|token| token.to_owned())
             .collect::<Vec<Token>>();
@@ -90,7 +89,7 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
                     sub_tokens.extend(split_on_bpe_pairs(
                         token,
                         ctrl_bpe,
-                        (&self.bpe_ranks).as_ref(),
+                        &self.bpe_ranks,
                         &self.cache,
                         false,
                     ));
@@ -168,8 +167,8 @@ mod tests {
     #[test]
     fn test_ctrl_tokenizer() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let ctrl_tokenizer: CtrlTokenizer =
             CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let test_tuples = [
@@ -201,8 +200,8 @@ mod tests {
     #[test]
     fn test_ctrl_tokenizer_no_lower_casing() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let ctrl_tokenizer: CtrlTokenizer =
             CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let test_tuples = [
@@ -234,8 +233,8 @@ mod tests {
     #[test]
     fn test_encode() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let ctrl_tokenizer: CtrlTokenizer =
             CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let truncation_strategy = TruncationStrategy::LongestFirst;
@@ -357,8 +356,8 @@ mod tests {
     #[test]
     fn test_decode() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let ctrl_tokenizer: CtrlTokenizer =
             CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let skip_special_tokens = false;
@@ -392,8 +391,8 @@ mod tests {
     #[test]
     fn test_decode_skip_special_tokens() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let ctrl_tokenizer: CtrlTokenizer =
             CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let skip_special_tokens = true;

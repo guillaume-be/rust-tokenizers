@@ -20,13 +20,12 @@ use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::Arc;
 
 pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
-    bpe_ranks: Rc<BpePairVocab>,
+    bpe_ranks: BpePairVocab,
     cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
 }
 
@@ -38,7 +37,7 @@ impl OpenAiGptTokenizer {
     ) -> Result<OpenAiGptTokenizer, TokenizerError> {
         let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path)?);
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
+        let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RefCell::new(HashMap::new());
         Ok(OpenAiGptTokenizer {
             vocab,
@@ -50,7 +49,7 @@ impl OpenAiGptTokenizer {
 
     pub fn from_existing_vocab_and_merges(
         vocab: Arc<OpenAiGptVocab>,
-        merges: Rc<BpePairVocab>,
+        merges: BpePairVocab,
         lower_case: bool,
     ) -> OpenAiGptTokenizer {
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
@@ -79,7 +78,7 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
                     split_on_bpe_pairs(
                         token.as_ref(),
                         openai_gpt_bpe,
-                        (&self.bpe_ranks).as_ref(),
+                        &self.bpe_ranks,
                         &self.cache,
                         false,
                     )
@@ -163,7 +162,7 @@ mod tests {
     fn test_openai_gpt_tokenizer() {
         //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let test_tuples = [
@@ -193,7 +192,7 @@ mod tests {
     fn test_openai_gpt_tokenizer_no_lower_casing() {
         //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let test_tuples = [
@@ -223,7 +222,7 @@ mod tests {
     fn test_encode() {
         //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
@@ -293,7 +292,7 @@ mod tests {
     fn test_decode() {
         //        Given
         let vocab = Arc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let skip_special_tokens = false;

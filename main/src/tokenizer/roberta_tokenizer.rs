@@ -27,11 +27,10 @@ use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::iter::Iterator;
-use std::rc::Rc;
 
 pub struct RobertaTokenizer {
-    vocab: Rc<RobertaVocab>,
-    bpe_ranks: Rc<BpePairVocab>,
+    vocab: RobertaVocab,
+    bpe_ranks: BpePairVocab,
     cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
     pattern_lookahead: Regex,
     pattern_tokenization: Regex,
@@ -46,8 +45,8 @@ impl RobertaTokenizer {
         lower_case: bool,
         add_prefix_space: bool,
     ) -> Result<RobertaTokenizer, TokenizerError> {
-        let vocab = Rc::new(RobertaVocab::from_file(vocab_path)?);
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
+        let vocab = RobertaVocab::from_file(vocab_path)?;
+        let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RefCell::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
         let pattern_tokenization =
@@ -65,8 +64,8 @@ impl RobertaTokenizer {
     }
 
     pub fn from_existing_vocab_and_merges(
-        vocab: Rc<RobertaVocab>,
-        merges: Rc<BpePairVocab>,
+        vocab: RobertaVocab,
+        merges: BpePairVocab,
         lower_case: bool,
         add_prefix_space: bool,
     ) -> RobertaTokenizer {
@@ -89,7 +88,7 @@ impl RobertaTokenizer {
 
 impl Tokenizer<RobertaVocab> for RobertaTokenizer {
     fn vocab(&self) -> &RobertaVocab {
-        self.vocab.as_ref()
+        &self.vocab
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
@@ -101,11 +100,10 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             initial_token.text.insert(0, ' ');
             initial_token.reference_offsets.insert(0, 0);
         };
-        let mut tokens: Vec<Token> =
-            split_on_special_tokens(initial_token.as_ref(), self.vocab.as_ref())
-                .into_iter()
-                .map(|token| token.to_owned())
-                .collect::<Vec<Token>>();
+        let mut tokens: Vec<Token> = split_on_special_tokens(initial_token.as_ref(), &self.vocab)
+            .into_iter()
+            .map(|token| token.to_owned())
+            .collect::<Vec<Token>>();
 
         let mut sub_tokens = Vec::new();
         for token in tokens.iter_mut() {
@@ -301,8 +299,8 @@ mod tests {
     #[test]
     fn test_roberta_tokenizer() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let roberta_tokenizer: RobertaTokenizer =
             RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true, false);
         let test_tuples = [
@@ -359,8 +357,8 @@ mod tests {
     #[test]
     fn test_roberta_tokenizer_no_lower_casing() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let roberta_tokenizer: RobertaTokenizer =
             RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, false, true);
         let test_tuples = [
@@ -446,8 +444,8 @@ mod tests {
     #[test]
     fn test_encode() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let roberta_tokenizer: RobertaTokenizer =
             RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
@@ -544,8 +542,8 @@ mod tests {
     #[test]
     fn test_decode() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let roberta_tokenizer: RobertaTokenizer =
             RobertaTokenizer::from_existing_vocab_and_merges(vocab, merges, true, true);
         let skip_special_tokens = false;

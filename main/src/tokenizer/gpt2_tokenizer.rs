@@ -27,11 +27,10 @@ use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::iter::Iterator;
-use std::rc::Rc;
 
 pub struct Gpt2Tokenizer {
-    vocab: Rc<Gpt2Vocab>,
-    bpe_ranks: Rc<BpePairVocab>,
+    vocab: Gpt2Vocab,
+    bpe_ranks: BpePairVocab,
     cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
     pattern_lookahead: Regex,
     pattern_tokenization: Regex,
@@ -44,8 +43,8 @@ impl Gpt2Tokenizer {
         merges_path: &str,
         lower_case: bool,
     ) -> Result<Gpt2Tokenizer, TokenizerError> {
-        let vocab = Rc::new(Gpt2Vocab::from_file(vocab_path)?);
-        let bpe_ranks = Rc::new(BpePairVocab::from_file(merges_path)?);
+        let vocab = Gpt2Vocab::from_file(vocab_path)?;
+        let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RefCell::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
         let pattern_tokenization =
@@ -62,8 +61,8 @@ impl Gpt2Tokenizer {
     }
 
     pub fn from_existing_vocab_and_merges(
-        vocab: Rc<Gpt2Vocab>,
-        merges: Rc<BpePairVocab>,
+        vocab: Gpt2Vocab,
+        merges: BpePairVocab,
         lower_case: bool,
     ) -> Gpt2Tokenizer {
         let cache = RefCell::new(HashMap::new());
@@ -84,11 +83,11 @@ impl Gpt2Tokenizer {
 
 impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
     fn vocab(&self) -> &Gpt2Vocab {
-        self.vocab.as_ref()
+        &self.vocab
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
-        let mut tokens = split_on_special_tokens(initial_token, self.vocab.as_ref())
+        let mut tokens = split_on_special_tokens(initial_token, &self.vocab)
             .into_iter()
             .map(|token| token.to_owned())
             .collect::<Vec<Token>>();
@@ -107,7 +106,7 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
                     sub_tokens.extend(split_on_bpe_pairs(
                         token,
                         bpe,
-                        (&self.bpe_ranks).as_ref(),
+                        &self.bpe_ranks,
                         &self.cache,
                         true,
                     ));
@@ -198,8 +197,8 @@ mod tests {
     #[test]
     fn test_gpt2_tokenizer() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let gpt2_tokenizer: Gpt2Tokenizer =
             Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let test_tuples = [
@@ -227,8 +226,8 @@ mod tests {
     #[test]
     fn test_gpt2_tokenizer_no_lower_casing() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let gpt2_tokenizer: Gpt2Tokenizer =
             Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, false);
         let test_tuples = [
@@ -255,8 +254,8 @@ mod tests {
     #[test]
     fn test_encode() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let gpt2_tokenizer: Gpt2Tokenizer =
             Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
@@ -325,8 +324,8 @@ mod tests {
     #[test]
     fn test_decode() {
         //        Given
-        let vocab = Rc::new(generate_test_vocab());
-        let merges = Rc::new(generate_test_merges());
+        let vocab = generate_test_vocab();
+        let merges = generate_test_merges();
         let gpt2_tokenizer: Gpt2Tokenizer =
             Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, true);
         let skip_special_tokens = false;

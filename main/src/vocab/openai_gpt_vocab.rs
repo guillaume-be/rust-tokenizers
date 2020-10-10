@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 
+#[derive(Clone)]
 pub struct OpenAiGptVocab {
     pub values: HashMap<String, i64>,
     pub indices: HashMap<i64, String>,

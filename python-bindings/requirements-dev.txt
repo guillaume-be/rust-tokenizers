@@ -1,5 +1,5 @@
-pip>=19.1
-setuptools-rust>=0.10.6
+pip>=20.2.3
+setuptools-rust>=0.11.3
 pytest>=3.5.0
 pytest-benchmark>=3.1.1
 sentencepiece==0.1.91
