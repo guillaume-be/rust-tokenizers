@@ -121,20 +121,20 @@ mod tests {
         let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Given
-        let t = String::from("t");
-        let h = String::from("h");
-        let a = String::from("a");
-        let i = String::from("i");
-        let n = String::from("n");
-        let th = String::from("th");
-        let e_eow = String::from("e</w>");
+        let t_token = String::from("t");
+        let h_token = String::from("h");
+        let a_token = String::from("a");
+        let i_token = String::from("i");
+        let n_token = String::from("n");
+        let th_token = String::from("th");
+        let e_eow_token = String::from("e</w>");
 
         let test_tuples = [
-            ((t.clone(), h.clone()), Some(&(0 as i64))),
-            ((a.clone(), n.clone()), Some(&(1 as i64))),
-            ((i.clone(), n.clone()), Some(&(2 as i64))),
-            ((th.clone(), e_eow.clone()), Some(&(3 as i64))),
-            ((a.clone(), e_eow.clone()), None),
+            ((t_token.clone(), h_token.clone()), Some(&(0 as i64))),
+            ((a_token.clone(), n_token.clone()), Some(&(1 as i64))),
+            ((i_token.clone(), n_token.clone()), Some(&(2 as i64))),
+            ((th_token.clone(), e_eow_token.clone()), Some(&(3 as i64))),
+            ((a_token.clone(), e_eow_token.clone()), None),
         ];
 
         //        When & Then

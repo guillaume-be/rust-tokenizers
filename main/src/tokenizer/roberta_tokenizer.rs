@@ -13,7 +13,9 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef, Tokenizer};
+use crate::tokenizer::base_tokenizer::{
+    Mask, Offset, OffsetSize, SimpleTokenizedInput, Token, TokenRef, Tokenizer,
+};
 use crate::tokenizer::constants::UNICODE_TO_BYTES;
 use crate::tokenizer::tokenization_utils::lowercase;
 use crate::tokenizer::tokenization_utils::{
@@ -156,14 +158,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
         mask_1: Vec<Mask>,
         mask_2: Option<Vec<Mask>>,
-    ) -> (
-        Vec<i64>,
-        Vec<i8>,
-        Vec<i8>,
-        Vec<Option<Offset>>,
-        Vec<Vec<OffsetSize>>,
-        Vec<Mask>,
-    ) {
+    ) -> SimpleTokenizedInput {
         let mut output: Vec<i64> = vec![];
         let mut token_segment_ids: Vec<i8> = vec![];
         let mut special_tokens_mask: Vec<i8> = vec![];
@@ -213,14 +208,14 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             }
             mask.push(Mask::Special);
         }
-        (
-            output,
-            token_segment_ids,
+        SimpleTokenizedInput {
+            token_ids: output,
+            segment_ids: token_segment_ids,
             special_tokens_mask,
-            offsets,
-            original_offsets,
+            token_offsets: offsets,
+            reference_offsets: original_offsets,
             mask,
-        )
+        }
     }
 }
 
@@ -340,12 +335,14 @@ mod tests {
             expected_mask,
         ) in test_tuples.iter()
         {
-            let (tokens, offsets, original_offsets, mask) =
-                roberta_tokenizer.tokenize_with_offsets(*source_text);
-            assert_eq!(tokens, *expected_tokens);
-            assert_eq!(offsets, *expected_offsets);
-            assert_eq!(original_offsets, *expected_original_offsets);
-            assert_eq!(mask, *expected_mask);
+            let tokens_with_offsets = roberta_tokenizer.tokenize_with_offsets(*source_text);
+            assert_eq!(tokens_with_offsets.tokens, *expected_tokens);
+            assert_eq!(tokens_with_offsets.offsets, *expected_offsets);
+            assert_eq!(
+                tokens_with_offsets.original_positions,
+                *expected_original_offsets
+            );
+            assert_eq!(tokens_with_offsets.masks, *expected_mask);
         }
 
         assert_eq!(
@@ -427,12 +424,14 @@ mod tests {
             expected_mask,
         ) in test_tuples.iter()
         {
-            let (tokens, offsets, original_offsets, mask) =
-                roberta_tokenizer.tokenize_with_offsets(*source_text);
-            assert_eq!(tokens, *expected_tokens);
-            assert_eq!(offsets, *expected_offsets);
-            assert_eq!(original_offsets, *expected_original_offsets);
-            assert_eq!(mask, *expected_mask);
+            let tokens_with_offsets = roberta_tokenizer.tokenize_with_offsets(*source_text);
+            assert_eq!(tokens_with_offsets.tokens, *expected_tokens);
+            assert_eq!(tokens_with_offsets.offsets, *expected_offsets);
+            assert_eq!(
+                tokens_with_offsets.original_positions,
+                *expected_original_offsets
+            );
+            assert_eq!(tokens_with_offsets.masks, *expected_mask);
         }
 
         assert_eq!(

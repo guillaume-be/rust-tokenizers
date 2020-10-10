@@ -136,27 +136,25 @@ pub fn is_whitespace(character: &char) -> bool {
 pub fn is_control(character: &char, strict: bool) -> bool {
     if ADDITIONAL_WHITESPACE_CHARS.contains(character) {
         false
-    } else {
-        if strict {
-            let u32_char = *character as u32;
-            if (u32_char <= 0x001F)
-                | ((u32_char >= 0x0080) & (u32_char <= 0x009F))
-                | ((u32_char >= 0xE0020) & (u32_char <= 0xE007F))
-                | ((u32_char >= 0xE000) & (u32_char <= 0xF8FF))
-                | ((u32_char >= 0xF0000) & (u32_char <= 0xFFFFD))
-                | ((u32_char >= 0x100000) & (u32_char <= 0x10FFFD))
-                | ((u32_char >= 0xD800) & (u32_char <= 0xDB7F))
-                | ((u32_char >= 0xDB80) & (u32_char <= 0xDBFF))
-                | ((u32_char >= 0xDC00) & (u32_char <= 0xDFFF))
-                | CONTROL_CHARS.contains(&u32_char)
-            {
-                true
-            } else {
-                false
-            }
+    } else if strict {
+        let u32_char = *character as u32;
+        if (u32_char <= 0x001F)
+            | ((u32_char >= 0x0080) & (u32_char <= 0x009F))
+            | ((u32_char >= 0xE0020) & (u32_char <= 0xE007F))
+            | ((u32_char >= 0xE000) & (u32_char <= 0xF8FF))
+            | ((u32_char >= 0xF0000) & (u32_char <= 0xFFFFD))
+            | ((u32_char >= 0x100000) & (u32_char <= 0x10FFFD))
+            | ((u32_char >= 0xD800) & (u32_char <= 0xDB7F))
+            | ((u32_char >= 0xDB80) & (u32_char <= 0xDBFF))
+            | ((u32_char >= 0xDC00) & (u32_char <= 0xDFFF))
+            | CONTROL_CHARS.contains(&u32_char)
+        {
+            true
         } else {
-            character.is_control()
+            false
         }
+    } else {
+        character.is_control()
     }
 }
 
@@ -919,9 +917,9 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
         if temp_sub_tokens.len() == 1 {
             return (temp_sub_tokens, true);
         }
-        return (temp_sub_tokens, false);
+        (temp_sub_tokens, false)
     } else {
-        return (tokens, true);
+        (tokens, true)
     }
 }
 

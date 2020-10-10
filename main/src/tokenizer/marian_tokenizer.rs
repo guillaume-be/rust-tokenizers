@@ -12,7 +12,9 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::tokenizer::base_tokenizer::{Mask, Offset, OffsetSize, Token, TokenRef};
+use crate::tokenizer::base_tokenizer::{
+    Mask, Offset, OffsetSize, SimpleTokenizedInput, Token, TokenRef,
+};
 use crate::tokenizer::tokenization_utils::{
     _clean_text, decompose_nfkc, is_whitespace, lowercase, split_at_regex,
 };
@@ -151,14 +153,7 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
         original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
         mask_1: Vec<Mask>,
         mask_2: Option<Vec<Mask>>,
-    ) -> (
-        Vec<i64>,
-        Vec<i8>,
-        Vec<i8>,
-        Vec<Option<Offset>>,
-        Vec<Vec<OffsetSize>>,
-        Vec<Mask>,
-    ) {
+    ) -> SimpleTokenizedInput {
         let mut output: Vec<i64> = vec![];
         let mut token_segment_ids: Vec<i8> = vec![];
         let mut special_tokens_mask: Vec<i8> = vec![];
@@ -198,14 +193,14 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
         original_offsets.push(vec![]);
         mask.push(Mask::Special);
 
-        (
-            output,
-            token_segment_ids,
+        SimpleTokenizedInput {
+            token_ids: output,
+            segment_ids: token_segment_ids,
             special_tokens_mask,
-            offsets,
-            original_offsets,
+            token_offsets: offsets,
+            reference_offsets: original_offsets,
             mask,
-        )
+        }
     }
 }
 

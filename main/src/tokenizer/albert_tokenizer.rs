@@ -17,6 +17,7 @@ use crate::tokenizer::tokenization_utils::{
 };
 use crate::vocab::{AlbertVocab, SentencePieceModel};
 
+use crate::tokenizer::base_tokenizer::SimpleTokenizedInput;
 use crate::tokenizer::MultiThreadedTokenizer;
 use crate::tokenizer::Tokenizer;
 use crate::vocab::Vocab;
@@ -63,40 +64,39 @@ impl AlbertTokenizer {
         let mut positions_to_update: Vec<(usize, Vec<Token>)> = vec![];
         for (token_idx, token) in tokens.iter().enumerate() {
             let mut token_chars = token.text.chars().rev();
-            if token.text.chars().count() > 1 {
-                if (token_chars.next().unwrap() == ',')
+            if token.text.chars().count() > 1
+                && (token_chars.next().unwrap() == ',')
                     & token_chars.next().unwrap().is_ascii_digit()
-                {
-                    let mut new_token = token.clone();
-                    let last_char = new_token.text.pop().unwrap();
-                    let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
-                    let updated_tokens = self.model.decode_backward(&updated_tokens);
-                    let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);
+            {
+                let mut new_token = token.clone();
+                let last_char = new_token.text.pop().unwrap();
+                let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
+                let updated_tokens = self.model.decode_backward(&updated_tokens);
+                let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);
 
-                    if (token.text.chars().next().unwrap() != '\u{2581}')
-                        & (updated_tokens[0].text.chars().next().unwrap() == '\u{2581}')
-                    {
-                        if updated_tokens[0].text.chars().count() == 1 {
-                            updated_tokens.remove(0);
-                        } else {
-                            let first_char_length =
-                                updated_tokens[0].text.chars().next().unwrap().len_utf8();
-                            updated_tokens[0].text = (&updated_tokens[0].text[first_char_length..])
-                                .parse()
-                                .unwrap();
-                        }
+                if !token.text.starts_with('\u{2581}')
+                    & updated_tokens[0].text.starts_with('\u{2581}')
+                {
+                    if updated_tokens[0].text.chars().count() == 1 {
+                        updated_tokens.remove(0);
+                    } else {
+                        let first_char_length =
+                            updated_tokens[0].text.chars().next().unwrap().len_utf8();
+                        updated_tokens[0].text = (&updated_tokens[0].text[first_char_length..])
+                            .parse()
+                            .unwrap();
                     }
-                    updated_tokens.push(Token {
-                        text: last_char.to_string(),
-                        offset: Offset {
-                            begin: token.offset.end,
-                            end: token.offset.end,
-                        },
-                        reference_offsets: vec![*token.reference_offsets.last().unwrap()],
-                        mask: token.mask,
-                    });
-                    positions_to_update.push((token_idx, updated_tokens.clone()));
                 }
+                updated_tokens.push(Token {
+                    text: last_char.to_string(),
+                    offset: Offset {
+                        begin: token.offset.end,
+                        end: token.offset.end,
+                    },
+                    reference_offsets: vec![*token.reference_offsets.last().unwrap()],
+                    mask: token.mask,
+                });
+                positions_to_update.push((token_idx, updated_tokens.clone()));
             }
         }
         for (pos, new_tokens) in positions_to_update {
@@ -166,14 +166,7 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
         original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
         mask_1: Vec<Mask>,
         mask_2: Option<Vec<Mask>>,
-    ) -> (
-        Vec<i64>,
-        Vec<i8>,
-        Vec<i8>,
-        Vec<Option<Offset>>,
-        Vec<Vec<OffsetSize>>,
-        Vec<Mask>,
-    ) {
+    ) -> SimpleTokenizedInput {
         let mut output: Vec<i64> = vec![];
         let mut token_segment_ids: Vec<i8> = vec![];
         let mut special_tokens_mask: Vec<i8> = vec![];
@@ -220,14 +213,14 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
             }
             mask.push(Mask::Special);
         }
-        (
-            output,
-            token_segment_ids,
+        SimpleTokenizedInput {
+            token_ids: output,
+            segment_ids: token_segment_ids,
             special_tokens_mask,
-            offsets,
-            original_offsets,
+            token_offsets: offsets,
+            reference_offsets: original_offsets,
             mask,
-        )
+        }
     }
 }
 
