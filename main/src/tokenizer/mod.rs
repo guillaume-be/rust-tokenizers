@@ -34,5 +34,6 @@ pub use openai_gpt_tokenizer::OpenAiGptTokenizer;
 pub use roberta_tokenizer::RobertaTokenizer;
 pub use sentence_piece_tokenizer::SentencePieceTokenizer;
 pub use t5_tokenizer::T5Tokenizer;
+pub use tokenization_utils::truncate_sequences;
 pub use xlm_roberta_tokenizer::XLMRobertaTokenizer;
 pub use xlnet_tokenizer::XLNetTokenizer;
