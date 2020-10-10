@@ -24,14 +24,16 @@ pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
         .collect()
 }
 
+/// # Base Vocab trait
+/// Defines a common interface to the vocabularies for use in the tokenizers.
 pub trait Vocab {
-    ///Associative function returning the unknown value
+    ///Associative function returning the unknown value for the vocabulary
     fn unknown_value() -> &'static str;
 
-    ///Returns the unknown value on an instance
+    /// Returns the unknown value on an instance
     fn get_unknown_value(&self) -> &'static str;
 
-    ///Return the map of token strings to IDs
+    /// Return the map of token strings to IDs
     fn values(&self) -> &HashMap<String, i64>;
 
     ///Return the map of token IDs to strings
@@ -48,7 +50,8 @@ pub trait Vocab {
     where
         Self: std::marker::Sized;
 
-    ///Read a Bert-style vocab.txt file (single column, one token per line)
+    /// Read a Bert-style vocab.txt file (single column, one token per line)
+    /// The `from_file` method should be preferred, and needs to be implemented by the specific vocabularies
     fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
         let f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
@@ -70,6 +73,20 @@ pub trait Vocab {
         Ok(data)
     }
 
+    /// Converts a token to an id, provided a `HashMap` of values, a `HashMap` of special values and
+    /// the unknown value token string representation. This is not meant to be directly used, the method
+    /// `token_to_id` offers a more convenient interface for most vocabularies, but needs to be implemented
+    /// by the specific vocabulary.
+    ///
+    /// # Parameters
+    /// - token (`&str`): token to convert
+    /// - values (`&HashMap<String, i64>`): mapping from tokens to ids
+    /// - special_values (`&HashMap<String, i64>`): mapping from special tokens to ids
+    /// - unknown_value (`&str`): unknown token value
+    ///
+    /// # Returns
+    /// - `i64`: index value for the provided token
+    ///
     fn _token_to_id(
         &self,
         token: &str,
@@ -86,6 +103,20 @@ pub trait Vocab {
         }
     }
 
+    /// Converts an id to a token, provided a `HashMap` of values, a `HashMap` of special values and
+    /// the unknown value token string representation. This is not meant to be directly used, the method
+    /// `id_to_token` offers a more convenient interface for most vocabularies, but needs to be implemented
+    /// by the specific vocabulary.
+    ///
+    /// # Parameters
+    /// - id (`&i64`): token id to convert
+    /// - indices (`&HashMap<i64, String>`): mapping from tokens to ids
+    /// - special_indices (`&HashMap<i64, String>`): mapping from special tokens to ids
+    /// - unknown_value (`&str`): unknown token value
+    ///
+    /// # Returns
+    /// - `String`: token value for the index provided. If not found in the indices, returns the unknown token value
+    ///
     fn _id_to_token(
         &self,
         id: &i64,
@@ -102,6 +133,13 @@ pub trait Vocab {
         }
     }
 
+    /// Register a token as a special value
+    ///
+    /// # Parameters
+    /// - token (`&str`): token to register as a special value
+    /// - values (`&HashMap<String, i64>`): mapping from tokens to ids. This should contain the token to add and will be used to read the id for registration in `special_values`
+    /// - special_values (`&HashMap<String, i64>`): mapping from special tokens to ids
+    ///
     fn _register_as_special_value(
         token: &str,
         values: &HashMap<String, i64>,
@@ -120,11 +158,35 @@ pub trait Vocab {
         Ok(())
     }
 
+    /// Converts a token to an id.
+    ///
+    /// # Parameters
+    /// - token (`&str`): token to convert
+    ///
+    /// # Returns
+    /// - `i64`: token index for the value provided. If not found in the indices, returns the unknown token index
+    ///
     fn token_to_id(&self, token: &str) -> i64;
 
+    /// Converts an id to a token.
+    ///
+    /// # Parameters
+    /// - id (`&i64`): token id to convert
+    ///
+    /// # Returns
+    /// - `String`: token value for the index provided. If not found in the indices, returns the unknown token value
+    ///
     fn id_to_token(&self, id: &i64) -> String;
 
-    fn convert_tokens_to_ids(&self, tokens: Vec<&str>) -> Vec<i64> {
+    /// Converts a list of tokens to a list of indices.
+    ///
+    /// # Parameters
+    /// - tokens (`&[&str]`): list of tokens to convert
+    ///
+    /// # Returns
+    /// - `Vec<i64>`: Vector containing the indices for the tokens provided
+    ///
+    fn convert_tokens_to_ids(&self, tokens: &[&str]) -> Vec<i64> {
         tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
 }

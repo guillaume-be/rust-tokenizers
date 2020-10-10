@@ -16,4 +16,16 @@ pub enum TokenizerError {
 
     #[error("Tokenization error: {0}")]
     TokenizationError(String),
+
+    #[error("Value error: {0}")]
+    ValueError(String),
+
+    #[error("IO error: {0}")]
+    IOError(String),
+}
+
+impl From<csv::Error> for TokenizerError {
+    fn from(error: csv::Error) -> Self {
+        TokenizerError::IOError(error.to_string())
+    }
 }

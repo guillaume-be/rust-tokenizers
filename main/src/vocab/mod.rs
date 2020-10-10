@@ -9,6 +9,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//!# Vocabularies
+//!
+//! This module contains the vocabularies leveraged by the tokenizer. These contain methods for
+//! deserialization of vocabulary files and access by the tokenizers, including:
+//! - dictionaries (mapping from token to token ids)
+//! - merge files (used by Byte-Pair Encoding tokenizers)
+//! - sentence-piece models (trie structure and methods to find common prefix subtokens)
+//!
+//! The following vocabularies have been implemented:
+//! - BERT
+//! - ALBERT
+//! - GPT2
+//! - GPT
+//! - Marian
+//! - RoBERTa
+//! - T5
+//! - XLMRoBERTa
+//! - XLNet
+//! - SentencePiece
+//!
+//! All vocabularies implement the `Vocab` trait exposing a standard interface for integration with
+//! the tokenizers.
+
 mod albert_vocab;
 pub(crate) mod base_vocab;
 mod bert_vocab;
