@@ -10,7 +10,7 @@
 // limitations under the License.
 
 mod albert_tokenizer;
-pub mod base_tokenizer;
+pub(crate) mod base_tokenizer;
 mod bert_tokenizer;
 mod constants;
 mod ctrl_tokenizer;
