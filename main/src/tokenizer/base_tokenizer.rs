@@ -1647,7 +1647,7 @@ mod tests {
             (vec![10, 0, 1, 2, 3], "[PAD] hello world [UNK] !"),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
-        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1).collect_vec();
 
         //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
@@ -1672,7 +1672,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &base_tokenizer,
-                source_ids.clone(),
+                source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -1694,7 +1694,7 @@ mod tests {
             (vec![10, 0, 1, 2, 3], "hello world !"),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
-        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1).collect_vec();
 
         //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
@@ -1719,7 +1719,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &base_tokenizer,
-                source_ids.clone(),
+                source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -1741,7 +1741,7 @@ mod tests {
             (vec![10, 0, 1, 2, 3], "hello world!"),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
-        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1).collect_vec();
 
         //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
@@ -1766,7 +1766,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &base_tokenizer,
-                source_ids.clone(),
+                source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),

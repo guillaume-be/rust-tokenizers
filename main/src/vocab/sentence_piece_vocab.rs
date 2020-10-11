@@ -124,18 +124,18 @@ impl SentencePieceModel {
                 return vec![];
             }
         });
-        if node.is_some() {
-            if node.unwrap().end {
-                results.push(node.unwrap());
+        if let Some(node_value) = node {
+            if node_value.end {
+                results.push(node_value);
             }
         } else {
             return vec![];
         }
-        while let Some(character) = characters.next() {
+        for character in characters {
             node = node.unwrap().children.get(&character);
-            if node.is_some() {
-                if node.unwrap().end {
-                    results.push(node.unwrap());
+            if let Some(node_value) = node {
+                if node_value.end {
+                    results.push(node_value);
                 }
             } else {
                 break;
@@ -184,7 +184,7 @@ impl SentencePieceModel {
         results
     }
 
-    pub fn decode_backward<'a>(&'a self, nodes: &'a Vec<Option<Node<'a>>>) -> Vec<&'a Node> {
+    pub fn decode_backward<'a>(&'a self, nodes: &'a [Option<Node<'a>>]) -> Vec<&'a Node> {
         let mut best_sequence = vec![];
         let mut next_node = match nodes.last() {
             Some(value) => value,

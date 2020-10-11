@@ -15,8 +15,7 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
     .unwrap();
 
     let vocab = Arc::new(BertVocab::from_file(vocab_path.to_str().unwrap())?);
-    let bert_tokenizer: BertTokenizer =
-        BertTokenizer::from_existing_vocab(vocab.clone(), true, true);
+    let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
 
     let original_strings = [
         "This is a sample sentence to be tokénized",

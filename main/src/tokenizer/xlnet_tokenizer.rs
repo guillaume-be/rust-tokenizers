@@ -70,8 +70,8 @@ impl XLNetTokenizer {
                     let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
                     let updated_tokens = self.model.decode_backward(&updated_tokens);
                     let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);
-                    if (token.text.chars().next().unwrap() != '\u{2581}')
-                        & (updated_tokens[0].text.chars().next().unwrap() == '\u{2581}')
+                    if !token.text.starts_with('\u{2581}')
+                        & updated_tokens[0].text.starts_with('\u{2581}')
                     {
                         if updated_tokens[0].text.chars().count() == 1 {
                             updated_tokens.remove(0);

@@ -26,7 +26,7 @@ use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
-use std::cmp::min;
+use std::cmp::{min, Ordering};
 use std::collections::{HashMap, HashSet};
 use unicode_normalization::char::decompose_canonical;
 use unicode_normalization_alignments::UnicodeNormalization;
@@ -641,152 +641,144 @@ pub fn truncate_sequences(
             Vec::new(),
             Vec::new(),
         ))
-    } else {
-        if let Some(token_ids_with_offsets_2_value) = token_ids_with_offsets_2.borrow_mut() {
-            match truncation_strategy {
-                TruncationStrategy::LongestFirst => {
-                    if (token_ids_with_offsets_1.ids.len()
-                        + token_ids_with_offsets_2_value.ids.len())
-                        >= num_tokens_to_remove
-                    {
-                        let mut overflow_tokens: Vec<i64> =
-                            Vec::with_capacity(num_tokens_to_remove + stride);
-                        let mut overflow_offsets: Vec<Option<Offset>> =
-                            Vec::with_capacity(num_tokens_to_remove + stride);
-                        for _ in 0..num_tokens_to_remove {
-                            if token_ids_with_offsets_1.ids.len()
-                                >= token_ids_with_offsets_2_value.ids.len()
-                            {
-                                overflow_tokens
-                                    .insert(0, token_ids_with_offsets_1.ids.pop().unwrap());
-                                if !token_ids_with_offsets_1.offsets.is_empty() {
-                                    overflow_offsets
-                                        .insert(0, token_ids_with_offsets_1.offsets.pop().unwrap());
-                                }
-                                token_ids_with_offsets_1.original_positions.pop();
-                                if !token_ids_with_offsets_1.masks.is_empty() {
-                                    token_ids_with_offsets_1.masks.pop();
-                                }
-                            } else {
-                                overflow_tokens
-                                    .insert(0, token_ids_with_offsets_2_value.ids.pop().unwrap());
-                                if !token_ids_with_offsets_2_value.offsets.is_empty() {
-                                    overflow_offsets.insert(
-                                        0,
-                                        token_ids_with_offsets_2_value.offsets.pop().unwrap(),
-                                    );
-                                }
-                                token_ids_with_offsets_2_value.original_positions.pop();
-                                if !token_ids_with_offsets_2_value.masks.is_empty() {
-                                    token_ids_with_offsets_2_value.masks.pop();
-                                }
-                            }
-                        }
-                        let window_len = min(token_ids_with_offsets_1.ids.len(), stride);
-                        if window_len > 0 {
-                            let slice: &[i64] = &token_ids_with_offsets_1.ids
-                                [&token_ids_with_offsets_1.ids.len() - window_len..];
-                            overflow_tokens.splice(0..0, slice.iter().cloned());
+    } else if let Some(token_ids_with_offsets_2_value) = token_ids_with_offsets_2.borrow_mut() {
+        match truncation_strategy {
+            TruncationStrategy::LongestFirst => {
+                if (token_ids_with_offsets_1.ids.len() + token_ids_with_offsets_2_value.ids.len())
+                    >= num_tokens_to_remove
+                {
+                    let mut overflow_tokens: Vec<i64> =
+                        Vec::with_capacity(num_tokens_to_remove + stride);
+                    let mut overflow_offsets: Vec<Option<Offset>> =
+                        Vec::with_capacity(num_tokens_to_remove + stride);
+                    for _ in 0..num_tokens_to_remove {
+                        if token_ids_with_offsets_1.ids.len()
+                            >= token_ids_with_offsets_2_value.ids.len()
+                        {
+                            overflow_tokens.insert(0, token_ids_with_offsets_1.ids.pop().unwrap());
                             if !token_ids_with_offsets_1.offsets.is_empty() {
-                                let offset_slice: &[Option<Offset>] = &token_ids_with_offsets_1
-                                    .offsets
-                                    [&token_ids_with_offsets_1.offsets.len() - window_len..];
-                                overflow_offsets.splice(0..0, offset_slice.iter().cloned());
+                                overflow_offsets
+                                    .insert(0, token_ids_with_offsets_1.offsets.pop().unwrap());
+                            }
+                            token_ids_with_offsets_1.original_positions.pop();
+                            if !token_ids_with_offsets_1.masks.is_empty() {
+                                token_ids_with_offsets_1.masks.pop();
+                            }
+                        } else {
+                            overflow_tokens
+                                .insert(0, token_ids_with_offsets_2_value.ids.pop().unwrap());
+                            if !token_ids_with_offsets_2_value.offsets.is_empty() {
+                                overflow_offsets.insert(
+                                    0,
+                                    token_ids_with_offsets_2_value.offsets.pop().unwrap(),
+                                );
+                            }
+                            token_ids_with_offsets_2_value.original_positions.pop();
+                            if !token_ids_with_offsets_2_value.masks.is_empty() {
+                                token_ids_with_offsets_2_value.masks.pop();
                             }
                         }
-                        Ok((
-                            token_ids_with_offsets_1,
-                            token_ids_with_offsets_2,
-                            overflow_tokens,
-                            overflow_offsets,
-                        ))
-                    } else {
-                        Err(TokenizerError::ValueError(
-                            "Combined sequence length too short for requested truncation amount"
-                                .into(),
-                        ))
                     }
-                }
-                TruncationStrategy::OnlyFirst => {
-                    if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
-                        let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
-                            &mut token_ids_with_offsets_1.ids,
-                            token_ids_with_offsets_1.offsets.as_mut(),
-                            token_ids_with_offsets_1.original_positions.as_mut(),
-                            token_ids_with_offsets_1.masks.as_mut(),
-                            num_tokens_to_remove,
-                            stride,
-                        );
-                        Ok((
-                            token_ids_with_offsets_1,
-                            token_ids_with_offsets_2,
-                            overflow_tokens,
-                            overflow_offsets,
-                        ))
-                    } else {
-                        Err(TokenizerError::ValueError(
-                            "First sequence too short for first only truncation".into(),
-                        ))
+                    let window_len = min(token_ids_with_offsets_1.ids.len(), stride);
+                    if window_len > 0 {
+                        let slice: &[i64] = &token_ids_with_offsets_1.ids
+                            [token_ids_with_offsets_1.ids.len() - window_len..];
+                        overflow_tokens.splice(0..0, slice.iter().cloned());
+                        if !token_ids_with_offsets_1.offsets.is_empty() {
+                            let offset_slice: &[Option<Offset>] = &token_ids_with_offsets_1.offsets
+                                [token_ids_with_offsets_1.offsets.len() - window_len..];
+                            overflow_offsets.splice(0..0, offset_slice.iter().cloned());
+                        }
                     }
+                    Ok((
+                        token_ids_with_offsets_1,
+                        token_ids_with_offsets_2,
+                        overflow_tokens,
+                        overflow_offsets,
+                    ))
+                } else {
+                    Err(TokenizerError::ValueError(
+                        "Combined sequence length too short for requested truncation amount".into(),
+                    ))
                 }
-                TruncationStrategy::OnlySecond => {
-                    if token_ids_with_offsets_2_value.ids.len() >= num_tokens_to_remove {
-                        let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
-                            &mut token_ids_with_offsets_2_value.ids,
-                            token_ids_with_offsets_2_value.offsets.as_mut(),
-                            token_ids_with_offsets_2_value.original_positions.as_mut(),
-                            token_ids_with_offsets_2_value.masks.as_mut(),
-                            num_tokens_to_remove,
-                            stride,
-                        );
-                        Ok((
-                            token_ids_with_offsets_1,
-                            token_ids_with_offsets_2,
-                            overflow_tokens,
-                            overflow_offsets,
-                        ))
-                    } else {
-                        Err(TokenizerError::ValueError(
-                            "Second sequence too short for second only truncation".into(),
-                        ))
-                    }
-                }
-                TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
-                    "Truncation needed but no truncation requested".into(),
-                )),
             }
-        } else {
-            if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
-                match truncation_strategy {
-                    TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
-                        let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
-                            &mut token_ids_with_offsets_1.ids,
-                            &mut token_ids_with_offsets_1.offsets,
-                            &mut token_ids_with_offsets_1.original_positions,
-                            &mut token_ids_with_offsets_1.masks,
-                            num_tokens_to_remove,
-                            stride,
-                        );
-                        Ok((
-                            token_ids_with_offsets_1,
-                            token_ids_with_offsets_2,
-                            overflow_tokens,
-                            overflow_offsets,
-                        ))
-                    }
-                    TruncationStrategy::OnlySecond => Err(TokenizerError::ValueError(
-                        "Invalid truncation strategy for single sentence truncation".into(),
-                    )),
-                    TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
-                        "Truncation needed but no truncation requested".into(),
-                    )),
+            TruncationStrategy::OnlyFirst => {
+                if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
+                    let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
+                        &mut token_ids_with_offsets_1.ids,
+                        token_ids_with_offsets_1.offsets.as_mut(),
+                        token_ids_with_offsets_1.original_positions.as_mut(),
+                        token_ids_with_offsets_1.masks.as_mut(),
+                        num_tokens_to_remove,
+                        stride,
+                    );
+                    Ok((
+                        token_ids_with_offsets_1,
+                        token_ids_with_offsets_2,
+                        overflow_tokens,
+                        overflow_offsets,
+                    ))
+                } else {
+                    Err(TokenizerError::ValueError(
+                        "First sequence too short for first only truncation".into(),
+                    ))
                 }
-            } else {
-                Err(TokenizerError::ValueError(
-                    "First sequence too short for first only truncation".into(),
+            }
+            TruncationStrategy::OnlySecond => {
+                if token_ids_with_offsets_2_value.ids.len() >= num_tokens_to_remove {
+                    let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
+                        &mut token_ids_with_offsets_2_value.ids,
+                        token_ids_with_offsets_2_value.offsets.as_mut(),
+                        token_ids_with_offsets_2_value.original_positions.as_mut(),
+                        token_ids_with_offsets_2_value.masks.as_mut(),
+                        num_tokens_to_remove,
+                        stride,
+                    );
+                    Ok((
+                        token_ids_with_offsets_1,
+                        token_ids_with_offsets_2,
+                        overflow_tokens,
+                        overflow_offsets,
+                    ))
+                } else {
+                    Err(TokenizerError::ValueError(
+                        "Second sequence too short for second only truncation".into(),
+                    ))
+                }
+            }
+            TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
+                "Truncation needed but no truncation requested".into(),
+            )),
+        }
+    } else if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
+        match truncation_strategy {
+            TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
+                let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
+                    &mut token_ids_with_offsets_1.ids,
+                    &mut token_ids_with_offsets_1.offsets,
+                    &mut token_ids_with_offsets_1.original_positions,
+                    &mut token_ids_with_offsets_1.masks,
+                    num_tokens_to_remove,
+                    stride,
+                );
+                Ok((
+                    token_ids_with_offsets_1,
+                    token_ids_with_offsets_2,
+                    overflow_tokens,
+                    overflow_offsets,
                 ))
             }
+            TruncationStrategy::OnlySecond => Err(TokenizerError::ValueError(
+                "Invalid truncation strategy for single sentence truncation".into(),
+            )),
+            TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
+                "Truncation needed but no truncation requested".into(),
+            )),
         }
+    } else {
+        Err(TokenizerError::ValueError(
+            "First sequence too short for first only truncation".into(),
+        ))
     }
 }
 
@@ -817,17 +809,17 @@ fn truncate_with_overflow(
     }
     let window_len = min(sequence.len(), stride);
     if window_len > 0 {
-        let slice: &[i64] = &sequence[&sequence.len() - window_len..];
+        let slice: &[i64] = &sequence[sequence.len() - window_len..];
         overflow_tokens.splice(0..0, slice.iter().cloned());
         if !offsets.is_empty() {
-            let offset_slice: &[Option<Offset>] = &offsets[&offsets.len() - window_len..];
+            let offset_slice: &[Option<Offset>] = &offsets[offsets.len() - window_len..];
             overflow_offsets.splice(0..0, offset_slice.iter().cloned());
         }
     }
     (overflow_tokens, overflow_offsets)
 }
 
-pub fn get_pairs(token: &Vec<String>) -> Option<HashSet<BpePairRef>> {
+pub fn get_pairs(token: &[String]) -> Option<HashSet<BpePairRef>> {
     match token.len() {
         0 | 1 => None,
         _ => {
@@ -912,11 +904,12 @@ pub fn ctrl_bpe(token: &str, bpe_ranks: &BpePairVocab) -> (Vec<String>, Vec<usiz
 
     let length = output.0.len();
     for (i, token) in output.0.iter_mut().enumerate() {
-        if i < length - 1 {
-            token.push_str("@@");
-        } else if i == length - 1 {
-            //strip the last </w> suffix again, we only needed it for group_common_pairs
-            *token = token.trim_end_matches("</w>").to_owned();
+        match i.cmp(&(length - 1)) {
+            Ordering::Less => {
+                token.push_str("@@");
+            }
+            Ordering::Equal => *token = token.trim_end_matches("</w>").to_owned(),
+            _ => {}
         }
     }
     let char_counts = output
@@ -1090,6 +1083,7 @@ pub fn fix_mask(tokens: &mut Vec<Token>) {
 // Unit tests
 //==============================
 #[cfg(test)]
+#[allow(clippy::type_complexity)]
 mod tests {
     use super::*;
     use crate::error::TokenizerError;

@@ -559,7 +559,7 @@ mod tests {
             ),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
-        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1).collect_vec();
 
         //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
@@ -584,7 +584,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &bert_tokenizer,
-                source_ids.clone(),
+                source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces
             ),
@@ -604,7 +604,7 @@ mod tests {
             (vec![4, 0, 2, 11, 12, 13, 1, 3, 5], "hello unaffable world!"),
         ];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
-        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1).collect_vec();
 
         //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
@@ -629,7 +629,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &bert_tokenizer,
-                source_ids.clone(),
+                source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces
             ),

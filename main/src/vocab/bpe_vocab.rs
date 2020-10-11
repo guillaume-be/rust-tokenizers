@@ -58,8 +58,7 @@ impl BpePairVocab {
             let byte_2 = byte_pair.byte_2;
             let k = (ptr::read(byte_1), ptr::read(byte_2));
             let k = ManuallyDrop::new(k);
-            let v = self.values.get(&k);
-            v
+            self.values.get(&k)
         }
     }
 }
@@ -68,6 +67,7 @@ impl BpePairVocab {
 // Unit tests
 //==============================
 #[cfg(test)]
+#[allow(clippy::type_complexity)]
 mod tests {
     extern crate anyhow;
     use super::*;
@@ -130,11 +130,11 @@ mod tests {
         let e_eow_token = String::from("e</w>");
 
         let test_tuples = [
-            ((t_token.clone(), h_token.clone()), Some(&(0 as i64))),
+            ((t_token, h_token), Some(&(0 as i64))),
             ((a_token.clone(), n_token.clone()), Some(&(1 as i64))),
-            ((i_token.clone(), n_token.clone()), Some(&(2 as i64))),
-            ((th_token.clone(), e_eow_token.clone()), Some(&(3 as i64))),
-            ((a_token.clone(), e_eow_token.clone()), None),
+            ((i_token, n_token), Some(&(2 as i64))),
+            ((th_token, e_eow_token.clone()), Some(&(3 as i64))),
+            ((a_token, e_eow_token), None),
         ];
 
         //        When & Then

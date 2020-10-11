@@ -332,7 +332,7 @@ mod tests {
         let clean_up_tokenization_spaces = false;
         let test_tuples = [(vec![4, 8, 9], "the earth")];
         let source_ids: Vec<Vec<i64>> = test_tuples.iter().map(|v| v.0.clone()).collect_vec();
-        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1.clone()).collect_vec();
+        let expected_results: Vec<&str> = test_tuples.iter().map(|v| v.1).collect_vec();
 
         //        When & Then
         for (source_ids, expected_result) in test_tuples.iter() {
@@ -348,7 +348,7 @@ mod tests {
         assert_eq!(
             Tokenizer::decode_list(
                 &gpt2_tokenizer,
-                source_ids.clone(),
+                source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces
             ),

@@ -19,8 +19,8 @@ pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
     input_hashmap: &HashMap<T, U>,
 ) -> HashMap<U, T> {
     input_hashmap
-        .into_iter()
-        .map(|(key, &value)| (value.clone(), key.clone()))
+        .iter()
+        .map(|(key, &value)| (value, key.clone()))
         .collect()
 }
 
@@ -58,17 +58,15 @@ pub trait Vocab {
         })?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
-        let mut index = 0;
 
-        for line in br.lines() {
+        for (index, line) in br.lines().enumerate() {
             let line = match line {
                 Ok(value) => value,
                 Err(e) => {
                     return Err(TokenizerError::VocabularyParsingError(e.to_string()));
                 }
             };
-            data.insert(line.trim().to_owned(), index);
-            index += 1;
+            data.insert(line.trim().to_owned(), index as i64);
         }
         Ok(data)
     }
