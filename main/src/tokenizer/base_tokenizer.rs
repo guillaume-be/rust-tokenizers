@@ -24,13 +24,20 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+/// # Truncation strategy variants
+/// Indicates if and how sequence pairs exceeding a given length should be truncated
 pub enum TruncationStrategy {
+    /// Truncate the longest sequence first
     LongestFirst,
+    /// Truncate only the first sequence
     OnlyFirst,
+    /// Truncate only the second sequence
     OnlySecond,
+    /// Do not truncate the sequences
     DoNotTruncate,
 }
 
+/// Crate-wide primitive used to store offset positions
 pub type OffsetSize = u32;
 
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
@@ -40,25 +47,41 @@ pub struct Offset {
     pub end: OffsetSize,
 }
 
+impl Offset {
+    /// Create a new offset from a begin and end positions
+    pub fn new(begin: OffsetSize, end: OffsetSize) -> Offset {
+        Offset { begin, end }
+    }
+
+    /// Wrap the offset into an option
+    pub fn into_option(self) -> Option<Offset> {
+        if self.end > self.begin {
+            Some(self)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub enum Mask {
-    ///The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.
+    /// The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.
     None,
-    ///the token represents a whitespace (in any shape or form)
+    /// The token represents a whitespace (in any shape or form)
     Whitespace,
-    ///the token represents punctuation (in any shape or form)
+    /// The token represents punctuation (in any shape or form)
     Punctuation,
-    ///the token represents a single Chinese/Japanese/Korean character (including kana and hangul)
+    /// The token represents a single Chinese/Japanese/Korean character (including kana and hangul)
     CJK,
-    ///the token is a special marker (such as a separator marker, a class marker, etc)
+    /// The token is a special marker (such as a separator marker, a class marker, etc)
     Special,
-    ///the token is the begin in a series of subtokens, the offset refers specifically to the subtoken. Subsequent tokens in this sequence will carry the 'Continuation' mask
+    /// The token is the begin in a series of subtokens, the offset refers specifically to the subtoken. Subsequent tokens in this sequence will carry the 'Continuation' mask
     Begin,
-    ///the token is the continuation of the previous token, the offset refers specifically to the subtoken. All but the first subtoken in a sequence carry this mask (the first carries 'Begin'). (this is the reverse of Mask::Unfinished)
+    /// The token is the continuation of the previous token, the offset refers specifically to the subtoken. All but the first subtoken in a sequence carry this mask (the first carries 'Begin'). (this is the reverse of Mask::Unfinished)
     Continuation,
-    ///the token is the start of a token but not finished yet. All but the last subtoken in the a token sequence carry this mask. This is the reverse of Mask::Continuation.
+    /// The token is the start of a token but not finished yet. All but the last subtoken in the a token sequence carry this mask. This is the reverse of Mask::Continuation.
     Unfinished,
-    ///The token is out of vocabulary, it is unknown by the tokenizer and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
+    /// The token is out of vocabulary, it is unknown by the tokenizer and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
     Unknown,
 }
 
@@ -68,22 +91,46 @@ impl Default for Mask {
     }
 }
 
+/// Token abstraction trait to access token fields, irrespective of their form (reference of owned)
 pub trait TokenTrait {
+    /// Returns the offset of the token with respect to the original string
     fn offset(&self) -> Option<Offset>;
+    /// Returns the token mask
     fn mask(&self) -> Mask;
+    /// Returns a string representation for the token
     fn as_str(&self) -> &str;
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-///A token that references the original text
+/// Reference token that references the original text, with a string slice representation
 pub struct TokenRef<'a> {
+    /// String representation
     pub text: &'a str,
+    /// Start and end positions of the token with respect to the original text
     pub offset: Offset,
+    /// Sequence of positions with respect to the original text contained in the token.
+    /// For example, if the token offset is `start: 4, end: 10`, corresponding reference_offsets are `[4, 5, 6, 7, 8, 9]`
     pub reference_offsets: &'a [OffsetSize],
+    /// Mask indicating the type of the token
     pub mask: Mask,
 }
 
 impl<'a> TokenRef<'a> {
+    /// Creates a new token reference from a text and list of offsets.
+    ///
+    /// # Parameters
+    /// - text (`&str`): text reference
+    /// - offsets (`&[OffsetSize]`): reference positions with respect to the original text
+    ///
+    /// # Example
+    /// ```
+    /// use rust_tokenizers::TokenRef;
+    /// let _original_text = "Hello, world";
+    /// let text = "world";
+    /// let offsets = &[7, 8, 9, 10, 11];
+    ///
+    /// let token_ref = TokenRef::new(text, offsets);
+    /// ```
     pub fn new(text: &'a str, offsets: &'a [OffsetSize]) -> TokenRef<'a> {
         TokenRef {
             text,
@@ -96,6 +143,17 @@ impl<'a> TokenRef<'a> {
         }
     }
 
+    /// Converts a token reference to an owned form.
+    /// # Example
+    /// ```
+    /// use rust_tokenizers::TokenRef;
+    /// let _original_text = "Hello, world";
+    /// let text = "world";
+    /// let offsets = &[7, 8, 9, 10, 11];
+    /// let token_ref = TokenRef::new(text, offsets);
+    ///
+    /// let owned_token = token_ref.to_owned();
+    /// ```
     pub fn to_owned(self) -> Token {
         //not a real implementation of ToOwned because that can't work in the current setup
         Token::from(self)
@@ -160,7 +218,7 @@ impl<'a> From<TokenRef<'a>> for Token {
 
 /// # ConsolidatedTokenIterator
 ///
-/// This iterator loops over collections of tokens (i.e. things that implement `TokenTrait`)
+/// This iterator loops over collections of tokens (implementing `TokenTrait`)
 /// and groups all subtokens that belong together (forming a word or something similar).
 pub struct ConsolidatedTokenIterator<'a, T>
 where
@@ -175,6 +233,7 @@ impl<'a, T> ConsolidatedTokenIterator<'a, T>
 where
     T: TokenTrait,
 {
+    /// Creates a new `ConsolidatedTokenIterator` from a sequence of `Tokens` or `TokenRefs`
     pub fn new(tokens: &'a [T]) -> Self {
         ConsolidatedTokenIterator {
             tokens,
@@ -229,13 +288,14 @@ where
 /// use rust_tokenizers::{Token, ConsolidatableTokens};
 /// let tokens: Vec<Token> = vec!(); //add some tokens
 /// for (wordcount, word_tokens) in tokens.iter_consolidate_tokens().enumerate() {
-///       eprintln!("word #{} - {:?}", wordcount+1, word_tokens);
+///       eprintln!("word #{} - {:?}", wordcount + 1, word_tokens);
 /// }
 /// ```
 pub trait ConsolidatableTokens<T>
 where
     T: TokenTrait,
 {
+    /// Creates an iterator from a sequence of `ConsolidatableTokens`.
     fn iter_consolidate_tokens(&self) -> ConsolidatedTokenIterator<T>;
 }
 
@@ -252,16 +312,31 @@ impl<'a> ConsolidatableTokens<TokenRef<'a>> for Vec<TokenRef<'a>> {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-///A token that references the original text
-///An owned token
+/// Owned token that references the original text but stores its own string representation.
 pub struct Token {
+    /// String representation
     pub text: String,
+    /// Start and end positions of the token with respect to the original text
     pub offset: Offset,
+    /// Sequence of positions with respect to the original text contained in the token.
+    /// For example, if the token offset is `start: 4, end: 10`, corresponding reference_offsets are `[4, 5, 6, 7, 8, 9]`
     pub reference_offsets: Vec<OffsetSize>,
+    /// Mask indicating the type of the token
     pub mask: Mask,
 }
 
 impl Token {
+    /// Creates a new owned token from a `String`.
+    ///
+    /// # Parameters
+    /// - text (`String`): text reference
+    ///
+    /// # Example
+    /// ```
+    /// use rust_tokenizers::Token;
+    /// let text = "world".to_string();
+    /// let token = Token::new(text);
+    /// ```
     pub fn new(text: String) -> Token {
         let text_size: OffsetSize = text.chars().count() as OffsetSize;
         Token {
@@ -275,93 +350,152 @@ impl Token {
         }
     }
 
+    /// Converts an owned token to a reference form
+    ///
+    /// # Example
+    /// ```
+    /// use rust_tokenizers::Token;
+    /// let text = "world".to_string();
+    /// let token = Token::new(text);
+    ///
+    /// let token_ref = token.as_ref();
+    /// ```
     pub fn as_ref(&self) -> TokenRef {
         //not a real implementation of AsRef because we do something slightly different
         TokenRef::from(self)
     }
 }
 
-impl Offset {
-    pub fn new(begin: OffsetSize, end: OffsetSize) -> Offset {
-        Offset { begin, end }
-    }
-
-    pub fn into_option(self) -> Option<Offset> {
-        if self.end > self.begin {
-            Some(self)
-        } else {
-            None
-        }
-    }
-}
-
+/// # Tokenized Input, ready for processing in language models
+/// This represents the final output of the encoding process (tokenized sentence with encoded values)
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct TokenizedInput {
     /// Vector of token IDs
     pub token_ids: Vec<i64>,
 
-    /// Vector segments ids, segments are separated with a [SEP] marker, each increments the segment ID. This vector has the same length as token_ids.
+    /// Vector segments ids (for example for BERT segments are separated with a [SEP] marker, each incrementing the segment ID).
+    /// This vector has the same length as token_ids.
     pub segment_ids: Vec<i8>,
 
-    ///Flags tokens as special tokens (1) or not (0). This vector has the same length as token_ids.
+    /// Flags tokens as special tokens (1) or not (0). This vector has the same length as token_ids.
     pub special_tokens_mask: Vec<i8>,
 
+    /// Vector containing overflowing tokens, populated following a truncation step
     pub overflowing_tokens: Vec<i64>,
 
+    /// Number of overflowing tokens following a truncation step. this equals the length `overflowing_tokens`
     pub num_truncated_tokens: usize,
 
-    /// Offset information in relation to the original text. Tokens that can not be related to the
+    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
     /// original source are registered as None.
     pub token_offsets: Vec<Option<Offset>>,
 
+    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// original source are registered as None.
     pub reference_offsets: Vec<Vec<OffsetSize>>,
 
     /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
     pub mask: Vec<Mask>,
 }
 
+/// # Encoded input with special tokens
+/// Intermediate tokenization steps before truncation to a maximum length, after encoding and addition of special tokens
 #[derive(Debug, Clone)]
 pub struct TokenIdsWithSpecialTokens {
+    /// Vector of token IDs
     pub token_ids: Vec<i64>,
+
+    /// Vector segments ids (for example for BERT segments are separated with a [SEP] marker, each incrementing the segment ID).
+    /// This vector has the same length as token_ids.
     pub segment_ids: Vec<i8>,
     pub special_tokens_mask: Vec<i8>,
+
+    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
+    /// original source are registered as None.
     pub token_offsets: Vec<Option<Offset>>,
+
+    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// original source are registered as None.
     pub reference_offsets: Vec<Vec<OffsetSize>>,
+
+    /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
     pub mask: Vec<Mask>,
 }
 
+/// # Tokenized sequence
+/// Intermediate tokenization steps before encoding, addition of special tokens and truncation
 #[derive(Debug, Clone)]
 pub struct TokensWithOffsets {
+    /// Vector of token strings
     pub tokens: Vec<String>,
+
+    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
+    /// original source are registered as None.
     pub offsets: Vec<Option<Offset>>,
-    pub original_positions: Vec<Vec<OffsetSize>>,
+
+    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// original source are registered as None.
+    pub reference_offsets: Vec<Vec<OffsetSize>>,
+
+    /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
     pub masks: Vec<Mask>,
 }
 
+/// # Encoded sequence
+/// Intermediate tokenization steps before addition of special tokens, after encoding
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenIdsWithOffsets {
+    /// Vector of token IDs
     pub ids: Vec<i64>,
+
+    /// Offset information (as start and end positions) in relation to the original text. Tokens that can not be related to the
+    /// original source are registered as None.
     pub offsets: Vec<Option<Offset>>,
-    pub original_positions: Vec<Vec<OffsetSize>>,
+
+    /// Offset information (as a sequence of positions) in relation to the original text. Tokens that can not be related to the
+    /// original source are registered as None.
+    pub reference_offsets: Vec<Vec<OffsetSize>>,
+
+    /// Masks tokens providing information on the type of tokens. This vector has the same length as token_ids.
     pub masks: Vec<Mask>,
 }
 
 pub trait Tokenizer<T: Vocab> {
+    /// returns a reference to the tokenizer vocabulary
     fn vocab(&self) -> &T;
 
-    ///Tokenize a string, returns a vector of tokens as strings.
-    ///Use `tokenize_with_offsets` or `tokenize_to_tokens` if you also want offset information.
+    /// Tokenize a string, returns a vector of tokens as strings.
+    /// Use `tokenize_with_offsets` or `tokenize_to_tokens` to return offset information.
     fn tokenize(&self, text: &str) -> Vec<String> {
         self.tokenize_with_offsets(text).tokens
     }
 
-    ///Tokenize a string, return offset information
+    /// Tokenize a string, returning tokens with offset information
+    ///
+    /// # Parameters
+    /// - text (`&str`): text to tokenize
+    ///
+    /// # Returns
+    /// `TokensWithOffsets` with the tokens and their offset information
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let text = "Hello, world!";
+    /// let tokens = tokenizer.tokenize_with_offsets(text);
+    /// ```
     fn tokenize_with_offsets(&self, text: &str) -> TokensWithOffsets {
         if text.trim().is_empty() {
             return TokensWithOffsets {
                 tokens: vec![],
                 offsets: vec![],
-                original_positions: vec![],
+                reference_offsets: vec![],
                 masks: vec![],
             };
         }
@@ -390,17 +524,58 @@ pub trait Tokenizer<T: Vocab> {
         TokensWithOffsets {
             tokens: texts,
             offsets,
-            original_positions,
+            reference_offsets: original_positions,
             masks,
         }
     }
 
-    ///Tokenize a text, returns a vector of tokens (contains offset information and more)
+    /// Tokenize a TokenRef, returning a sequence of tokens
+    ///
+    /// # Parameters
+    /// - text (`TokenRef`): text token to tokenize
+    ///
+    /// # Returns
+    /// `Vec<Token>` tokenization of the original `TokenRef`
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// use rust_tokenizers::{TokenRef, OffsetSize};
+    /// use itertools::Itertools;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let text = "Hello, world!";
+    /// let offsets = (0..text.len() as OffsetSize).collect_vec();
+    /// let text = TokenRef::new(text, &offsets);
+    /// let tokens = tokenizer.tokenize_to_tokens(text);
+    /// ```
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token>;
 
-    ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of vectors of strings.
-    ///Use `tokenize_list_with_offsets` if you also want offset information.
-    fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
+    /// Tokenize a vector of strings, returning tokens with offset information
+    ///
+    /// # Parameters
+    /// - text_list (`Vec<&str>`): list of texts to tokenize
+    ///
+    /// # Returns
+    /// `Vec<Vec<String>>` with the token strings representation
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let texts = ["Hello, world!", "Second sentence"];
+    /// let tokens = tokenizer.tokenize_list(&texts);
+    /// ```
+    fn tokenize_list(&self, text_list: &[&str]) -> Vec<Vec<String>> {
         text_list
             .into_iter()
             .map(|text| self.tokenize(text))
@@ -408,7 +583,7 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of pairs consists of a vector of tokens and a list of offset information.
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<TokensWithOffsets> {
+    fn tokenize_list_with_offsets(&self, text_list: &[&str]) -> Vec<TokensWithOffsets> {
         text_list
             .into_iter()
             .map(|text| self.tokenize_with_offsets(text))
@@ -433,7 +608,7 @@ pub trait Tokenizer<T: Vocab> {
         let token_ids_with_offsets_1 = TokenIdsWithOffsets {
             ids: token_ids_1,
             offsets: tokens.offsets,
-            original_positions: tokens.original_positions,
+            reference_offsets: tokens.reference_offsets,
             masks: tokens.masks,
         };
         let (token_ids_with_offsets_2, len_2) = {
@@ -445,7 +620,7 @@ pub trait Tokenizer<T: Vocab> {
                     Some(TokenIdsWithOffsets {
                         ids: token_ids_2,
                         offsets: tokens_2.offsets,
-                        original_positions: tokens_2.original_positions,
+                        reference_offsets: tokens_2.reference_offsets,
                         masks: tokens_2.masks,
                     }),
                     len_2,
@@ -458,14 +633,14 @@ pub trait Tokenizer<T: Vocab> {
             TokenIdsWithOffsets {
                 ids: vec![],
                 offsets: vec![],
-                original_positions: vec![],
+                reference_offsets: vec![],
                 masks: vec![],
             },
             if token_ids_with_offsets_2.is_some() {
                 Some(TokenIdsWithOffsets {
                     ids: vec![],
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 })
             } else {
@@ -633,8 +808,8 @@ pub trait Tokenizer<T: Vocab> {
                 .offsets
                 .extend(tokens_ids_with_offsets_2_value.offsets);
             tokens_ids_with_offsets_1
-                .original_positions
-                .extend(tokens_ids_with_offsets_2_value.original_positions);
+                .reference_offsets
+                .extend(tokens_ids_with_offsets_2_value.reference_offsets);
             tokens_ids_with_offsets_1
                 .masks
                 .extend(tokens_ids_with_offsets_2_value.masks);
@@ -645,7 +820,7 @@ pub trait Tokenizer<T: Vocab> {
             segment_ids: token_segment_ids,
             special_tokens_mask,
             token_offsets: tokens_ids_with_offsets_1.offsets,
-            reference_offsets: tokens_ids_with_offsets_1.original_positions,
+            reference_offsets: tokens_ids_with_offsets_1.reference_offsets,
             mask: tokens_ids_with_offsets_1.masks,
         }
     }
@@ -659,14 +834,14 @@ where
         Tokenizer::<T>::vocab(self)
     }
 
-    fn tokenize_list_with_offsets(&self, text_list: Vec<&str>) -> Vec<TokensWithOffsets> {
+    fn tokenize_list_with_offsets(&self, text_list: &[&str]) -> Vec<TokensWithOffsets> {
         text_list
             .par_iter()
             .map(|text| self.tokenize_with_offsets(text))
             .collect()
     }
 
-    fn tokenize_list(&self, text_list: Vec<&str>) -> Vec<Vec<String>> {
+    fn tokenize_list(&self, text_list: &[&str]) -> Vec<Vec<String>> {
         text_list
             .par_iter()
             .map(|text| self.tokenize(text))
@@ -1044,11 +1219,11 @@ mod tests {
                 .collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(tokens_with_offsets.offsets, expected_result.1);
-            assert_eq!(tokens_with_offsets.original_positions, expected_result.2);
+            assert_eq!(tokens_with_offsets.reference_offsets, expected_result.2);
             assert_eq!(tokens_with_offsets.masks, expected_result.3);
         }
 
-        let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
+        let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, &source_texts);
         for ((_, expected_result), tokens_with_offsets) in test_tuples.iter().zip(results.iter()) {
             let tokens: Vec<&str> = tokens_with_offsets
                 .tokens
@@ -1057,14 +1232,12 @@ mod tests {
                 .collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(tokens_with_offsets.offsets, expected_result.1);
-            assert_eq!(tokens_with_offsets.original_positions, expected_result.2);
+            assert_eq!(tokens_with_offsets.reference_offsets, expected_result.2);
             assert_eq!(tokens_with_offsets.masks, expected_result.3);
         }
 
-        let results = MultiThreadedTokenizer::tokenize_list_with_offsets(
-            &base_tokenizer,
-            source_texts.clone(),
-        );
+        let results =
+            MultiThreadedTokenizer::tokenize_list_with_offsets(&base_tokenizer, &source_texts);
         for ((_, expected_result), tokens_with_offsets) in test_tuples.iter().zip(results.iter()) {
             let tokens: Vec<&str> = tokens_with_offsets
                 .tokens
@@ -1073,7 +1246,7 @@ mod tests {
                 .collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(tokens_with_offsets.offsets, expected_result.1);
-            assert_eq!(tokens_with_offsets.original_positions, expected_result.2);
+            assert_eq!(tokens_with_offsets.reference_offsets, expected_result.2);
             assert_eq!(tokens_with_offsets.masks, expected_result.3);
         }
         Ok(())
@@ -1264,11 +1437,11 @@ mod tests {
                 .collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(tokens_with_offsets.offsets, expected_result.1);
-            assert_eq!(tokens_with_offsets.original_positions, expected_result.2);
+            assert_eq!(tokens_with_offsets.reference_offsets, expected_result.2);
             assert_eq!(tokens_with_offsets.masks, expected_result.3);
         }
 
-        let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, source_texts.clone());
+        let results = Tokenizer::tokenize_list_with_offsets(&base_tokenizer, &source_texts);
         for ((_, expected_result), tokens_with_offsets) in test_tuples.iter().zip(results.iter()) {
             let tokens: Vec<&str> = tokens_with_offsets
                 .tokens
@@ -1277,14 +1450,12 @@ mod tests {
                 .collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(tokens_with_offsets.offsets, expected_result.1);
-            assert_eq!(tokens_with_offsets.original_positions, expected_result.2);
+            assert_eq!(tokens_with_offsets.reference_offsets, expected_result.2);
             assert_eq!(tokens_with_offsets.masks, expected_result.3);
         }
 
-        let results = MultiThreadedTokenizer::tokenize_list_with_offsets(
-            &base_tokenizer,
-            source_texts.clone(),
-        );
+        let results =
+            MultiThreadedTokenizer::tokenize_list_with_offsets(&base_tokenizer, &source_texts);
         for ((_, expected_result), tokens_with_offsets) in test_tuples.iter().zip(results.iter()) {
             let tokens: Vec<&str> = tokens_with_offsets
                 .tokens
@@ -1293,7 +1464,7 @@ mod tests {
                 .collect();
             assert_eq!(tokens, expected_result.0);
             assert_eq!(tokens_with_offsets.offsets, expected_result.1);
-            assert_eq!(tokens_with_offsets.original_positions, expected_result.2);
+            assert_eq!(tokens_with_offsets.reference_offsets, expected_result.2);
             assert_eq!(tokens_with_offsets.masks, expected_result.3);
         }
     }

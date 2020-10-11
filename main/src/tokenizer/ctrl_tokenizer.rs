@@ -193,7 +193,7 @@ mod tests {
         }
 
         assert_eq!(
-            ctrl_tokenizer.tokenize_list(source_texts.clone()),
+            ctrl_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }
@@ -226,7 +226,7 @@ mod tests {
         }
 
         assert_eq!(
-            ctrl_tokenizer.tokenize_list(source_texts.clone()),
+            ctrl_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }

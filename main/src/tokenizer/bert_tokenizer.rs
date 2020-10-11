@@ -96,7 +96,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
         original_offsets.push(vec![]);
-        original_offsets.extend(tokens_ids_with_offsets_1.original_positions);
+        original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);
         mask.extend(tokens_ids_with_offsets_1.masks);
@@ -109,7 +109,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
             output.extend(tokens_ids_with_offsets_2_value.ids);
             output.push(self.vocab.token_to_id(BertVocab::sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
-            original_offsets.extend(tokens_ids_with_offsets_2_value.original_positions);
+            original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);
             original_offsets.push(vec![]);
             mask.extend(tokens_ids_with_offsets_2_value.masks);
@@ -213,11 +213,11 @@ mod tests {
         }
 
         assert_eq!(
-            Tokenizer::tokenize_list(&bert_tokenizer, source_texts.clone()),
+            Tokenizer::tokenize_list(&bert_tokenizer, &source_texts),
             expected_results
         );
         assert_eq!(
-            MultiThreadedTokenizer::tokenize_list(&bert_tokenizer, source_texts.clone()),
+            MultiThreadedTokenizer::tokenize_list(&bert_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -249,11 +249,11 @@ mod tests {
         }
 
         assert_eq!(
-            Tokenizer::tokenize_list(&bert_tokenizer, source_texts.clone()),
+            Tokenizer::tokenize_list(&bert_tokenizer, &source_texts),
             expected_results
         );
         assert_eq!(
-            MultiThreadedTokenizer::tokenize_list(&bert_tokenizer, source_texts.clone()),
+            MultiThreadedTokenizer::tokenize_list(&bert_tokenizer, &source_texts),
             expected_results
         );
     }

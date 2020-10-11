@@ -9,6 +9,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//!# Tokenizers
+//!
+//! This module contains the tokenizers to split an input text in a sequence of tokens.
+//! These rely on the vocabularies for defining the subtokens a given word should be decomposed to.
+//! There are 3 main classes of tokenizers implemented in this crate:
+//! - WordPiece tokenizers
+//!     - BERT
+//!     - DistilBERT
+//! - Byte-Pair Encoding tokenizers:
+//!     - GPT
+//!     - GPT2
+//!     - RoBERTa
+//!     - CTRL
+//! - SentencePiece (Unigram) tokenizers:
+//!     - SentencePiece
+//!     - ALBERT
+//!     - XLMRoBERTa
+//!     - XLNet
+//!     - T5
+//!     - Marian
+//!
+//! WordPiece tokenizers and SentencePiece tokenizers support multithreading (via the `MultiThreadedTokenizer` trait).
+//! Byte-Pair Encoding tokenizers do not support multithreading and instead rely on an internal cache for improving decoding efficiency.
+
 mod albert_tokenizer;
 pub(crate) mod base_tokenizer;
 mod bert_tokenizer;

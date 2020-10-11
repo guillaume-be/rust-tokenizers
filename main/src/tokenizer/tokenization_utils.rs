@@ -660,7 +660,7 @@ pub fn truncate_sequences(
                                 overflow_offsets
                                     .insert(0, token_ids_with_offsets_1.offsets.pop().unwrap());
                             }
-                            token_ids_with_offsets_1.original_positions.pop();
+                            token_ids_with_offsets_1.reference_offsets.pop();
                             if !token_ids_with_offsets_1.masks.is_empty() {
                                 token_ids_with_offsets_1.masks.pop();
                             }
@@ -673,7 +673,7 @@ pub fn truncate_sequences(
                                     token_ids_with_offsets_2_value.offsets.pop().unwrap(),
                                 );
                             }
-                            token_ids_with_offsets_2_value.original_positions.pop();
+                            token_ids_with_offsets_2_value.reference_offsets.pop();
                             if !token_ids_with_offsets_2_value.masks.is_empty() {
                                 token_ids_with_offsets_2_value.masks.pop();
                             }
@@ -707,7 +707,7 @@ pub fn truncate_sequences(
                     let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
                         &mut token_ids_with_offsets_1.ids,
                         token_ids_with_offsets_1.offsets.as_mut(),
-                        token_ids_with_offsets_1.original_positions.as_mut(),
+                        token_ids_with_offsets_1.reference_offsets.as_mut(),
                         token_ids_with_offsets_1.masks.as_mut(),
                         num_tokens_to_remove,
                         stride,
@@ -729,7 +729,7 @@ pub fn truncate_sequences(
                     let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
                         &mut token_ids_with_offsets_2_value.ids,
                         token_ids_with_offsets_2_value.offsets.as_mut(),
-                        token_ids_with_offsets_2_value.original_positions.as_mut(),
+                        token_ids_with_offsets_2_value.reference_offsets.as_mut(),
                         token_ids_with_offsets_2_value.masks.as_mut(),
                         num_tokens_to_remove,
                         stride,
@@ -756,7 +756,7 @@ pub fn truncate_sequences(
                 let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
                     &mut token_ids_with_offsets_1.ids,
                     &mut token_ids_with_offsets_1.offsets,
-                    &mut token_ids_with_offsets_1.original_positions,
+                    &mut token_ids_with_offsets_1.reference_offsets,
                     &mut token_ids_with_offsets_1.masks,
                     num_tokens_to_remove,
                     stride,
@@ -1714,7 +1714,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..10).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1729,7 +1729,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..10).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1744,7 +1744,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: vec![],
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1766,7 +1766,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: vec![],
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1781,7 +1781,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..5).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1796,7 +1796,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..14).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1811,7 +1811,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..5).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1826,7 +1826,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1841,7 +1841,7 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     None,
@@ -1870,7 +1870,7 @@ mod tests {
                 TokenIdsWithOffsets {
                     ids: test_token_ids.clone(),
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 },
                 None,
@@ -1912,13 +1912,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..10).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (10..15).collect::<Vec<i64>>(),
@@ -1932,13 +1932,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..10).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (8..15).collect::<Vec<i64>>(),
@@ -1952,13 +1952,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..8).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (6..15).collect::<Vec<i64>>(),
@@ -1972,13 +1972,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..7).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..49).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     vec![5, 6, 49, 7, 50, 8, 9, 10, 11, 12, 13, 14],
@@ -1992,13 +1992,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: vec![],
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..43).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     vec![
@@ -2015,13 +2015,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: vec![],
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: vec![],
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     vec![
@@ -2045,13 +2045,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (15..15).collect::<Vec<i64>>(),
@@ -2065,13 +2065,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (15..15).collect::<Vec<i64>>(),
@@ -2092,13 +2092,13 @@ mod tests {
                 TokenIdsWithOffsets {
                     ids: test_token_ids.clone(),
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 },
                 Some(TokenIdsWithOffsets {
                     ids: test_pair_token_ids.clone(),
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 }),
                 parameters.0,
@@ -2141,13 +2141,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..10).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (10..15).collect::<Vec<i64>>(),
@@ -2161,13 +2161,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..10).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (8..15).collect::<Vec<i64>>(),
@@ -2181,13 +2181,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: vec![],
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (0..15).collect::<Vec<i64>>(),
@@ -2208,13 +2208,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (15..15).collect::<Vec<i64>>(),
@@ -2228,13 +2228,13 @@ mod tests {
                 TokenIdsWithOffsets {
                     ids: test_token_ids.clone(),
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 },
                 Some(TokenIdsWithOffsets {
                     ids: test_pair_token_ids.clone(),
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 }),
                 parameters.0,
@@ -2275,13 +2275,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..46).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (46..51).collect::<Vec<i64>>(),
@@ -2295,13 +2295,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..46).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (44..51).collect::<Vec<i64>>(),
@@ -2315,13 +2315,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: vec![],
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (42..51).collect::<Vec<i64>>(),
@@ -2342,13 +2342,13 @@ mod tests {
                     TokenIdsWithOffsets {
                         ids: (0..15).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     },
                     Some(TokenIdsWithOffsets {
                         ids: (42..51).collect::<Vec<i64>>(),
                         offsets: vec![],
-                        original_positions: vec![],
+                        reference_offsets: vec![],
                         masks: vec![],
                     }),
                     (42..42).collect::<Vec<i64>>(),
@@ -2362,13 +2362,13 @@ mod tests {
                 TokenIdsWithOffsets {
                     ids: test_token_ids.clone(),
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 },
                 Some(TokenIdsWithOffsets {
                     ids: test_pair_token_ids.clone(),
                     offsets: vec![],
-                    original_positions: vec![],
+                    reference_offsets: vec![],
                     masks: vec![],
                 }),
                 parameters.0,

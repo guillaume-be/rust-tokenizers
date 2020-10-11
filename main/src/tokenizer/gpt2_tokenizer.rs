@@ -218,7 +218,7 @@ mod tests {
         }
 
         assert_eq!(
-            gpt2_tokenizer.tokenize_list(source_texts.clone()),
+            gpt2_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }
@@ -246,7 +246,7 @@ mod tests {
         }
 
         assert_eq!(
-            gpt2_tokenizer.tokenize_list(source_texts.clone()),
+            gpt2_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }

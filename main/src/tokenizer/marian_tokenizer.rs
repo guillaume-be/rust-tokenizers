@@ -158,7 +158,7 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         output.extend(tokens_ids_with_offsets_1.ids);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
-        original_offsets.extend(tokens_ids_with_offsets_1.original_positions);
+        original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
         mask.extend(tokens_ids_with_offsets_1.masks);
 
         if let Some(tokens_ids_with_offsets_2_value) = tokens_ids_with_offsets_2 {
@@ -167,7 +167,7 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
-            original_offsets.extend(tokens_ids_with_offsets_2_value.original_positions);
+            original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             mask.extend(tokens_ids_with_offsets_2_value.masks);
         }
         special_tokens_mask.push(1);

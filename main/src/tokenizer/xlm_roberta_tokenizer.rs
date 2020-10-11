@@ -108,7 +108,7 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
         original_offsets.push(vec![]);
-        original_offsets.extend(tokens_ids_with_offsets_1.original_positions);
+        original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);
         mask.extend(tokens_ids_with_offsets_1.masks);
@@ -125,7 +125,7 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
             offsets.push(None);
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.push(vec![]);
-            original_offsets.extend(tokens_ids_with_offsets_2_value.original_positions);
+            original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);
             original_offsets.push(vec![]);
             mask.push(Mask::Special);

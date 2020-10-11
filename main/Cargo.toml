@@ -8,6 +8,7 @@ repository = "https://github.com/guillaume-be/rust-tokenizers"
 license = "Apache-2.0"
 readme = "README.md"
 build = "build.rs"
+keywords = ["nlp", "machine-learning", "tokenizer"]
 
 [dependencies]
 csv = "1.1"

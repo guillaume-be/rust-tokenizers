@@ -171,7 +171,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
         original_offsets.push(vec![]);
-        original_offsets.extend(tokens_ids_with_offsets_1.original_positions);
+        original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);
         mask.extend(tokens_ids_with_offsets_1.masks);
@@ -187,7 +187,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             output.extend(tokens_ids_with_offsets_2_value.ids);
             output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
-            original_offsets.extend(tokens_ids_with_offsets_2_value.original_positions);
+            original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);
             original_offsets.push(vec![]);
             mask.extend(tokens_ids_with_offsets_2_value.masks);
@@ -324,14 +324,14 @@ mod tests {
             assert_eq!(tokens_with_offsets.tokens, *expected_tokens);
             assert_eq!(tokens_with_offsets.offsets, *expected_offsets);
             assert_eq!(
-                tokens_with_offsets.original_positions,
+                tokens_with_offsets.reference_offsets,
                 *expected_original_offsets
             );
             assert_eq!(tokens_with_offsets.masks, *expected_mask);
         }
 
         assert_eq!(
-            roberta_tokenizer.tokenize_list(source_texts.clone()),
+            roberta_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }
@@ -413,14 +413,14 @@ mod tests {
             assert_eq!(tokens_with_offsets.tokens, *expected_tokens);
             assert_eq!(tokens_with_offsets.offsets, *expected_offsets);
             assert_eq!(
-                tokens_with_offsets.original_positions,
+                tokens_with_offsets.reference_offsets,
                 *expected_original_offsets
             );
             assert_eq!(tokens_with_offsets.masks, *expected_mask);
         }
 
         assert_eq!(
-            roberta_tokenizer.tokenize_list(source_texts.clone()),
+            roberta_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }

@@ -172,7 +172,7 @@ impl Tokenizer<XLNetVocab> for XLNetTokenizer {
         output.push(self.vocab.token_to_id(XLNetVocab::sep_value()));
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
-        original_offsets.extend(tokens_ids_with_offsets_1.original_positions);
+        original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
         original_offsets.push(vec![]);
         mask.extend(tokens_ids_with_offsets_1.masks);
         mask.push(Mask::Special);
@@ -185,7 +185,7 @@ impl Tokenizer<XLNetVocab> for XLNetTokenizer {
             output.extend(tokens_ids_with_offsets_2_value.ids);
             output.push(self.vocab.token_to_id(XLNetVocab::sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
-            original_offsets.extend(tokens_ids_with_offsets_2_value.original_positions);
+            original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);
             original_offsets.push(vec![]);
             mask.extend(tokens_ids_with_offsets_2_value.masks);

@@ -183,7 +183,7 @@ mod tests {
         }
 
         assert_eq!(
-            openai_gpt_tokenizer.tokenize_list(source_texts.clone()),
+            openai_gpt_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }
@@ -213,7 +213,7 @@ mod tests {
         }
 
         assert_eq!(
-            openai_gpt_tokenizer.tokenize_list(source_texts.clone()),
+            openai_gpt_tokenizer.tokenize_list(&source_texts),
             expected_results
         );
     }
