@@ -15,6 +15,7 @@
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{
     ctrl_bpe, fix_mask, lowercase, split_on_bpe_pairs, split_on_regex, split_on_special_tokens,
+    BpeCache,
 };
 use crate::tokenizer::Tokenizer;
 use crate::vocab::bpe_vocab::BpePairVocab;
@@ -27,7 +28,7 @@ use std::collections::HashMap;
 pub struct CtrlTokenizer {
     vocab: OpenAiGptVocab,
     bpe_ranks: BpePairVocab,
-    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
+    cache: BpeCache,
     regex_pattern: Regex,
     lower_case: bool,
 }

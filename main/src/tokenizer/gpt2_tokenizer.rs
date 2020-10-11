@@ -14,10 +14,10 @@
 
 use crate::error::TokenizerError;
 use crate::tokenizer::constants::UNICODE_TO_BYTES;
-use crate::tokenizer::tokenization_utils::lowercase;
 use crate::tokenizer::tokenization_utils::{
     bpe, fix_mask, split_on_bpe_pairs, split_on_regex_with_lookahead, split_on_special_tokens,
 };
+use crate::tokenizer::tokenization_utils::{lowercase, BpeCache};
 use crate::tokenizer::Tokenizer;
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{Gpt2Vocab, Vocab};
@@ -31,7 +31,7 @@ use std::iter::Iterator;
 pub struct Gpt2Tokenizer {
     vocab: Gpt2Vocab,
     bpe_ranks: BpePairVocab,
-    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
+    cache: BpeCache,
     pattern_lookahead: Regex,
     pattern_tokenization: Regex,
     lower_case: bool,

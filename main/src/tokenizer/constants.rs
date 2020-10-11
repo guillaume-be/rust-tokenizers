@@ -632,6 +632,6 @@ lazy_static! {
     pub static ref UNICODE_TO_BYTES: HashMap<char, u8> = BYTES_TO_UNICODE
         .clone()
         .into_iter()
-        .map(|(key, value)| (value.clone(), key.clone()))
+        .map(|(key, value)| (value, key))
         .collect();
 }

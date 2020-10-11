@@ -321,7 +321,7 @@ pub struct TokenizedInput {
 }
 
 #[derive(Debug, Clone)]
-pub struct SimpleTokenizedInput {
+pub struct TokenIdsWithSpecialTokens {
     pub token_ids: Vec<i64>,
     pub segment_ids: Vec<i8>,
     pub special_tokens_mask: Vec<i8>,
@@ -333,6 +333,14 @@ pub struct SimpleTokenizedInput {
 #[derive(Debug, Clone)]
 pub struct TokensWithOffsets {
     pub tokens: Vec<String>,
+    pub offsets: Vec<Option<Offset>>,
+    pub original_positions: Vec<Vec<OffsetSize>>,
+    pub masks: Vec<Mask>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TokenIdsWithOffsets {
+    pub ids: Vec<i64>,
     pub offsets: Vec<Option<Offset>>,
     pub original_positions: Vec<Vec<OffsetSize>>,
     pub masks: Vec<Mask>,
@@ -422,32 +430,47 @@ pub trait Tokenizer<T: Vocab> {
         let tokens = self.tokenize_with_offsets(text_1);
         let token_ids_1 = self.convert_tokens_to_ids(&tokens.tokens);
         let len_1 = token_ids_1.len();
-        let (token_ids_2, token_offsets_2, original_positions_2, token_mask_2, len_2, pair) = {
+        let token_ids_with_offsets_1 = TokenIdsWithOffsets {
+            ids: token_ids_1,
+            offsets: tokens.offsets,
+            original_positions: tokens.original_positions,
+            masks: tokens.masks,
+        };
+        let (token_ids_with_offsets_2, len_2) = {
             if let Some(text) = text_2 {
                 let tokens_2 = self.tokenize_with_offsets(text);
                 let token_ids_2: Vec<i64> = self.convert_tokens_to_ids(&tokens_2.tokens);
                 let len_2 = token_ids_2.len();
                 (
-                    Some(token_ids_2),
-                    Some(tokens_2.offsets),
-                    Some(tokens_2.original_positions),
-                    Some(tokens_2.masks),
+                    Some(TokenIdsWithOffsets {
+                        ids: token_ids_2,
+                        offsets: tokens_2.offsets,
+                        original_positions: tokens_2.original_positions,
+                        masks: tokens_2.masks,
+                    }),
                     len_2,
-                    Some(vec![]),
                 )
             } else {
-                (None, None, None, None, 0, None)
+                (None, 0)
             }
         };
         let additional_tokens = self.build_input_with_special_tokens(
-            vec![],
-            pair,
-            vec![],
-            Some(vec![]),
-            vec![],
-            Some(vec![]),
-            vec![],
-            Some(vec![]),
+            TokenIdsWithOffsets {
+                ids: vec![],
+                offsets: vec![],
+                original_positions: vec![],
+                masks: vec![],
+            },
+            if token_ids_with_offsets_2.is_some() {
+                Some(TokenIdsWithOffsets {
+                    ids: vec![],
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                })
+            } else {
+                None
+            },
         );
         let total_len = len_1 + len_2 + additional_tokens.token_ids.len();
         let num_truncated_tokens = if total_len > max_len {
@@ -456,41 +479,21 @@ pub trait Tokenizer<T: Vocab> {
             0
         };
         let (
-            token_ids_1,
-            token_ids_2,
-            token_offsets,
-            token_offsets_2,
-            original_positions,
-            original_positions_2,
-            token_mask,
-            token_mask_2,
+            token_ids_with_offsets_1,
+            token_ids_with_offsets_2,
             overflowing_tokens,
             _overflowing_offsets,
         ) = truncate_sequences(
-            token_ids_1,
-            token_ids_2,
-            tokens.offsets,
-            token_offsets_2,
-            tokens.original_positions,
-            original_positions_2,
-            tokens.masks,
-            token_mask_2,
+            token_ids_with_offsets_1,
+            token_ids_with_offsets_2,
             num_truncated_tokens,
             truncation_strategy,
             stride,
         )
         .unwrap();
 
-        let merged_tokenized_input = self.build_input_with_special_tokens(
-            token_ids_1,
-            token_ids_2,
-            token_offsets,
-            token_offsets_2,
-            original_positions,
-            original_positions_2,
-            token_mask,
-            token_mask_2,
-        );
+        let merged_tokenized_input = self
+            .build_input_with_special_tokens(token_ids_with_offsets_1, token_ids_with_offsets_2);
 
         TokenizedInput {
             token_ids: merged_tokenized_input.token_ids,
@@ -614,49 +617,36 @@ pub trait Tokenizer<T: Vocab> {
     ///  * token mask
     fn build_input_with_special_tokens(
         &self,
-        mut tokens_1: Vec<i64>,
-        tokens_2: Option<Vec<i64>>,
-        mut offsets_1: Vec<Option<Offset>>,
-        offsets_2: Option<Vec<Option<Offset>>>,
-        original_offsets_1: Vec<Vec<OffsetSize>>,
-        original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
-        mut mask: Vec<Mask>,
-        mask_2: Option<Vec<Mask>>,
-    ) -> SimpleTokenizedInput {
-        let mut token_segment_ids: Vec<i8> = vec![0; tokens_1.len()];
-        let mut special_tokens_mask: Vec<i8> = vec![0; tokens_1.len()];
-        let mut original_offsets: Vec<Vec<OffsetSize>> = original_offsets_1;
-        let output = match tokens_2 {
-            Some(tokens) => {
-                let length = tokens.len();
-                token_segment_ids.extend(vec![1; length]);
-                special_tokens_mask.extend(vec![0; length]);
-                tokens_1.extend(tokens);
-                if let Some(offsets_2) = offsets_2 {
-                    offsets_1.extend(offsets_2);
-                } else {
-                    offsets_1.extend(vec![None; length]);
-                }
-                if let Some(original_offset_2) = original_offsets_2 {
-                    original_offsets.extend(original_offset_2)
-                }
-                if let Some(mask_2) = mask_2 {
-                    mask.extend(mask_2)
-                } else {
-                    mask.extend(vec![Mask::None; length]);
-                }
-                tokens_1
-            }
-            None => tokens_1,
+        mut tokens_ids_with_offsets_1: TokenIdsWithOffsets,
+        tokens_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
+    ) -> TokenIdsWithSpecialTokens {
+        let mut token_segment_ids: Vec<i8> = vec![0; tokens_ids_with_offsets_1.ids.len()];
+        let mut special_tokens_mask: Vec<i8> = vec![0; tokens_ids_with_offsets_1.ids.len()];
+        if let Some(tokens_ids_with_offsets_2_value) = tokens_ids_with_offsets_2 {
+            let length = tokens_ids_with_offsets_2_value.ids.len();
+            token_segment_ids.extend(vec![1; length]);
+            special_tokens_mask.extend(vec![0; length]);
+            tokens_ids_with_offsets_1
+                .ids
+                .extend(tokens_ids_with_offsets_2_value.ids);
+            tokens_ids_with_offsets_1
+                .offsets
+                .extend(tokens_ids_with_offsets_2_value.offsets);
+            tokens_ids_with_offsets_1
+                .original_positions
+                .extend(tokens_ids_with_offsets_2_value.original_positions);
+            tokens_ids_with_offsets_1
+                .masks
+                .extend(tokens_ids_with_offsets_2_value.masks);
         };
 
-        SimpleTokenizedInput {
-            token_ids: output,
+        TokenIdsWithSpecialTokens {
+            token_ids: tokens_ids_with_offsets_1.ids,
             segment_ids: token_segment_ids,
             special_tokens_mask,
-            token_offsets: offsets_1,
-            reference_offsets: original_offsets,
-            mask,
+            token_offsets: tokens_ids_with_offsets_1.offsets,
+            reference_offsets: tokens_ids_with_offsets_1.original_positions,
+            mask: tokens_ids_with_offsets_1.masks,
         }
     }
 }
@@ -1559,7 +1549,7 @@ mod tests {
                     token_ids: vec!(0, 1, 3, 3, 2, 2, 2, 2, 2, 3),
                     segment_ids: vec!(0, 0, 0, 1, 1, 1, 1, 1, 1, 1),
                     special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    overflowing_tokens: vec!(),
+                    overflowing_tokens: vec!(3, 3),
                     num_truncated_tokens: 2,
                     token_offsets: vec!(
                         Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 11, end: 12 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 5 }), Some(Offset { begin: 6, end: 8 }), Some(Offset { begin: 9, end: 12 }), Some(Offset { begin: 13, end: 19 }), Some(Offset { begin: 20, end: 28 }), Some(Offset { begin: 28, end: 29 })
@@ -1591,7 +1581,7 @@ mod tests {
                     token_ids: vec!(2, 0, 0, 0, 0, 3, 3, 3, 3, 3),
                     segment_ids: vec!(0, 0, 0, 0, 0, 1, 1, 1, 1, 1),
                     special_tokens_mask: vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-                    overflowing_tokens: vec!(0),
+                    overflowing_tokens: vec!(3, 0, 3, 3),
                     num_truncated_tokens: 4,
                     token_offsets: vec!(
                         Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), Some(Offset { begin: 20, end: 25 }), Some(Offset { begin: 27, end: 32 }), Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 }), Some(Offset { begin: 3, end: 4 }), Some(Offset { begin: 4, end: 5 })

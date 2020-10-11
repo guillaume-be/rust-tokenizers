@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::tokenizer::tokenization_utils::{openai_gpt_bpe, split_on_bpe_pairs};
+use crate::tokenizer::tokenization_utils::{openai_gpt_bpe, split_on_bpe_pairs, BpeCache};
 use crate::tokenizer::{BaseTokenizer, Tokenizer};
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
@@ -26,7 +26,7 @@ pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
     bpe_ranks: BpePairVocab,
-    cache: RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
+    cache: BpeCache,
 }
 
 impl OpenAiGptTokenizer {

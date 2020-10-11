@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::tokenizer::base_tokenizer::TruncationStrategy;
+use crate::error::TokenizerError;
+use crate::tokenizer::base_tokenizer::{TokenIdsWithOffsets, TruncationStrategy};
 use crate::tokenizer::constants::{
     ACCENT_MARKERS, ADDITIONAL_WHITESPACE_CHARS, BYTES_TO_UNICODE, CONTROL_CHARS,
     PUNCTUATION_CHARS, WHITESPACE_CHARS,
@@ -21,14 +22,16 @@ use crate::vocab::bpe_vocab::{BpePairRef, BpePairVocab};
 use crate::vocab::{BertVocab, Vocab};
 use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 use regex::Regex;
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 use std::cmp::min;
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
 use unicode_normalization::char::decompose_canonical;
 use unicode_normalization_alignments::UnicodeNormalization;
+
+pub type BpeCache = RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>;
 
 ///Cleans text by removing control characters and normalizing whitespace
 pub fn _clean_text(token: &mut Token, strict: bool) {
@@ -138,7 +141,7 @@ pub fn is_control(character: &char, strict: bool) -> bool {
         false
     } else if strict {
         let u32_char = *character as u32;
-        if (u32_char <= 0x001F)
+        (u32_char <= 0x001F)
             | ((u32_char >= 0x0080) & (u32_char <= 0x009F))
             | ((u32_char >= 0xE0020) & (u32_char <= 0xE007F))
             | ((u32_char >= 0xE000) & (u32_char <= 0xF8FF))
@@ -148,11 +151,6 @@ pub fn is_control(character: &char, strict: bool) -> bool {
             | ((u32_char >= 0xDB80) & (u32_char <= 0xDBFF))
             | ((u32_char >= 0xDC00) & (u32_char <= 0xDFFF))
             | CONTROL_CHARS.contains(&u32_char)
-        {
-            true
-        } else {
-            false
-        }
     } else {
         character.is_control()
     }
@@ -622,200 +620,171 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
 ///       from the main sequence returned. The value of this argument defines the number of additional tokens.
 ///
 pub fn truncate_sequences(
-    mut tokens_1: Vec<i64>,
-    tokens_2: Option<Vec<i64>>,
-    mut offsets_1: Vec<Option<Offset>>,
-    mut offsets_2: Option<Vec<Option<Offset>>>,
-    mut original_positions_1: Vec<Vec<OffsetSize>>,
-    mut original_positions_2: Option<Vec<Vec<OffsetSize>>>,
-    mut mask_1: Vec<Mask>,
-    mut mask_2: Option<Vec<Mask>>,
+    mut token_ids_with_offsets_1: TokenIdsWithOffsets,
+    mut token_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
     num_tokens_to_remove: usize,
     truncation_strategy: &TruncationStrategy,
     stride: usize,
 ) -> Result<
     (
-        Vec<i64>,
-        Option<Vec<i64>>,
-        Vec<Option<Offset>>,
-        Option<Vec<Option<Offset>>>,
-        Vec<Vec<OffsetSize>>,
-        Option<Vec<Vec<OffsetSize>>>,
-        Vec<Mask>,
-        Option<Vec<Mask>>,
+        TokenIdsWithOffsets,
+        Option<TokenIdsWithOffsets>,
         Vec<i64>,
         Vec<Option<Offset>>,
     ),
-    Box<dyn Error>,
+    TokenizerError,
 > {
     if num_tokens_to_remove == 0 {
         Ok((
-            tokens_1,
-            tokens_2,
-            offsets_1,
-            offsets_2,
-            original_positions_1,
-            original_positions_2,
-            mask_1,
-            mask_2,
+            token_ids_with_offsets_1,
+            token_ids_with_offsets_2,
             Vec::new(),
             Vec::new(),
         ))
     } else {
-        match tokens_2 {
-            Some(mut tokens_2) => {
-                match truncation_strategy {
-                    TruncationStrategy::LongestFirst => {
-                        if (tokens_1.len() + tokens_2.len()) >= num_tokens_to_remove {
-                            let mut overflow_tokens: Vec<i64> =
-                                Vec::with_capacity(num_tokens_to_remove + stride);
-                            let mut overflow_offsets: Vec<Option<Offset>> =
-                                Vec::with_capacity(num_tokens_to_remove + stride);
-                            for _ in 0..num_tokens_to_remove {
-                                if tokens_1.len() >= tokens_2.len() {
-                                    overflow_tokens.insert(0, tokens_1.pop().unwrap());
-                                    if !offsets_1.is_empty() {
-                                        overflow_offsets.insert(0, offsets_1.pop().unwrap());
-                                    }
-                                    original_positions_1.pop();
-                                    if !mask_1.is_empty() {
-                                        mask_1.pop();
-                                    }
-                                } else {
-                                    tokens_2.pop();
-                                    offsets_2 = offsets_2.map(|mut offsets_2| {
-                                        offsets_2.pop();
-                                        offsets_2
-                                    });
-                                    original_positions_2 =
-                                        original_positions_2.map(|mut original_positions_2| {
-                                            original_positions_2.pop();
-                                            original_positions_2
-                                        });
-                                    mask_2 = mask_2.map(|mut mask_2| {
-                                        mask_2.pop();
-                                        mask_2
-                                    });
+        if let Some(token_ids_with_offsets_2_value) = token_ids_with_offsets_2.borrow_mut() {
+            match truncation_strategy {
+                TruncationStrategy::LongestFirst => {
+                    if (token_ids_with_offsets_1.ids.len()
+                        + token_ids_with_offsets_2_value.ids.len())
+                        >= num_tokens_to_remove
+                    {
+                        let mut overflow_tokens: Vec<i64> =
+                            Vec::with_capacity(num_tokens_to_remove + stride);
+                        let mut overflow_offsets: Vec<Option<Offset>> =
+                            Vec::with_capacity(num_tokens_to_remove + stride);
+                        for _ in 0..num_tokens_to_remove {
+                            if token_ids_with_offsets_1.ids.len()
+                                >= token_ids_with_offsets_2_value.ids.len()
+                            {
+                                overflow_tokens
+                                    .insert(0, token_ids_with_offsets_1.ids.pop().unwrap());
+                                if !token_ids_with_offsets_1.offsets.is_empty() {
+                                    overflow_offsets
+                                        .insert(0, token_ids_with_offsets_1.offsets.pop().unwrap());
+                                }
+                                token_ids_with_offsets_1.original_positions.pop();
+                                if !token_ids_with_offsets_1.masks.is_empty() {
+                                    token_ids_with_offsets_1.masks.pop();
+                                }
+                            } else {
+                                overflow_tokens
+                                    .insert(0, token_ids_with_offsets_2_value.ids.pop().unwrap());
+                                if !token_ids_with_offsets_2_value.offsets.is_empty() {
+                                    overflow_offsets.insert(
+                                        0,
+                                        token_ids_with_offsets_2_value.offsets.pop().unwrap(),
+                                    );
+                                }
+                                token_ids_with_offsets_2_value.original_positions.pop();
+                                if !token_ids_with_offsets_2_value.masks.is_empty() {
+                                    token_ids_with_offsets_2_value.masks.pop();
                                 }
                             }
-                            let window_len = min(tokens_1.len(), stride);
-                            if window_len > 0 {
-                                let slice: &[i64] = &tokens_1[&tokens_1.len() - window_len..];
-                                overflow_tokens.splice(0..0, slice.iter().cloned());
-                                if !offsets_1.is_empty() {
-                                    let offset_slice: &[Option<Offset>] =
-                                        &offsets_1[&offsets_1.len() - window_len..];
-                                    overflow_offsets.splice(0..0, offset_slice.iter().cloned());
-                                }
+                        }
+                        let window_len = min(token_ids_with_offsets_1.ids.len(), stride);
+                        if window_len > 0 {
+                            let slice: &[i64] = &token_ids_with_offsets_1.ids
+                                [&token_ids_with_offsets_1.ids.len() - window_len..];
+                            overflow_tokens.splice(0..0, slice.iter().cloned());
+                            if !token_ids_with_offsets_1.offsets.is_empty() {
+                                let offset_slice: &[Option<Offset>] = &token_ids_with_offsets_1
+                                    .offsets
+                                    [&token_ids_with_offsets_1.offsets.len() - window_len..];
+                                overflow_offsets.splice(0..0, offset_slice.iter().cloned());
                             }
-                            Ok((
-                                tokens_1,
-                                Some(tokens_2),
-                                offsets_1,
-                                offsets_2,
-                                original_positions_1,
-                                original_positions_2,
-                                mask_1,
-                                mask_2,
-                                overflow_tokens,
-                                overflow_offsets,
-                            ))
-                        } else {
-                            Err("Combined sequence length too short for requested truncation amount".into())
                         }
-                    }
-                    TruncationStrategy::OnlyFirst => {
-                        if tokens_1.len() >= num_tokens_to_remove {
-                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
-                                &mut tokens_1,
-                                offsets_1.as_mut(),
-                                original_positions_1.as_mut(),
-                                mask_1.as_mut(),
-                                num_tokens_to_remove,
-                                stride,
-                            );
-                            Ok((
-                                tokens_1,
-                                Some(tokens_2),
-                                offsets_1,
-                                offsets_2,
-                                original_positions_1,
-                                original_positions_2,
-                                mask_1,
-                                mask_2,
-                                overflow_tokens,
-                                overflow_offsets,
-                            ))
-                        } else {
-                            Err("First sequence too short for first only truncation".into())
-                        }
-                    }
-                    TruncationStrategy::OnlySecond => {
-                        if tokens_2.len() >= num_tokens_to_remove {
-                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
-                                &mut tokens_2,
-                                offsets_2.as_mut().unwrap_or(&mut vec![]),
-                                original_positions_2.as_mut().unwrap_or(&mut vec![]),
-                                mask_2.as_mut().unwrap_or(&mut vec![]),
-                                num_tokens_to_remove,
-                                stride,
-                            );
-                            Ok((
-                                tokens_1,
-                                Some(tokens_2),
-                                offsets_1,
-                                offsets_2,
-                                original_positions_1,
-                                original_positions_2,
-                                mask_1,
-                                mask_2,
-                                overflow_tokens,
-                                overflow_offsets,
-                            ))
-                        } else {
-                            Err("Second sequence too short for second only truncation".into())
-                        }
-                    }
-                    TruncationStrategy::DoNotTruncate => {
-                        Err("Truncation needed but no truncation requested".into())
+                        Ok((
+                            token_ids_with_offsets_1,
+                            token_ids_with_offsets_2,
+                            overflow_tokens,
+                            overflow_offsets,
+                        ))
+                    } else {
+                        Err(TokenizerError::ValueError(
+                            "Combined sequence length too short for requested truncation amount"
+                                .into(),
+                        ))
                     }
                 }
+                TruncationStrategy::OnlyFirst => {
+                    if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
+                        let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
+                            &mut token_ids_with_offsets_1.ids,
+                            token_ids_with_offsets_1.offsets.as_mut(),
+                            token_ids_with_offsets_1.original_positions.as_mut(),
+                            token_ids_with_offsets_1.masks.as_mut(),
+                            num_tokens_to_remove,
+                            stride,
+                        );
+                        Ok((
+                            token_ids_with_offsets_1,
+                            token_ids_with_offsets_2,
+                            overflow_tokens,
+                            overflow_offsets,
+                        ))
+                    } else {
+                        Err(TokenizerError::ValueError(
+                            "First sequence too short for first only truncation".into(),
+                        ))
+                    }
+                }
+                TruncationStrategy::OnlySecond => {
+                    if token_ids_with_offsets_2_value.ids.len() >= num_tokens_to_remove {
+                        let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
+                            &mut token_ids_with_offsets_2_value.ids,
+                            token_ids_with_offsets_2_value.offsets.as_mut(),
+                            token_ids_with_offsets_2_value.original_positions.as_mut(),
+                            token_ids_with_offsets_2_value.masks.as_mut(),
+                            num_tokens_to_remove,
+                            stride,
+                        );
+                        Ok((
+                            token_ids_with_offsets_1,
+                            token_ids_with_offsets_2,
+                            overflow_tokens,
+                            overflow_offsets,
+                        ))
+                    } else {
+                        Err(TokenizerError::ValueError(
+                            "Second sequence too short for second only truncation".into(),
+                        ))
+                    }
+                }
+                TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
+                    "Truncation needed but no truncation requested".into(),
+                )),
             }
-            None => {
-                if tokens_1.len() >= num_tokens_to_remove {
-                    match truncation_strategy {
-                        TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
-                            let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
-                                &mut tokens_1,
-                                &mut offsets_1,
-                                &mut original_positions_1,
-                                &mut mask_1,
-                                num_tokens_to_remove,
-                                stride,
-                            );
-                            Ok((
-                                tokens_1,
-                                None,
-                                offsets_1,
-                                offsets_2,
-                                original_positions_1,
-                                original_positions_2,
-                                mask_1,
-                                mask_2,
-                                overflow_tokens,
-                                overflow_offsets,
-                            ))
-                        }
-                        TruncationStrategy::OnlySecond => {
-                            Err("Invalid truncation strategy for single sentence truncation".into())
-                        }
-                        TruncationStrategy::DoNotTruncate => {
-                            Err("Truncation needed but no truncation requested".into())
-                        }
+        } else {
+            if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
+                match truncation_strategy {
+                    TruncationStrategy::LongestFirst | TruncationStrategy::OnlyFirst => {
+                        let (overflow_tokens, overflow_offsets) = truncate_with_overflow(
+                            &mut token_ids_with_offsets_1.ids,
+                            &mut token_ids_with_offsets_1.offsets,
+                            &mut token_ids_with_offsets_1.original_positions,
+                            &mut token_ids_with_offsets_1.masks,
+                            num_tokens_to_remove,
+                            stride,
+                        );
+                        Ok((
+                            token_ids_with_offsets_1,
+                            token_ids_with_offsets_2,
+                            overflow_tokens,
+                            overflow_offsets,
+                        ))
                     }
-                } else {
-                    Err("First sequence too short for first only truncation".into())
+                    TruncationStrategy::OnlySecond => Err(TokenizerError::ValueError(
+                        "Invalid truncation strategy for single sentence truncation".into(),
+                    )),
+                    TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
+                        "Truncation needed but no truncation requested".into(),
+                    )),
                 }
+            } else {
+                Err(TokenizerError::ValueError(
+                    "First sequence too short for first only truncation".into(),
+                ))
             }
         }
     }
@@ -1123,6 +1092,7 @@ pub fn fix_mask(tokens: &mut Vec<Token>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::error::TokenizerError;
     use crate::vocab::base_vocab::swap_key_values;
     use std::collections::HashMap;
     use std::iter::FromIterator;
@@ -1733,33 +1703,26 @@ mod tests {
         let test_token_ids: Vec<i64> = (0..15).collect();
         let test_tuples: [(
             (usize, &TruncationStrategy, usize),
-            std::result::Result<
+            Result<
                 (
-                    Vec<i64>,
-                    std::option::Option<Vec<i64>>,
-                    Vec<Option<Offset>>,
-                    Option<Vec<Option<Offset>>>,
-                    Vec<Vec<OffsetSize>>,
-                    Option<Vec<Vec<OffsetSize>>>,
-                    Vec<Mask>,
-                    Option<Vec<Mask>>,
+                    TokenIdsWithOffsets,
+                    Option<TokenIdsWithOffsets>,
                     Vec<i64>,
                     Vec<Option<Offset>>,
                 ),
-                Box<dyn Error>,
+                TokenizerError,
             >,
         ); 12] = [
             //            Baseline
             (
                 (5, &TruncationStrategy::LongestFirst, 0),
                 Ok((
-                    (0..10).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: (0..10).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (10..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1769,13 +1732,12 @@ mod tests {
             (
                 (5, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..10).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: (0..10).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (8..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1785,13 +1747,12 @@ mod tests {
             (
                 (15, &TruncationStrategy::LongestFirst, 0),
                 Ok((
-                    (0..0).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: vec![],
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (0..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1800,19 +1761,20 @@ mod tests {
             //            Truncate amount larger than sequence length
             (
                 (20, &TruncationStrategy::LongestFirst, 0),
-                Err("First sequence too short for first only truncation".into()),
+                Err(TokenizerError::ValueError(
+                    "First sequence too short for first only truncation".into(),
+                )),
             ),
             //            Truncate entire sequence with stride = 2
             (
                 (15, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..0).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: vec![],
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (0..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1822,13 +1784,12 @@ mod tests {
             (
                 (10, &TruncationStrategy::LongestFirst, 7),
                 Ok((
-                    (0..5).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: (0..5).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (0..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1838,13 +1799,12 @@ mod tests {
             (
                 (1, &TruncationStrategy::LongestFirst, 20),
                 Ok((
-                    (0..14).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: (0..14).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (0..15).collect::<Vec<i64>>(),
                     Vec::<Option<Offset>>::new(),
@@ -1854,13 +1814,12 @@ mod tests {
             (
                 (10, &TruncationStrategy::OnlyFirst, 2),
                 Ok((
-                    (0..5).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: (0..5).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (3..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1870,13 +1829,12 @@ mod tests {
             (
                 (0, &TruncationStrategy::LongestFirst, 0),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (15..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1886,13 +1844,12 @@ mod tests {
             (
                 (0, &TruncationStrategy::DoNotTruncate, 0),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    None::<Vec<i64>>,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
                     None,
                     (15..15).collect::<Vec<i64>>(),
                     vec![],
@@ -1901,24 +1858,27 @@ mod tests {
             //            No truncation requested, but needed
             (
                 (1, &TruncationStrategy::DoNotTruncate, 0),
-                Err("Truncation needed but no truncation requested".into()),
+                Err(TokenizerError::ValueError(
+                    "Truncation needed but no truncation requested".into(),
+                )),
             ),
             //            Invalid truncation requested
             (
                 (1, &TruncationStrategy::OnlySecond, 0),
-                Err("Invalid truncation strategy for single sentence truncation".into()),
+                Err(TokenizerError::ValueError(
+                    "Invalid truncation strategy for single sentence truncation".into(),
+                )),
             ),
         ];
 
         for (parameters, expected_outputs) in &test_tuples {
             let test_results = truncate_sequences(
-                test_token_ids.clone(),
-                None,
-                vec![],
-                None,
-                vec![],
-                None,
-                vec![],
+                TokenIdsWithOffsets {
+                    ids: test_token_ids.clone(),
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                },
                 None,
                 parameters.0,
                 parameters.1,
@@ -1928,7 +1888,7 @@ mod tests {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
                 Err(e) => assert_eq!(
                     e.to_string(),
-                    (**expected_outputs.as_ref().err().unwrap()).to_string()
+                    (*expected_outputs.as_ref().err().unwrap()).to_string()
                 ),
             }
         }
@@ -1941,34 +1901,32 @@ mod tests {
         let test_pair_token_ids: Vec<i64> = (42..51).collect();
         let test_tuples: [(
             (usize, &TruncationStrategy, usize),
-            std::result::Result<
+            Result<
                 (
-                    Vec<i64>,
-                    std::option::Option<Vec<i64>>,
-                    Vec<Option<Offset>>,
-                    Option<Vec<Option<Offset>>>,
-                    Vec<Vec<OffsetSize>>,
-                    Option<Vec<Vec<OffsetSize>>>,
-                    Vec<Mask>,
-                    Option<Vec<Mask>>,
+                    TokenIdsWithOffsets,
+                    Option<TokenIdsWithOffsets>,
                     Vec<i64>,
                     Vec<Option<Offset>>,
                 ),
-                Box<dyn Error>,
+                TokenizerError,
             >,
         ); 10] = [
             //            Baseline
             (
                 (5, &TruncationStrategy::LongestFirst, 0),
                 Ok((
-                    (0..10).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..10).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (10..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -1977,14 +1935,18 @@ mod tests {
             (
                 (5, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..10).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..10).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (8..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -1993,14 +1955,18 @@ mod tests {
             (
                 (7, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..8).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..8).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (6..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2009,15 +1975,19 @@ mod tests {
             (
                 (10, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..7).collect::<Vec<i64>>(),
-                    Some((42..49).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    (5..15).collect::<Vec<i64>>(),
+                    TokenIdsWithOffsets {
+                        ids: (0..7).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..49).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
+                    vec![5, 6, 49, 7, 50, 8, 9, 10, 11, 12, 13, 14],
                     vec![],
                 )),
             ),
@@ -2025,15 +1995,22 @@ mod tests {
             (
                 (15 + 8, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..0).collect::<Vec<i64>>(),
-                    Some((42..43).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    (0..15).collect::<Vec<i64>>(),
+                    TokenIdsWithOffsets {
+                        ids: vec![],
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..43).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
+                    vec![
+                        0, 43, 1, 44, 2, 45, 3, 46, 4, 47, 5, 48, 6, 49, 7, 50, 8, 9, 10, 11, 12,
+                        13, 14,
+                    ],
                     vec![],
                 )),
             ),
@@ -2041,35 +2018,48 @@ mod tests {
             (
                 (15 + 9, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..0).collect::<Vec<i64>>(),
-                    Some((42..42).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    (0..15).collect::<Vec<i64>>(),
+                    TokenIdsWithOffsets {
+                        ids: vec![],
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: vec![],
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
+                    vec![
+                        42, 0, 43, 1, 44, 2, 45, 3, 46, 4, 47, 5, 48, 6, 49, 7, 50, 8, 9, 10, 11,
+                        12, 13, 14,
+                    ],
                     vec![],
                 )),
             ),
             //            Request truncation amount greater than combined length
             (
                 (15 + 9 + 1, &TruncationStrategy::LongestFirst, 2),
-                Err("Combined sequence length too short for requested truncation amount".into()),
+                Err(TokenizerError::ValueError(
+                    "Combined sequence length too short for requested truncation amount".into(),
+                )),
             ),
             //            No truncation
             (
                 (0, &TruncationStrategy::LongestFirst, 2),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (15..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2078,14 +2068,18 @@ mod tests {
             (
                 (0, &TruncationStrategy::DoNotTruncate, 0),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (15..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2093,20 +2087,26 @@ mod tests {
             //            No truncation requested, but needed
             (
                 (1, &TruncationStrategy::DoNotTruncate, 0),
-                Err("Truncation needed but no truncation requested".into()),
+                Err(TokenizerError::ValueError(
+                    "Truncation needed but no truncation requested".into(),
+                )),
             ),
         ];
 
         for (parameters, expected_outputs) in &test_tuples {
             let test_results = truncate_sequences(
-                test_token_ids.clone(),
-                Some(test_pair_token_ids.clone()),
-                vec![],
-                None,
-                vec![],
-                None,
-                vec![],
-                None,
+                TokenIdsWithOffsets {
+                    ids: test_token_ids.clone(),
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                },
+                Some(TokenIdsWithOffsets {
+                    ids: test_pair_token_ids.clone(),
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                }),
                 parameters.0,
                 parameters.1,
                 parameters.2,
@@ -2117,7 +2117,7 @@ mod tests {
                 }
                 Err(e) => assert_eq!(
                     e.to_string(),
-                    (**expected_outputs.as_ref().err().unwrap()).to_string()
+                    (*expected_outputs.as_ref().err().unwrap()).to_string()
                 ),
             }
         }
@@ -2130,34 +2130,32 @@ mod tests {
         let test_pair_token_ids: Vec<i64> = (42..51).collect();
         let test_tuples: [(
             (usize, &TruncationStrategy, usize),
-            std::result::Result<
+            Result<
                 (
-                    Vec<i64>,
-                    std::option::Option<Vec<i64>>,
-                    Vec<Option<Offset>>,
-                    Option<Vec<Option<Offset>>>,
-                    Vec<Vec<OffsetSize>>,
-                    Option<Vec<Vec<OffsetSize>>>,
-                    Vec<Mask>,
-                    Option<Vec<Mask>>,
+                    TokenIdsWithOffsets,
+                    Option<TokenIdsWithOffsets>,
                     Vec<i64>,
                     Vec<Option<Offset>>,
                 ),
-                Box<dyn Error>,
+                TokenizerError,
             >,
         ); 5] = [
             //            Baseline
             (
                 (5, &TruncationStrategy::OnlyFirst, 0),
                 Ok((
-                    (0..10).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..10).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (10..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2166,14 +2164,18 @@ mod tests {
             (
                 (5, &TruncationStrategy::OnlyFirst, 2),
                 Ok((
-                    (0..10).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..10).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (8..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2182,14 +2184,18 @@ mod tests {
             (
                 (15, &TruncationStrategy::OnlyFirst, 2),
                 Ok((
-                    (0..0).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: vec![],
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (0..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2197,20 +2203,26 @@ mod tests {
             //            Request truncation amount greater than sentence 1
             (
                 (16, &TruncationStrategy::OnlyFirst, 2),
-                Err("First sequence too short for first only truncation".into()),
+                Err(TokenizerError::ValueError(
+                    "First sequence too short for first only truncation".into(),
+                )),
             ),
             //            No truncation
             (
                 (0, &TruncationStrategy::OnlyFirst, 2),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (15..15).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2219,14 +2231,18 @@ mod tests {
 
         for (parameters, expected_outputs) in &test_tuples {
             let test_results = truncate_sequences(
-                test_token_ids.clone(),
-                Some(test_pair_token_ids.clone()),
-                vec![],
-                None,
-                vec![],
-                None,
-                vec![],
-                None,
+                TokenIdsWithOffsets {
+                    ids: test_token_ids.clone(),
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                },
+                Some(TokenIdsWithOffsets {
+                    ids: test_pair_token_ids.clone(),
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                }),
                 parameters.0,
                 parameters.1,
                 parameters.2,
@@ -2235,7 +2251,7 @@ mod tests {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
                 Err(e) => assert_eq!(
                     e.to_string(),
-                    (**expected_outputs.as_ref().err().unwrap()).to_string()
+                    (*expected_outputs.as_ref().err().unwrap()).to_string()
                 ),
             }
         }
@@ -2248,34 +2264,32 @@ mod tests {
         let test_pair_token_ids: Vec<i64> = (42..51).collect();
         let test_tuples: [(
             (usize, &TruncationStrategy, usize),
-            std::result::Result<
+            Result<
                 (
-                    Vec<i64>,
-                    std::option::Option<Vec<i64>>,
-                    Vec<Option<Offset>>,
-                    Option<Vec<Option<Offset>>>,
-                    Vec<Vec<OffsetSize>>,
-                    Option<Vec<Vec<OffsetSize>>>,
-                    Vec<Mask>,
-                    Option<Vec<Mask>>,
+                    TokenIdsWithOffsets,
+                    Option<TokenIdsWithOffsets>,
                     Vec<i64>,
                     Vec<Option<Offset>>,
                 ),
-                Box<dyn Error>,
+                TokenizerError,
             >,
         ); 5] = [
             //            Baseline
             (
                 (5, &TruncationStrategy::OnlySecond, 0),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    Some((42..46).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..46).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (46..51).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2284,14 +2298,18 @@ mod tests {
             (
                 (5, &TruncationStrategy::OnlySecond, 2),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    Some((42..46).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..46).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (44..51).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2300,14 +2318,18 @@ mod tests {
             (
                 (9, &TruncationStrategy::OnlySecond, 2),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    Some((42..42).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: vec![],
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (42..51).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2315,20 +2337,26 @@ mod tests {
             //            Request truncation amount greater than sentence 1
             (
                 (10, &TruncationStrategy::OnlySecond, 2),
-                Err("Second sequence too short for second only truncation".into()),
+                Err(TokenizerError::ValueError(
+                    "Second sequence too short for second only truncation".into(),
+                )),
             ),
             //            No truncation
             (
                 (0, &TruncationStrategy::OnlySecond, 2),
                 Ok((
-                    (0..15).collect::<Vec<i64>>(),
-                    Some((42..51).collect::<Vec<i64>>()),
-                    vec![],
-                    None,
-                    vec![],
-                    None,
-                    vec![],
-                    None,
+                    TokenIdsWithOffsets {
+                        ids: (0..15).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    },
+                    Some(TokenIdsWithOffsets {
+                        ids: (42..51).collect::<Vec<i64>>(),
+                        offsets: vec![],
+                        original_positions: vec![],
+                        masks: vec![],
+                    }),
                     (42..42).collect::<Vec<i64>>(),
                     vec![],
                 )),
@@ -2337,14 +2365,18 @@ mod tests {
 
         for (parameters, expected_outputs) in &test_tuples {
             let test_results = truncate_sequences(
-                test_token_ids.clone(),
-                Some(test_pair_token_ids.clone()),
-                vec![],
-                None,
-                vec![],
-                None,
-                vec![],
-                None,
+                TokenIdsWithOffsets {
+                    ids: test_token_ids.clone(),
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                },
+                Some(TokenIdsWithOffsets {
+                    ids: test_pair_token_ids.clone(),
+                    offsets: vec![],
+                    original_positions: vec![],
+                    masks: vec![],
+                }),
                 parameters.0,
                 parameters.1,
                 parameters.2,
@@ -2353,7 +2385,7 @@ mod tests {
                 Ok(value) => assert_eq!(value, *expected_outputs.as_ref().unwrap()),
                 Err(e) => assert_eq!(
                     e.to_string(),
-                    (**expected_outputs.as_ref().err().unwrap()).to_string()
+                    (*expected_outputs.as_ref().err().unwrap()).to_string()
                 ),
             }
         }

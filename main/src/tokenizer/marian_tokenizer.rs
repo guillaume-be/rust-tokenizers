@@ -13,7 +13,7 @@
 
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
-    Mask, Offset, OffsetSize, SimpleTokenizedInput, Token, TokenRef,
+    Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
 use crate::tokenizer::tokenization_utils::{
     _clean_text, decompose_nfkc, is_whitespace, lowercase, split_at_regex,
@@ -145,46 +145,30 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
 
     fn build_input_with_special_tokens(
         &self,
-        tokens_1: Vec<i64>,
-        tokens_2: Option<Vec<i64>>,
-        offsets_1: Vec<Option<Offset>>,
-        offsets_2: Option<Vec<Option<Offset>>>,
-        original_offsets_1: Vec<Vec<OffsetSize>>,
-        original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
-        mask_1: Vec<Mask>,
-        mask_2: Option<Vec<Mask>>,
-    ) -> SimpleTokenizedInput {
+        tokens_ids_with_offsets_1: TokenIdsWithOffsets,
+        tokens_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
+    ) -> TokenIdsWithSpecialTokens {
         let mut output: Vec<i64> = vec![];
         let mut token_segment_ids: Vec<i8> = vec![];
         let mut special_tokens_mask: Vec<i8> = vec![];
         let mut offsets: Vec<Option<Offset>> = vec![];
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
         let mut mask: Vec<Mask> = vec![];
-        special_tokens_mask.extend(vec![0; tokens_1.len()]);
-        token_segment_ids.extend(vec![0; tokens_1.len()]);
-        output.extend(tokens_1);
-        offsets.extend(offsets_1);
-        original_offsets.extend(original_offsets_1);
-        mask.extend(mask_1);
+        special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
+        token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
+        output.extend(tokens_ids_with_offsets_1.ids);
+        offsets.extend(tokens_ids_with_offsets_1.offsets);
+        original_offsets.extend(tokens_ids_with_offsets_1.original_positions);
+        mask.extend(tokens_ids_with_offsets_1.masks);
 
-        if let Some(add_tokens) = tokens_2 {
-            let length = add_tokens.len();
+        if let Some(tokens_ids_with_offsets_2_value) = tokens_ids_with_offsets_2 {
+            let length = tokens_ids_with_offsets_2_value.ids.len();
             special_tokens_mask.extend(vec![0; length]);
             token_segment_ids.extend(vec![1; length + 1]);
-            output.extend(add_tokens);
-            if let Some(add_offsets) = offsets_2 {
-                offsets.extend(add_offsets);
-            } else {
-                offsets.extend(vec![None; length]);
-            }
-            if let Some(add_original_offsets) = original_offsets_2 {
-                original_offsets.extend(add_original_offsets);
-            }
-            if let Some(mask_2) = mask_2 {
-                mask.extend(mask_2)
-            } else {
-                mask.extend(vec![Mask::None; length]);
-            }
+            output.extend(tokens_ids_with_offsets_2_value.ids);
+            offsets.extend(tokens_ids_with_offsets_2_value.offsets);
+            original_offsets.extend(tokens_ids_with_offsets_2_value.original_positions);
+            mask.extend(tokens_ids_with_offsets_2_value.masks);
         }
         special_tokens_mask.push(1);
         token_segment_ids.push(1);
@@ -193,7 +177,7 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
         original_offsets.push(vec![]);
         mask.push(Mask::Special);
 
-        SimpleTokenizedInput {
+        TokenIdsWithSpecialTokens {
             token_ids: output,
             segment_ids: token_segment_ids,
             special_tokens_mask,

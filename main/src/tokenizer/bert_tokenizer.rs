@@ -14,8 +14,8 @@
 
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
-    BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, SimpleTokenizedInput, Token,
-    TokenRef, Tokenizer,
+    BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenIdsWithOffsets,
+    TokenIdsWithSpecialTokens, TokenRef, Tokenizer,
 };
 use crate::tokenizer::tokenization_utils::tokenize_wordpiece;
 use crate::vocab::{BertVocab, Vocab};
@@ -76,15 +76,9 @@ impl Tokenizer<BertVocab> for BertTokenizer {
 
     fn build_input_with_special_tokens(
         &self,
-        tokens_1: Vec<i64>,
-        tokens_2: Option<Vec<i64>>,
-        offsets_1: Vec<Option<Offset>>,
-        offsets_2: Option<Vec<Option<Offset>>>,
-        original_offsets_1: Vec<Vec<OffsetSize>>,
-        original_offsets_2: Option<Vec<Vec<OffsetSize>>>,
-        mask_1: Vec<Mask>,
-        mask_2: Option<Vec<Mask>>,
-    ) -> SimpleTokenizedInput {
+        tokens_ids_with_offsets_1: TokenIdsWithOffsets,
+        tokens_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
+    ) -> TokenIdsWithSpecialTokens {
         let mut output: Vec<i64> = vec![];
         let mut token_segment_ids: Vec<i8> = vec![];
         let mut special_tokens_mask: Vec<i8> = vec![];
@@ -92,46 +86,37 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
         let mut mask: Vec<Mask> = vec![];
         special_tokens_mask.push(1);
-        special_tokens_mask.extend(vec![0; tokens_1.len()]);
+        special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
-        token_segment_ids.extend(vec![0; tokens_1.len() + 2]);
+        token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
         output.push(self.vocab.token_to_id(BertVocab::cls_value()));
-        output.extend(tokens_1);
+        output.extend(tokens_ids_with_offsets_1.ids);
         output.push(self.vocab.token_to_id(BertVocab::sep_value()));
         offsets.push(None);
-        offsets.extend(offsets_1);
+        offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
         original_offsets.push(vec![]);
-        original_offsets.extend(original_offsets_1);
+        original_offsets.extend(tokens_ids_with_offsets_1.original_positions);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);
-        mask.extend(mask_1);
+        mask.extend(tokens_ids_with_offsets_1.masks);
         mask.push(Mask::Special);
-        if let Some(add_tokens) = tokens_2 {
-            let length = add_tokens.len();
+        if let Some(tokens_ids_with_offsets_2_value) = tokens_ids_with_offsets_2 {
+            let length = tokens_ids_with_offsets_2_value.ids.len();
             special_tokens_mask.extend(vec![0; length]);
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
-            output.extend(add_tokens);
+            output.extend(tokens_ids_with_offsets_2_value.ids);
             output.push(self.vocab.token_to_id(BertVocab::sep_value()));
-            if let Some(add_offsets) = offsets_2 {
-                offsets.extend(add_offsets);
-            } else {
-                offsets.extend(vec![None; length]);
-            }
-            if let Some(add_original_offsets) = original_offsets_2 {
-                original_offsets.extend(add_original_offsets);
-            }
+            offsets.extend(tokens_ids_with_offsets_2_value.offsets);
+            original_offsets.extend(tokens_ids_with_offsets_2_value.original_positions);
             offsets.push(None);
             original_offsets.push(vec![]);
-            if let Some(mask_2) = mask_2 {
-                mask.extend(mask_2)
-            } else {
-                mask.extend(vec![Mask::None; length]);
-            }
+            mask.extend(tokens_ids_with_offsets_2_value.masks);
+
             mask.push(Mask::Special);
         }
-        SimpleTokenizedInput {
+        TokenIdsWithSpecialTokens {
             token_ids: output,
             segment_ids: token_segment_ids,
             special_tokens_mask,
@@ -477,7 +462,7 @@ mod tests {
                     token_ids: vec!(4, 0, 1, 5, 3, 2, 2, 2, 2, 5),
                     segment_ids: vec!(0, 0, 0, 0, 1, 1, 1, 1, 1, 1),
                     special_tokens_mask: vec!(1, 0, 0, 1, 0, 0, 0, 0, 0, 1),
-                    overflowing_tokens: vec!(),
+                    overflowing_tokens: vec!(2, 3, 3, 3),
                     num_truncated_tokens: 4,
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 5 }), Some(Offset { begin: 6, end: 8 }), Some(Offset { begin: 9, end: 12 }), Some(Offset { begin: 13, end: 19 }), None
@@ -509,7 +494,7 @@ mod tests {
                     token_ids: vec!(4, 2, 0, 0, 5, 3, 3, 3, 3, 5),
                     segment_ids: vec!(0, 0, 0, 0, 0, 1, 1, 1, 1, 1),
                     special_tokens_mask: vec!(1, 0, 0, 0, 1, 0, 0, 0, 0, 1),
-                    overflowing_tokens: vec!(0, 0, 0),
+                    overflowing_tokens: vec!(0, 3, 0, 3, 0, 3, 3),
                     num_truncated_tokens: 7,
                     token_offsets: vec!(
                         None, Some(Offset { begin: 0, end: 5 }), Some(Offset { begin: 6, end: 11 }), Some(Offset { begin: 13, end: 18 }), None, Some(Offset { begin: 0, end: 1 }), Some(Offset { begin: 1, end: 2 }), Some(Offset { begin: 2, end: 3 }), Some(Offset { begin: 3, end: 4 }), None
