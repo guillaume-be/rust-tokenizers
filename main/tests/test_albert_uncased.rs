@@ -208,7 +208,7 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
 
     let output = MultiThreadedTokenizer::encode_list(
         &albert_tokenizer,
-        original_strings.to_vec(),
+        &original_strings,
         128,
         &TruncationStrategy::LongestFirst,
         0,

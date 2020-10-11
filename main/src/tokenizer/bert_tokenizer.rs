@@ -411,19 +411,13 @@ mod tests {
             assert_eq!(tokenized_input, *expected_result);
         }
         assert_eq!(
-            Tokenizer::encode_list(
-                &bert_tokenizer,
-                source_texts.clone(),
-                128,
-                &truncation_strategy,
-                0
-            ),
+            Tokenizer::encode_list(&bert_tokenizer, &source_texts, 128, &truncation_strategy, 0),
             expected_results
         );
         assert_eq!(
             MultiThreadedTokenizer::encode_list(
                 &bert_tokenizer,
-                source_texts.clone(),
+                &source_texts,
                 128,
                 &truncation_strategy,
                 0
@@ -524,7 +518,7 @@ mod tests {
         assert_eq!(
             Tokenizer::encode_pair_list(
                 &bert_tokenizer,
-                source_texts.clone(),
+                &source_texts,
                 10,
                 &truncation_strategy,
                 0
@@ -534,7 +528,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::encode_pair_list(
                 &bert_tokenizer,
-                source_texts.clone(),
+                &source_texts,
                 10,
                 &truncation_strategy,
                 0

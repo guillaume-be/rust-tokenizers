@@ -33,7 +33,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        Ok(self.tokenizer().tokenize_list(text_list))
+        Ok(self.tokenizer().tokenize_list(text_list.as_slice()))
     }
 
     fn encode(
@@ -119,9 +119,12 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_inputs =
-                    self.tokenizer()
-                        .encode_list(text_list, max_len, &truncation_strategy, stride);
+                let tokenized_inputs = self.tokenizer().encode_list(
+                    text_list.as_slice(),
+                    max_len,
+                    &truncation_strategy,
+                    stride,
+                );
                 Ok(tokenized_inputs
                     .into_iter()
                     .map(|tokenized_input| PyTokenizedInput {
@@ -154,7 +157,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         match truncation_strategy {
             Ok(truncation_strategy) => {
                 let tokenized_inputs = self.tokenizer().encode_pair_list(
-                    text_list,
+                    text_list.as_slice(),
                     max_len,
                     &truncation_strategy,
                     stride,
@@ -182,7 +185,7 @@ where
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         Ok(MultiThreadedTokenizer::tokenize_list(
             self.tokenizer(),
-            text_list,
+            text_list.as_slice(),
         ))
     }
 

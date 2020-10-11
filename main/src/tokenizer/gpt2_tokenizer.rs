@@ -316,7 +316,7 @@ mod tests {
             );
         }
         assert_eq!(
-            gpt2_tokenizer.encode_list(source_texts.clone(), 128, &truncation_strategy, 0),
+            gpt2_tokenizer.encode_list(&source_texts, 128, &truncation_strategy, 0),
             expected_results
         );
     }

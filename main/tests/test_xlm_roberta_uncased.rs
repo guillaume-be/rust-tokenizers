@@ -198,7 +198,7 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
 
     let output = MultiThreadedTokenizer::encode_list(
         &xlm_roberta_tokenizer,
-        original_strings.to_vec(),
+        &original_strings,
         128,
         &TruncationStrategy::LongestFirst,
         0,

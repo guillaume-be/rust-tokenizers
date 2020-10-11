@@ -466,8 +466,8 @@ pub trait Tokenizer<T: Vocab> {
 
     /// Tokenize a string, returns a vector of tokens as strings.
     /// Use `tokenize_with_offsets` or `tokenize_to_tokens` to return offset information.
-    fn tokenize(&self, text: &str) -> Vec<String> {
-        self.tokenize_with_offsets(text).tokens
+    fn tokenize<S: AsRef<str>>(&self, text: S) -> Vec<String> {
+        self.tokenize_with_offsets(text.as_ref()).tokens
     }
 
     /// Tokenize a string, returning tokens with offset information
@@ -490,8 +490,8 @@ pub trait Tokenizer<T: Vocab> {
     /// let text = "Hello, world!";
     /// let tokens = tokenizer.tokenize_with_offsets(text);
     /// ```
-    fn tokenize_with_offsets(&self, text: &str) -> TokensWithOffsets {
-        if text.trim().is_empty() {
+    fn tokenize_with_offsets<S: AsRef<str>>(&self, text: S) -> TokensWithOffsets {
+        if text.as_ref().trim().is_empty() {
             return TokensWithOffsets {
                 tokens: vec![],
                 offsets: vec![],
@@ -499,8 +499,9 @@ pub trait Tokenizer<T: Vocab> {
                 masks: vec![],
             };
         }
-        let initial_offsets = (0..text.chars().count() as OffsetSize).collect::<Vec<OffsetSize>>();
-        let initial_token: TokenRef<'_> = TokenRef::new(text, &initial_offsets);
+        let initial_offsets =
+            (0..text.as_ref().chars().count() as OffsetSize).collect::<Vec<OffsetSize>>();
+        let initial_token: TokenRef<'_> = TokenRef::new(text.as_ref(), &initial_offsets);
         let tokens = self.tokenize_to_tokens(initial_token);
         let length = tokens.len();
         let mut texts = Vec::with_capacity(length);
@@ -575,7 +576,7 @@ pub trait Tokenizer<T: Vocab> {
     /// let texts = ["Hello, world!", "Second sentence"];
     /// let tokens = tokenizer.tokenize_list(&texts);
     /// ```
-    fn tokenize_list(&self, text_list: &[&str]) -> Vec<Vec<String>> {
+    fn tokenize_list<S: AsRef<str>>(&self, text_list: &[S]) -> Vec<Vec<String>> {
         text_list
             .into_iter()
             .map(|text| self.tokenize(text))
@@ -583,26 +584,29 @@ pub trait Tokenizer<T: Vocab> {
     }
 
     ///Tokenize a vector of strings, where each corresponds to for example a sentence, returns a vector of pairs consists of a vector of tokens and a list of offset information.
-    fn tokenize_list_with_offsets(&self, text_list: &[&str]) -> Vec<TokensWithOffsets> {
+    fn tokenize_list_with_offsets<S: AsRef<str>>(&self, text_list: &[S]) -> Vec<TokensWithOffsets> {
         text_list
             .into_iter()
             .map(|text| self.tokenize_with_offsets(text))
             .collect()
     }
 
-    fn convert_tokens_to_ids(&self, tokens: &[String]) -> Vec<i64> {
-        tokens.iter().map(|v| self.vocab().token_to_id(v)).collect()
+    fn convert_tokens_to_ids<S: AsRef<str>>(&self, tokens: &[S]) -> Vec<i64> {
+        tokens
+            .iter()
+            .map(|v| self.vocab().token_to_id(v.as_ref()))
+            .collect()
     }
 
-    fn encode(
+    fn encode<S: AsRef<str>>(
         &self,
-        text_1: &str,
-        text_2: Option<&str>,
+        text_1: S,
+        text_2: Option<S>,
         max_len: usize,
         truncation_strategy: &TruncationStrategy,
         stride: usize,
     ) -> TokenizedInput {
-        let tokens = self.tokenize_with_offsets(text_1);
+        let tokens = self.tokenize_with_offsets(text_1.as_ref());
         let token_ids_1 = self.convert_tokens_to_ids(&tokens.tokens);
         let len_1 = token_ids_1.len();
         let token_ids_with_offsets_1 = TokenIdsWithOffsets {
@@ -613,7 +617,7 @@ pub trait Tokenizer<T: Vocab> {
         };
         let (token_ids_with_offsets_2, len_2) = {
             if let Some(text) = text_2 {
-                let tokens_2 = self.tokenize_with_offsets(text);
+                let tokens_2 = self.tokenize_with_offsets(text.as_ref());
                 let token_ids_2: Vec<i64> = self.convert_tokens_to_ids(&tokens_2.tokens);
                 let len_2 = token_ids_2.len();
                 (
@@ -682,28 +686,36 @@ pub trait Tokenizer<T: Vocab> {
         }
     }
 
-    fn encode_list(
+    fn encode_list<'a, S>(
         &self,
-        text_list: Vec<&str>,
+        text_list: S,
         max_len: usize,
         truncation_strategy: &TruncationStrategy,
         stride: usize,
-    ) -> Vec<TokenizedInput> {
+    ) -> Vec<TokenizedInput>
+    where
+        S: AsRef<[&'a str]>,
+    {
         text_list
-            .into_iter()
+            .as_ref()
+            .iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(
+    fn encode_pair_list<'a, S>(
         &self,
-        text_list: Vec<(&str, &str)>,
+        text_list: S,
         max_len: usize,
         truncation_strategy: &TruncationStrategy,
         stride: usize,
-    ) -> Vec<TokenizedInput> {
+    ) -> Vec<TokenizedInput>
+    where
+        S: AsRef<[(&'a str, &'a str)]>,
+    {
         text_list
-            .into_iter()
+            .as_ref()
+            .iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
             .collect()
     }
@@ -724,12 +736,13 @@ pub trait Tokenizer<T: Vocab> {
         tokens
     }
 
-    ///Converts a sequence of ids (integer) into  astring, using the tokenizer and vocabulary
-    ///  with options to remove special tokens and clean up tokenization spaces.
-    ///  Args:
-    ///   * token_ids: list of tokenized input ids. Can be obtained using the `encode` or `encode_plus` methods.
-    ///   * skip_special_tokens: if set to True, will replace special tokens.
-    ///   * clean_up_tokenization_spaces: if set to True, will clean up the tokenization spaces.
+    /// Converts a sequence of ids (integer) into a string, using the tokenizer and vocabulary
+    /// with options to remove special tokens and clean up tokenization spaces.
+    ///
+    /// # Arguments
+    /// - token_ids: list of tokenized input ids. Can be obtained using the `encode` or `encode_plus` methods.
+    /// - skip_special_tokens: if set to True, will replace special tokens.
+    /// - clean_up_tokenization_spaces: if set to True, will clean up the tokenization spaces.
     fn decode(
         &self,
         token_ids: Vec<i64>,
@@ -834,41 +847,57 @@ where
         Tokenizer::<T>::vocab(self)
     }
 
-    fn tokenize_list_with_offsets(&self, text_list: &[&str]) -> Vec<TokensWithOffsets> {
+    fn tokenize_list_with_offsets<'a, S>(&self, text_list: S) -> Vec<TokensWithOffsets>
+    where
+        S: AsRef<[&'a str]>,
+    {
         text_list
+            .as_ref()
             .par_iter()
             .map(|text| self.tokenize_with_offsets(text))
             .collect()
     }
 
-    fn tokenize_list(&self, text_list: &[&str]) -> Vec<Vec<String>> {
+    fn tokenize_list<'a, S>(&self, text_list: S) -> Vec<Vec<String>>
+    where
+        S: AsRef<[&'a str]>,
+    {
         text_list
+            .as_ref()
             .par_iter()
             .map(|text| self.tokenize(text))
             .collect()
     }
 
-    fn encode_list(
+    fn encode_list<'a, S>(
         &self,
-        text_list: Vec<&str>,
+        text_list: S,
         max_len: usize,
         truncation_strategy: &TruncationStrategy,
         stride: usize,
-    ) -> Vec<TokenizedInput> {
+    ) -> Vec<TokenizedInput>
+    where
+        S: AsRef<[&'a str]>,
+    {
         text_list
+            .as_ref()
             .par_iter()
             .map(|text| self.encode(text, None, max_len, truncation_strategy, stride))
             .collect()
     }
 
-    fn encode_pair_list(
+    fn encode_pair_list<'a, S>(
         &self,
-        text_list: Vec<(&str, &str)>,
+        text_list: S,
         max_len: usize,
         truncation_strategy: &TruncationStrategy,
         stride: usize,
-    ) -> Vec<TokenizedInput> {
+    ) -> Vec<TokenizedInput>
+    where
+        S: AsRef<[(&'a str, &'a str)]>,
+    {
         text_list
+            .as_ref()
             .par_iter()
             .map(|text| self.encode(text.0, Some(text.1), max_len, truncation_strategy, stride))
             .collect()
@@ -1670,19 +1699,13 @@ mod tests {
             assert_eq!(tokenized_input, *expected_result, "Testing results");
         }
         assert_eq!(
-            Tokenizer::encode_list(
-                &base_tokenizer,
-                source_texts.clone(),
-                10,
-                &truncation_strategy,
-                0,
-            ),
+            Tokenizer::encode_list(&base_tokenizer, &source_texts, 10, &truncation_strategy, 0,),
             expected_results
         );
         assert_eq!(
             MultiThreadedTokenizer::encode_list(
                 &base_tokenizer,
-                source_texts.clone(),
+                &source_texts,
                 10,
                 &truncation_strategy,
                 0,
@@ -1785,7 +1808,7 @@ mod tests {
         assert_eq!(
             Tokenizer::encode_pair_list(
                 &base_tokenizer,
-                source_texts.clone(),
+                &source_texts,
                 10,
                 &truncation_strategy,
                 0,
@@ -1795,7 +1818,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::encode_pair_list(
                 &base_tokenizer,
-                source_texts.clone(),
+                &source_texts,
                 10,
                 &truncation_strategy,
                 0,

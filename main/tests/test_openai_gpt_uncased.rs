@@ -209,7 +209,7 @@ fn test_openai_gpt_tokenization() -> anyhow::Result<()> {
     .to_vec();
 
     let output = openai_gpt_tokenizer.encode_list(
-        original_strings.to_vec(),
+        &original_strings,
         128,
         &TruncationStrategy::LongestFirst,
         0,

@@ -227,7 +227,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
 
     let output = MultiThreadedTokenizer::encode_list(
         &t5_tokenizer,
-        original_strings.to_vec(),
+        &original_strings,
         128,
         &TruncationStrategy::LongestFirst,
         0,

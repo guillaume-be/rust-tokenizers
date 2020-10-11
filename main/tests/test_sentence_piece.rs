@@ -223,7 +223,7 @@ fn test_sentence_piece_tokenization() -> anyhow::Result<()> {
 
     let output = MultiThreadedTokenizer::encode_list(
         &sentence_piece_tokenizer,
-        original_strings.to_vec(),
+        &original_strings,
         128,
         &TruncationStrategy::LongestFirst,
         0,
