@@ -21,30 +21,62 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
+/// # AlbertVocab
+/// Vocabulary for ALBERT tokenizer. Contains the following special values:
+/// - BOS token
+/// - EOS token
+/// - CLS token
+/// - SEP token
+/// - PAD token
+/// - MASK token
+///
+/// Expects a SentencePiece protobuf file when created from file.
 pub struct AlbertVocab {
+    /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
+
+    /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
+
+    /// The string to use for unknown (out of vocabulary) tokens
     pub unknown_value: &'static str,
+
+    /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
+    /// values), special values typically include things like BOS/EOS markers, class markers, mask
+    /// markers and padding markers
     pub special_values: HashMap<String, i64>,
+
+    /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
 }
 
 impl AlbertVocab {
+    /// Returns the BOS token for Albert (`[CLS]`)
     pub fn bos_value() -> &'static str {
         "[CLS]"
     }
+
+    /// Returns the EOS token for Albert (`[SEP]`)
     pub fn eos_value() -> &'static str {
         "[SEP]"
     }
+
+    /// Returns the SEP token for Albert (`[SEP]`)
     pub fn sep_value() -> &'static str {
         "[SEP]"
     }
+
+    /// Returns the CLS token for Albert (`[CLS]`)
     pub fn cls_value() -> &'static str {
         "[CLS]"
     }
+
+    /// Returns the MASK token for Albert (`[MASK]`)
     pub fn mask_value() -> &'static str {
         "[MASK]"
     }
+
+    /// Returns the PAD token for Albert (`<pad>`)
     pub fn pad_value() -> &'static str {
         "<pad>"
     }

@@ -15,7 +15,7 @@ use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufRead, BufReader};
 
-pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
+pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
     input_hashmap: &HashMap<T, U>,
 ) -> HashMap<U, T> {
     input_hashmap
@@ -27,7 +27,7 @@ pub fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
 /// # Base Vocab trait
 /// Defines a common interface to the vocabularies for use in the tokenizers.
 pub trait Vocab {
-    ///Associative function returning the unknown value for the vocabulary
+    /// Associative function returning the unknown value for the vocabulary
     fn unknown_value() -> &'static str;
 
     /// Returns the unknown value on an instance
@@ -46,6 +46,15 @@ pub trait Vocab {
     fn special_indices(&self) -> &HashMap<i64, String>;
 
     ///Read a vocabulary file from file
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::vocab::{BertVocab, Vocab};
+    /// let path = "path/to/file";
+    ///
+    /// let base_vocab = BertVocab::from_file(path);
+    /// ```
     fn from_file(path: &str) -> Result<Self, TokenizerError>
     where
         Self: std::marker::Sized;
@@ -189,22 +198,25 @@ pub trait Vocab {
     }
 }
 
+/// # BaseVocab
+/// Base vocabulary with [UNK] unknown token used as a pre-tokenization step for BERT-class tokenizers.
+/// Expects a flat text vocabulary when created from file.
 pub struct BaseVocab {
-    ///A mapping of tokens as string to indices (i.e. the encoder base)
+    /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
 
-    ///A mapping of token IDs to strings (i.e. the decoder base)
+    /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    ///The string to use for unknown (out of vocabulary) tokens
+    /// The string to use for unknown (out of vocabulary) tokens
     pub unknown_value: &'static str,
 
-    ///A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
-    ///values), special values typically include things like BOS/EOS markers, class markers, mask
-    ///markers and padding markers
+    /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
+    /// values), special values typically include things like BOS/EOS markers, class markers, mask
+    /// markers and padding markers
     pub special_values: HashMap<String, i64>,
 
-    ///A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
+    /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
 }
 

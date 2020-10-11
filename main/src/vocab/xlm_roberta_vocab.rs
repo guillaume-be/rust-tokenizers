@@ -20,30 +20,62 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
+/// # XLMRoBERTa Vocab
+/// Vocabulary for XLMRoBERTa tokenizer. Contains the following special values:
+/// - PAD token
+/// - BOS token
+/// - EOS token
+/// - SEP token
+/// - MASK token
+/// - CLS token
+///
+/// Expects a SentencePiece protobuf file when created from file.
 pub struct XLMRobertaVocab {
+    /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
+
+    /// A mapping of token IDs to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
+
+    /// The string to use for unknown (out of vocabulary) tokens
     pub unknown_value: &'static str,
+
+    /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
+    /// values), special values typically include things like BOS/EOS markers, class markers, mask
+    /// markers and padding markers
     pub special_values: HashMap<String, i64>,
+
+    /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
 }
 
 impl XLMRobertaVocab {
+    /// Returns the BOS token for XLMRoBERTa (`<s>`)
     pub fn bos_value() -> &'static str {
         "<s>"
     }
+
+    /// Returns the EOS token for XLMRoBERTa (`</s>`)
     pub fn eos_value() -> &'static str {
         "</s>"
     }
+
+    /// Returns the SEP token for XLMRoBERTa (`</s>`)
     pub fn sep_value() -> &'static str {
         "</s>"
     }
+
+    /// Returns the CLS token for XLMRoBERTa (`<s>`)
     pub fn cls_value() -> &'static str {
         "<s>"
     }
+
+    /// Returns the MASK token for XLMRoBERTa (`<mask>`)
     pub fn mask_value() -> &'static str {
         "<mask>"
     }
+
+    /// Returns the PAD token for XLMRoBERTa (`<pad>`)
     pub fn pad_value() -> &'static str {
         "<pad>"
     }

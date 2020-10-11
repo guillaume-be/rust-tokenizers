@@ -15,35 +15,50 @@ use crate::error::TokenizerError;
 use crate::vocab::base_vocab::{swap_key_values, Vocab};
 use std::collections::HashMap;
 
+/// # BERT Vocab
+/// Vocabulary for BERT tokenizer. Contains the following special values:
+/// - CLS token
+/// - SEP token
+/// - PAD token
+/// - MASK token
+///
+/// Expects a flat text vocabulary when created from file.
 pub struct BertVocab {
-    ///A mapping of tokens as string to indices (i.e. the encoder base)
+    /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
 
-    ///A mapping of token IDs to strings (i.e. the decoder base)
+    /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    ///The string to use for unknown (out of vocabulary) tokens
+    /// The string to use for unknown (out of vocabulary) tokens
     pub unknown_value: &'static str,
 
-    ///A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
-    ///values), special values typically include things like BOS/EOS markers, class markers, mask
-    ///markers and padding markers
+    /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
+    /// values), special values typically include things like BOS/EOS markers, class markers, mask
+    /// markers and padding markers
     pub special_values: HashMap<String, i64>,
 
-    ///A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
+    /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
 }
 
 impl BertVocab {
+    /// Returns the PAD token for BERT (`[PAD]`)
     pub fn pad_value() -> &'static str {
         "[PAD]"
     }
+
+    /// Returns the SEP token for BERT (`[SEP]`)
     pub fn sep_value() -> &'static str {
         "[SEP]"
     }
+
+    /// Returns the CLS token for BERT (`[CLS]`)
     pub fn cls_value() -> &'static str {
         "[CLS]"
     }
+
+    /// Returns the MASK token for BERT (`[MASK]`)
     pub fn mask_value() -> &'static str {
         "[MASK]"
     }

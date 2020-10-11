@@ -57,11 +57,27 @@ impl TrieNode {
     }
 }
 
+/// # SentencePiece Model
+/// Model for SentencePiece tokenizer. Contains the following special values. This model performs
+/// the SentencePiece unigram decomposition. As such, it contains a `Trie` data structure for efficient
+/// common prefix search.
+///
+/// Expects a SentencePiece protobuf file when created from file.
 pub struct SentencePieceModel {
+    /// Trie data structure containing the vocabulary elements and their unigram log-probabilities
     pub root: TrieNode,
 }
 
 impl SentencePieceModel {
+    /// Creates a SentencePiece Model from a protobuf file.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceModel;
+    /// let path = "path/to/spiece.model";
+    ///
+    /// let sentence_piece_model = SentencePieceModel::from_file(path);
+    /// ```
     pub fn from_file(path: &str) -> Result<SentencePieceModel, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
@@ -86,15 +102,6 @@ impl SentencePieceModel {
         Ok(vocab)
     }
 
-    pub fn from_proto(proto: &ModelProto) -> SentencePieceModel {
-        let root = TrieNode::new("".to_string());
-        let mut vocab = SentencePieceModel { root };
-        for (idx, piece) in proto.get_pieces().iter().enumerate() {
-            vocab.insert(piece.get_piece(), piece.get_score(), idx as i64);
-        }
-        vocab
-    }
-
     fn insert(&mut self, word: &str, score: f32, index: i64) {
         let char_count = word.chars().count();
         let mut node = &mut self.root;
@@ -115,7 +122,24 @@ impl SentencePieceModel {
         }
     }
 
-    pub fn common_prefix_search<'a>(&'a self, text: &'a str) -> Vec<&TrieNode> {
+    /// Performs a common prefix search for a given query on the model Trie structure
+    ///
+    /// # Arguments
+    /// - text (`&str`): query to find common prefixes from
+    ///
+    /// # Returns
+    /// - `Vec<&TrieNode>` containing references to the Trie nodes with a common (character based) prefix with the query
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceModel;
+    /// let path = "path/to/spiece.model";
+    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    ///
+    /// let query = "hello";
+    /// let common_prefixes = sentence_piece_model.common_prefix_search(query);
+    /// ```
+    pub fn common_prefix_search<'a>(&'a self, text: &'a str) -> Vec<&'a TrieNode> {
         let mut results = vec![];
         let mut characters = text.chars();
         let mut node = self.root.children.get(match &characters.next() {
@@ -145,6 +169,25 @@ impl SentencePieceModel {
         results
     }
 
+    /// Decodes a `TokenRef` to a lattice of potential subtokens.
+    /// This step is usually followed by a backward step to find the most likely sequence.
+    ///
+    /// # Arguments
+    /// - token (`TokenRef<'a>`): token to decompose in sub-tokens
+    ///
+    /// # Returns
+    /// - `Vec<Option<Node<'a>>>` vector of lattice nodes. The string for the nodes references back to the original token.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceModel;
+    /// use rust_tokenizers::TokenRef;
+    /// let path = "path/to/spiece.model";
+    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    ///
+    /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
+    /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
+    /// ```
     pub fn decode_forward_token_ref<'a>(&'a self, token: TokenRef<'a>) -> Vec<Option<Node<'a>>> {
         let mut char_positions = token.text.char_indices().map(|(pos, _)| pos).collect_vec();
         char_positions.push(token.text.len());
@@ -184,6 +227,26 @@ impl SentencePieceModel {
         results
     }
 
+    /// Backward pass through an array of nodes (generated as a result of the forward pass), returning
+    /// the most likely sequence of nodes. These are usually converted back to tokens in a last step
+    ///
+    /// # Arguments
+    /// - nodes (`&'a [Option<Node<'a>>]`): possible modes generated from the forward step
+    ///
+    /// # Returns
+    /// - `Vec<&'a Node>` sequence of most likely nodes
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceModel;
+    /// use rust_tokenizers::TokenRef;
+    /// let path = "path/to/spiece.model";
+    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    ///
+    /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
+    /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
+    /// let best_nodes_sequence = sentence_piece_model.decode_backward(&lattice_nodes);
+    /// ```
     pub fn decode_backward<'a>(&'a self, nodes: &'a [Option<Node<'a>>]) -> Vec<&'a Node> {
         let mut best_sequence = vec![];
         let mut next_node = match nodes.last() {
@@ -202,6 +265,27 @@ impl SentencePieceModel {
         best_sequence
     }
 
+    /// Convert the most likely node sequences to a vector of tokens that can be further processed
+    /// by the tokenizer.
+    ///
+    /// # Arguments
+    /// - nodes (`Vec<&Node>`): sequence of most likely nodes
+    ///
+    /// # Returns
+    /// - `Vec<Token>` sequence of most likely sub-tokens
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceModel;
+    /// use rust_tokenizers::TokenRef;
+    /// let path = "path/to/spiece.model";
+    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    ///
+    /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
+    /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
+    /// let best_nodes_sequence = sentence_piece_model.decode_backward(&lattice_nodes);
+    /// let sub_tokens = sentence_piece_model.parse_nodes_to_tokens(best_nodes_sequence);
+    /// ```
     pub fn parse_nodes_to_tokens(&self, nodes: Vec<&Node>) -> Vec<Token> {
         let mut output: Vec<Token> = Vec::with_capacity(nodes.len() + 1);
         let mut is_prev_unknown = false;
@@ -235,6 +319,27 @@ impl SentencePieceModel {
         output
     }
 
+    /// Populates the `mask` field for a sequence of sub-tokens generated by a SentencePiece model.
+    /// These masks are not generated as part of the standard unigram decomposition and must be added
+    /// afterwards. Mutates the tokens in-place.
+    ///
+    /// # Arguments
+    /// - tokens (`&mut [Token]`): tokens to get the masks from
+    /// - whitespace_char (`char`): whitespace character to identify whether a token is a continuation token or not.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceModel;
+    /// use rust_tokenizers::TokenRef;
+    /// let path = "path/to/spiece.model";
+    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    ///
+    /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
+    /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
+    /// let best_nodes_sequence = sentence_piece_model.decode_backward(&lattice_nodes);
+    /// let mut sub_tokens = sentence_piece_model.parse_nodes_to_tokens(best_nodes_sequence);
+    /// let sub_tokens_with_masks = sentence_piece_model.populate_masks(&mut sub_tokens, ' ');
+    /// ```
     pub fn populate_masks(&self, tokens: &mut [Token], whitespace_token: char) {
         let mut previous_mask = Mask::None;
         for token in tokens {
@@ -271,30 +376,62 @@ impl SentencePieceModel {
     }
 }
 
+/// # SentencePieceVocab
+/// Vocabulary for SentencePiece model/tokenizer. Contains the following special values:
+/// - BOS token
+/// - EOS token
+/// - CLS token
+/// - SEP token
+/// - PAD token
+/// - MASK token
+///
+/// Expects a SentencePiece protobuf file when created from file.
 pub struct SentencePieceVocab {
+    /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
+
+    /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
+
+    /// The string to use for unknown (out of vocabulary) tokens
     pub unknown_value: &'static str,
+
+    /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
+    /// values), special values typically include things like BOS/EOS markers, class markers, mask
+    /// markers and padding markers
     pub special_values: HashMap<String, i64>,
+
+    /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
 }
 
 impl SentencePieceVocab {
+    /// Returns the PAD token for SentencePiece (`<pad>`)
     pub fn pad_value() -> &'static str {
         "<pad>"
     }
+
+    /// Returns the SEP token for SentencePiece (`<sep>`)
     pub fn sep_value() -> &'static str {
         "<sep>"
     }
+
+    /// Returns the CLS token for SentencePiece (`<cls>`)
     pub fn cls_value() -> &'static str {
         "<cls>"
     }
+
+    /// Returns the MASK token for SentencePiece (`<mask>`)
     pub fn mask_value() -> &'static str {
         "<mask>"
     }
+
+    /// Returns the BOS token for SentencePiece (`<s>`)
     pub fn bos_value() -> &'static str {
         "<s>"
     }
+
+    /// Returns the EOS token for SentencePiece (`</s>`)
     pub fn eos_value() -> &'static str {
         "</s>"
     }

@@ -60,7 +60,7 @@ pub mod adapters;
 pub mod error;
 pub use tokenizer::base_tokenizer::{
     ConsolidatableTokens, ConsolidatedTokenIterator, Mask, Offset, OffsetSize, Token,
-    TokenIdsWithOffsets, TokenRef, TokenTrait, TokenizedInput,
+    TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef, TokenTrait, TokenizedInput,
 };
 
 #[macro_use]
