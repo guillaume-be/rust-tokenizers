@@ -356,7 +356,7 @@ mod tests {
                     Some(Offset { begin: 5, end: 6 }),
                     Some(Offset { begin: 6, end: 7 }),
                     Some(Offset { begin: 7, end: 9 }),
-                ], //note: first inserted whitespace has offset (0,0), which will map to Option::None in further encoding
+                ], /* note: first inserted whitespace has offset (0,0), which will map to Option::None in further encoding */
                 vec![
                     vec![0],
                     vec![0],

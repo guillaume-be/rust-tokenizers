@@ -23,6 +23,14 @@ use crate::tokenizer::Tokenizer;
 use crate::vocab::Vocab;
 use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 
+/// # ALBERT tokenizer
+/// ALBERT tokenizer performing:
+/// - splitting on special characters
+/// - text cleaning
+/// - NFKC decomposition
+/// - (optional) lower casing
+/// - (optional) accent stripping
+/// - SentencePiece decomposition
 pub struct AlbertTokenizer {
     model: SentencePieceModel,
     vocab: AlbertVocab,
@@ -31,6 +39,26 @@ pub struct AlbertTokenizer {
 }
 
 impl AlbertTokenizer {
+    /// Create a new instance of a `AlbertTokenizer`
+    /// Expects a a SentencePiece protobuf file as an input.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Returns
+    /// `TokensWithOffsets` with the tokens and their offset information
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, BaseTokenizer, Tokenizer};
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer =
+    ///     AlbertTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// ```
     pub fn from_file(
         path: &str,
         lower_case: bool,
@@ -46,6 +74,31 @@ impl AlbertTokenizer {
         })
     }
 
+    /// Create a new instance of a `AlbertTokenizer` from an existing vocabulary and model
+    ///
+    /// # Parameters
+    /// - vocab (`AlbertVocab`): vocabulary
+    /// - model (`SentencePieceModel`): SentencePiece model
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Returns
+    /// `TokensWithOffsets` with the tokens and their offset information
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{AlbertVocab, SentencePieceModel, Vocab};
+    /// use std::sync::Arc;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let vocab = AlbertVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    ///
+    /// let tokenizer =
+    ///     AlbertTokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents);
+    /// ```
     pub fn from_existing_vocab_and_model(
         vocab: AlbertVocab,
         model: SentencePieceModel,

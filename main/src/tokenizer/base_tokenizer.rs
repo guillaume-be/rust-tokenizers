@@ -63,6 +63,7 @@ impl Offset {
     }
 }
 
+/// # Type indication for tokens (e.g. special token, white space, unknown...)
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub enum Mask {
     /// The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.
@@ -285,10 +286,10 @@ where
 /// grouping subtokens into words.
 ///
 /// ```no_run
-/// use rust_tokenizers::{Token, ConsolidatableTokens};
-/// let tokens: Vec<Token> = vec!(); //add some tokens
+/// use rust_tokenizers::{ConsolidatableTokens, Token};
+/// let tokens: Vec<Token> = vec![]; //add some tokens
 /// for (wordcount, word_tokens) in tokens.iter_consolidate_tokens().enumerate() {
-///       eprintln!("word #{} - {:?}", wordcount + 1, word_tokens);
+///     eprintln!("word #{} - {:?}", wordcount + 1, word_tokens);
 /// }
 /// ```
 pub trait ConsolidatableTokens<T>
@@ -462,6 +463,7 @@ pub struct TokenIdsWithOffsets {
     pub masks: Vec<Mask>,
 }
 
+/// # Base trait for tokenizers
 pub trait Tokenizer<T: Vocab> {
     /// returns a reference to the tokenizer vocabulary
     fn vocab(&self) -> &T;
@@ -482,7 +484,8 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let text = "Hello, world!";
     /// let tokens = tokenizer.tokenize(text);
@@ -506,7 +509,8 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let text = "Hello, world!";
     /// let tokens = tokenizer.tokenize_with_offsets(text);
@@ -563,13 +567,14 @@ pub trait Tokenizer<T: Vocab> {
     /// # Example
     ///
     /// ```no_run
+    /// use itertools::Itertools;
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
-    /// use rust_tokenizers::{TokenRef, OffsetSize};
-    /// use itertools::Itertools;
+    /// use rust_tokenizers::{OffsetSize, TokenRef};
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let text = "Hello, world!";
     /// let offsets = (0..text.len() as OffsetSize).collect_vec();
@@ -593,12 +598,13 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let texts = ["Hello, world!", "Second sentence"];
     /// let tokens = tokenizer.tokenize_list(&texts);
     /// ```
-    fn tokenize_list<'a, S, ST>(&self, text_list: S) -> Vec<Vec<String>>
+    fn tokenize_list<S, ST>(&self, text_list: S) -> Vec<Vec<String>>
     where
         S: AsRef<[ST]>,
         ST: AsRef<str>,
@@ -627,12 +633,13 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let text = ["Hello, world!", "Second sentence"];
     /// let tokens = tokenizer.tokenize_list_with_offsets(&text);
     /// ```
-    fn tokenize_list_with_offsets<'a, S, ST>(&self, text_list: S) -> Vec<TokensWithOffsets>
+    fn tokenize_list_with_offsets<S, ST>(&self, text_list: S) -> Vec<TokensWithOffsets>
     where
         S: AsRef<[ST]>,
         ST: AsRef<str>,
@@ -659,12 +666,13 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let tokens = ["Hello", ",", "world", "!"];
     /// let token_ids = tokenizer.convert_tokens_to_ids(&tokens);
     /// ```
-    fn convert_tokens_to_ids<'a, S, ST>(&self, tokens: S) -> Vec<i64>
+    fn convert_tokens_to_ids<S, ST>(&self, tokens: S) -> Vec<i64>
     where
         S: AsRef<[ST]>,
         ST: AsRef<str>,
@@ -699,11 +707,18 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "How is it going?";
-    /// let tokens = tokenizer.encode(text_1, Some(text_2), 5, &TruncationStrategy::LongestFirst, 2);
+    /// let encoded_input = tokenizer.encode(
+    ///     text_1,
+    ///     Some(text_2),
+    ///     5,
+    ///     &TruncationStrategy::LongestFirst,
+    ///     2,
+    /// );
     /// ```
     fn encode<S: AsRef<str>>(
         &self,
@@ -713,8 +728,8 @@ pub trait Tokenizer<T: Vocab> {
         truncation_strategy: &TruncationStrategy,
         stride: usize,
     ) -> TokenizedInput {
-        let tokens = self.tokenize_with_offsets(text_1.as_ref());
-        let token_ids_1 = self.convert_tokens_to_ids(&tokens.tokens);
+        let tokens = self.tokenize_with_offsets(text_1);
+        let token_ids_1 = self.convert_tokens_to_ids(tokens.tokens);
         let len_1 = token_ids_1.len();
         let token_ids_with_offsets_1 = TokenIdsWithOffsets {
             ids: token_ids_1,
@@ -724,8 +739,8 @@ pub trait Tokenizer<T: Vocab> {
         };
         let (token_ids_with_offsets_2, len_2) = {
             if let Some(text) = text_2 {
-                let tokens_2 = self.tokenize_with_offsets(text.as_ref());
-                let token_ids_2: Vec<i64> = self.convert_tokens_to_ids(&tokens_2.tokens);
+                let tokens_2 = self.tokenize_with_offsets(text);
+                let token_ids_2: Vec<i64> = self.convert_tokens_to_ids(tokens_2.tokens);
                 let len_2 = token_ids_2.len();
                 (
                     Some(TokenIdsWithOffsets {
@@ -816,14 +831,20 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "How is it going?";
     /// let text_3 = "Very well thank you.";
-    /// let tokens = tokenizer.encode_list([text_1, text_2, text_3], 5, &TruncationStrategy::LongestFirst, 2);
+    /// let encoded_input = tokenizer.encode_list(
+    ///     [text_1, text_2, text_3],
+    ///     5,
+    ///     &TruncationStrategy::LongestFirst,
+    ///     2,
+    /// );
     /// ```
-    fn encode_list<'a, S, ST>(
+    fn encode_list<S, ST>(
         &self,
         text_list: S,
         max_len: usize,
@@ -864,15 +885,21 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "This is a second sentence";
     /// let text_3 = "Very well thank you.";
     /// let text_4 = "This is another second sentence.";
-    /// let tokens = tokenizer.encode_pair_list([(text_1, text_2), (text_3, text_4)], 5, &TruncationStrategy::LongestFirst, 2);
+    /// let encoded_input = tokenizer.encode_pair_list(
+    ///     [(text_1, text_2), (text_3, text_4)],
+    ///     5,
+    ///     &TruncationStrategy::LongestFirst,
+    ///     2,
+    /// );
     /// ```
-    fn encode_pair_list<'a, S, ST>(
+    fn encode_pair_list<S, ST>(
         &self,
         text_list: S,
         max_len: usize,
@@ -914,10 +941,11 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::vocab::BaseVocab;
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
-    /// let tokens = vec![0, 1, 2, 42];
-    /// let tokens = tokenizer.decode_to_vec(tokens, false);
+    /// let tokens_ids = vec![0, 1, 2, 42];
+    /// let tokens = tokenizer.decode_to_vec(tokens_ids, false);
     /// ```
     fn decode_to_vec(&self, token_ids: Vec<i64>, skip_special_tokens: bool) -> Vec<String> {
         let tokens: Vec<String> = if skip_special_tokens {
@@ -942,6 +970,25 @@ pub trait Tokenizer<T: Vocab> {
     /// - token_ids: list of tokenized input ids. Can be obtained using the `encode` or `encode_plus` methods.
     /// - skip_special_tokens: if set to True, will replace special tokens.
     /// - clean_up_tokenization_spaces: if set to True, will clean up the tokenization spaces.
+    ///
+    /// # Returns
+    /// - `String`: decoded sentence
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let skip_special_tokens = true;
+    /// let clean_up_tokenization_spaces = true;
+    /// let tokens = vec![0, 1, 2, 42];
+    /// let decoded = tokenizer.decode(tokens, skip_special_tokens, clean_up_tokenization_spaces);
+    /// ```
     fn decode(
         &self,
         token_ids: Vec<i64>,
@@ -957,10 +1004,62 @@ pub trait Tokenizer<T: Vocab> {
         }
     }
 
+    /// Converts a sequence of strings into a single string. This will clean-up artifacts from tokenization
+    /// (for example `sub ##word`) and generate a single output string
+    ///
+    /// # Arguments
+    /// - tokens: list of tokens to concatenate.
+    ///
+    /// # Returns
+    /// - `String`: concatenated sentence string
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let skip_special_tokens = true;
+    /// let clean_up_tokenization_spaces = true;
+    /// let tokens = vec![
+    ///     "Hello".to_string(),
+    ///     ",".to_string(),
+    ///     "World".to_string(),
+    ///     "!".to_string(),
+    /// ];
+    /// let decoded = tokenizer.convert_tokens_to_string(tokens);
+    /// ```
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
         tokens.join(" ")
     }
 
+    /// Cleans-up tokenization artifacts (for example whitespace before punctuation)
+    ///
+    /// # Arguments
+    /// - input_string (`String`): input string to clean up
+    ///
+    /// # Returns
+    /// - `String`: clean-up string
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let skip_special_tokens = true;
+    /// let clean_up_tokenization_spaces = true;
+    /// let input_string = "Hello . Do n't pay attention to the punctuation .".to_string();
+    /// let cleaned_string = tokenizer.clean_up_tokenization(input_string);
+    /// ```
     fn clean_up_tokenization(&self, input_string: String) -> String {
         input_string
             .replace(" .", ".")
@@ -976,6 +1075,37 @@ pub trait Tokenizer<T: Vocab> {
             .replace(" 're", "'re")
     }
 
+    /// Converts a list of sequence of ids (integer) into a string, using the tokenizer and vocabulary
+    /// with options to remove special tokens and clean up tokenization spaces. This calls `decode`
+    /// for each provided sequence of ids
+    ///
+    /// # Arguments
+    /// - token_ids: list of list of tokenized input ids. Can be obtained using the `encode` or `encode_plus` methods.
+    /// - skip_special_tokens: if set to True, will replace special tokens.
+    /// - clean_up_tokenization_spaces: if set to True, will clean up the tokenization spaces.
+    ///
+    /// # Returns
+    /// - `String`: decoded sentence
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let skip_special_tokens = true;
+    /// let clean_up_tokenization_spaces = true;
+    /// let token_ids_list = vec![vec![0, 1, 2, 42], vec![99, 3]];
+    /// let decoded_list = tokenizer.decode_list(
+    ///     token_ids_list,
+    ///     skip_special_tokens,
+    ///     clean_up_tokenization_spaces,
+    /// );
+    /// ```
     fn decode_list(
         &self,
         token_ids_list: Vec<Vec<i64>>,
@@ -992,16 +1122,55 @@ pub trait Tokenizer<T: Vocab> {
 
     /// Build model inputs from a sequence or a pair of sequence for sequence classification tasks
     /// by concatenating and adding special tokens.
-    /// A RoBERTa sequence has the following format:
-    /// single sequence: <s> X </s>
-    /// pair of sequences: <s> A </s></s> B </s>
     ///
-    /// Returns a tuple of:
-    ///  * output token IDs
-    ///  * token segment IDs
-    ///  * special token mask
-    ///  * offsets (as a vector of `Option<Offset>` because some added markers may not have associated offsets
-    ///  * token mask
+    /// For example, a RoBERTa sequence has the following format:
+    /// - single sequence: <s> X </s>
+    /// - pair of sequences: <s> A </s></s> B </s>
+    ///
+    /// # Parameters
+    /// - tokens_ids_with_offsets_1 (`TokenIdsWithOffsets`): first sequence
+    /// - tokens_ids_with_offsets_2 (`TokenIdsWithOffsets`): (optional) second sequence
+    ///
+    /// # Returns
+    /// - `TokenIdsWithSpecialTokens` containing a concatenation of both sequences with added special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// use rust_tokenizers::TokenIdsWithOffsets;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let skip_special_tokens = true;
+    /// let clean_up_tokenization_spaces = true;
+    /// let first_sequence = "Hello, world";
+    /// let second_sequence = "This is the second sentence";
+    ///
+    /// let first_tokens = tokenizer.tokenize_with_offsets(first_sequence);
+    /// let first_ids = tokenizer.convert_tokens_to_ids(first_tokens.tokens);
+    /// let first_input = TokenIdsWithOffsets {
+    ///     ids: first_ids,
+    ///     offsets: first_tokens.offsets,
+    ///     reference_offsets: first_tokens.reference_offsets,
+    ///     masks: first_tokens.masks,
+    /// };
+    ///
+    /// let second_tokens = tokenizer.tokenize_with_offsets(second_sequence);
+    /// let second_ids = tokenizer.convert_tokens_to_ids(second_tokens.tokens);
+    /// let second_input = TokenIdsWithOffsets {
+    ///     ids: second_ids,
+    ///     offsets: second_tokens.offsets,
+    ///     reference_offsets: second_tokens.reference_offsets,
+    ///     masks: second_tokens.masks,
+    /// };
+    ///
+    /// let combined_with_special_tokens =
+    ///     tokenizer.build_input_with_special_tokens(first_input, Some(second_input));
+    /// ```
     fn build_input_with_special_tokens(
         &self,
         mut tokens_ids_with_offsets_1: TokenIdsWithOffsets,
@@ -1038,15 +1207,40 @@ pub trait Tokenizer<T: Vocab> {
     }
 }
 
+/// # Extension for multithreaded tokenizers
 pub trait MultiThreadedTokenizer<T: Vocab>
 where
     Self: std::marker::Sync + Send + Tokenizer<T>,
 {
+    /// returns a reference to the tokenizer vocabulary
     fn vocab(&self) -> &T {
         Tokenizer::<T>::vocab(self)
     }
 
-    fn tokenize_list_with_offsets<'a, S, ST>(&self, text_list: S) -> Vec<TokensWithOffsets>
+    /// Tokenize a list of strings (with multithreading), where each corresponds to for example a sentence, returns a
+    /// vector of TokensWithOffsets containing the tokens and their offset information. This calls
+    /// `tokenize_with_offsets` on the list provided.
+    ///
+    /// # Parameters
+    /// - text_list: list of strings to tokenize
+    ///
+    /// # Returns
+    /// `Vec<TokensWithOffsets>` with the token strings representation and offsets
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let text = ["Hello, world!", "Second sentence"];
+    /// let tokens = tokenizer.tokenize_list_with_offsets(&text);
+    /// ```
+    fn tokenize_list_with_offsets<S, ST>(&self, text_list: S) -> Vec<TokensWithOffsets>
     where
         S: AsRef<[ST]>,
         ST: AsRef<str> + Sync,
@@ -1058,7 +1252,28 @@ where
             .collect()
     }
 
-    fn tokenize_list<'a, S, ST>(&self, text_list: S) -> Vec<Vec<String>>
+    /// Multithreaded tokenization of a list of strings, returning tokens with offset information
+    ///
+    /// # Parameters
+    /// - text_list: list of strings to tokenize
+    ///
+    /// # Returns
+    /// `Vec<Vec<String>>` with the token strings representation
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let texts = ["Hello, world!", "Second sentence"];
+    /// let tokens = tokenizer.tokenize_list(&texts);
+    /// ```
+    fn tokenize_list<S, ST>(&self, text_list: S) -> Vec<Vec<String>>
     where
         S: AsRef<[ST]>,
         ST: AsRef<str> + Sync,
@@ -1070,7 +1285,43 @@ where
             .collect()
     }
 
-    fn encode_list<'a, S, ST>(
+    /// Multithreaded encoding of a sequence of string-like texts (tokenization followed by encoding). Not that in contrast
+    /// with `encode` optional second text, each text provided is encoded independently.
+    ///
+    /// # Parameters
+    /// - text_list: sequence of input text (`&str`) to encode
+    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
+    /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
+    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
+    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
+    /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
+    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    ///
+    /// # Returns
+    /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
+    /// ovrflowing tokens and special token mask) for each provided text
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let text_1 = "Hello, world!";
+    /// let text_2 = "How is it going?";
+    /// let text_3 = "Very well thank you.";
+    /// let encoded_input = tokenizer.encode_list(
+    ///     [text_1, text_2, text_3],
+    ///     5,
+    ///     &TruncationStrategy::LongestFirst,
+    ///     2,
+    /// );
+    /// ```
+    fn encode_list<S, ST>(
         &self,
         text_list: S,
         max_len: usize,
@@ -1088,7 +1339,44 @@ where
             .collect()
     }
 
-    fn encode_pair_list<'a, S, ST>(
+    /// Multithreaded ncoding of a sequence of string-like text pairs (tokenization followed by encoding). This combines
+    /// with `encode` with the list processing of `encode_list`.
+    ///
+    /// # Parameters
+    /// - text_list: sequence of input text (`&str`) to encode
+    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
+    /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
+    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
+    /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
+    /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
+    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    ///
+    /// # Returns
+    /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
+    /// ovrflowing tokens and special token mask) for each provided text
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let text_1 = "Hello, world!";
+    /// let text_2 = "This is a second sentence";
+    /// let text_3 = "Very well thank you.";
+    /// let text_4 = "This is another second sentence.";
+    /// let encoded_input = tokenizer.encode_pair_list(
+    ///     [(text_1, text_2), (text_3, text_4)],
+    ///     5,
+    ///     &TruncationStrategy::LongestFirst,
+    ///     2,
+    /// );
+    /// ```
+    fn encode_pair_list<S, ST>(
         &self,
         text_list: S,
         max_len: usize,
@@ -1114,6 +1402,37 @@ where
             .collect()
     }
 
+    /// Multithreaded conversion a list of sequence of ids (integer) into a string, using the tokenizer and vocabulary
+    /// with options to remove special tokens and clean up tokenization spaces. This calls `decode`
+    /// for each provided sequence of ids
+    ///
+    /// # Arguments
+    /// - token_ids: list of list of tokenized input ids. Can be obtained using the `encode` or `encode_plus` methods.
+    /// - skip_special_tokens: if set to True, will replace special tokens.
+    /// - clean_up_tokenization_spaces: if set to True, will clean up the tokenization spaces.
+    ///
+    /// # Returns
+    /// - `String`: decoded sentence
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///
+    /// let skip_special_tokens = true;
+    /// let clean_up_tokenization_spaces = true;
+    /// let token_ids_list = vec![vec![0, 1, 2, 42], vec![99, 3]];
+    /// let decoded_list = tokenizer.decode_list(
+    ///     token_ids_list,
+    ///     skip_special_tokens,
+    ///     clean_up_tokenization_spaces,
+    /// );
+    /// ```
     fn decode_list(
         &self,
         token_ids_list: Vec<Vec<i64>>,
@@ -1133,6 +1452,16 @@ where
     }
 }
 
+/// # Base tokenizer
+/// Base tokenizer performing:
+/// - whitespace tokenization
+/// - splitting on special characters
+/// - splitting on punctuation
+/// - splitting on CJK characters
+/// - (optional) lower casing
+/// - (optional) accent stripping
+///
+/// This tokenizer is used as a pre-tokenizer step in the BERT and GPT tokenizers.
 pub struct BaseTokenizer<T: Vocab> {
     vocab: Arc<T>,
     lower_case: bool,
@@ -1140,6 +1469,27 @@ pub struct BaseTokenizer<T: Vocab> {
 }
 
 impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
+    /// Create a new instance of a `BaseTokenizer`
+    /// Expects a vocabulary flat-file as an input.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the vocabulary file (only used for special character splitting)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Returns
+    /// `TokensWithOffsets` with the tokens and their offset information
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::BaseVocab;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer: BaseTokenizer<BaseVocab> =
+    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// ```
     pub fn from_file(
         path: &str,
         lower_case: bool,
@@ -1153,6 +1503,29 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
         })
     }
 
+    /// Create a new instance of a `BaseTokenizer` from an existing vocabulary
+    ///
+    /// # Parameters
+    /// - vocab (`Arc<Vocab>`): Thread-safe reference to a vocabulary
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Returns
+    /// `TokensWithOffsets` with the tokens and their offset information
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{BaseVocab, Vocab};
+    /// use std::sync::Arc;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let base_vocab = BaseVocab::from_file("path/to/vocab/file").unwrap();
+    ///
+    /// let tokenizer =
+    ///     BaseTokenizer::from_existing_vocab(Arc::new(base_vocab), lower_case, strip_accents);
+    /// ```
     pub fn from_existing_vocab(
         vocab: Arc<T>,
         lower_case: bool,

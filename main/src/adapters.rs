@@ -57,7 +57,6 @@ impl Example {
     ///
     ///  # Returns
     /// - `Example` containing the example with an unassigned label
-    ///
     pub fn new_from_string(sentence: &str) -> Self {
         Example {
             sentence_1: String::from(sentence),
@@ -74,7 +73,6 @@ impl Example {
     ///
     ///  # Returns
     /// - `Example` containing the example with two sentences and an unassigned label
-    ///
     pub fn new_from_strings(sentence_1: &str, sentence_2: &str) -> Self {
         Example {
             sentence_1: String::from(sentence_1),
@@ -92,7 +90,6 @@ impl Example {
 ///
 ///  # Returns
 /// - `Result<Vec<Example>, TokenizerError>` containing the examples with their corresponding label
-///
 pub fn read_sst2(path: &str, sep: u8) -> Result<Vec<Example>, TokenizerError> {
     let mut examples: Vec<Example> = Vec::new();
     let f = File::open(path).expect("Could not open source file.");

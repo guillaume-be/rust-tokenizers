@@ -574,7 +574,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
                     is_unk = false;
                     break;
                 }
-                pos_end = pos_end - 1;
+                pos_end -= 1;
                 end = char_indices[pos_end];
             }
             if is_unk {
@@ -618,7 +618,6 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
 ///   * stride
 ///       If set to a number along with max_length, the overflowing tokens returned will contain some tokens
 ///       from the main sequence returned. The value of this argument defines the number of additional tokens.
-///
 pub fn truncate_sequences(
     mut token_ids_with_offsets_1: TokenIdsWithOffsets,
     mut token_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
@@ -1029,7 +1028,7 @@ where
                         }
                     },
                 });
-                start = start + char_count;
+                start += char_count;
             }
             true
         }
@@ -1063,7 +1062,7 @@ where
                     }
                 },
             });
-            start = start + char_count;
+            start += char_count;
         }
     }
     tokens
@@ -1521,14 +1520,14 @@ mod tests {
                 ),
             ),
             (
-                "Tab\tSeparated\tSentence", //behaviour changed, tabs are considered whitespace now!
+                "Tab\tSeparated\tSentence", /* behaviour changed, tabs are considered whitespace now! */
                 (
                     vec!["Tab", "Separated", "Sentence"],
                     vec![Offset::new(0, 3), Offset::new(4, 13), Offset::new(14, 22)],
                 ),
             ),
             (
-                "Newlines\nseparated\nsentence", //behaviour changed, newlines are considered whitespace now
+                "Newlines\nseparated\nsentence", /* behaviour changed, newlines are considered whitespace now */
                 (
                     vec!["Newlines", "separated", "sentence"],
                     vec![Offset::new(0, 8), Offset::new(9, 18), Offset::new(19, 27)],
@@ -1537,7 +1536,7 @@ mod tests {
             (
                 "Sentence with �replacement character.",
                 (
-                    vec!["Sentence", "with", "�replacement", "character."], //is removed at a later stage, not in tokenize_with_offsets()
+                    vec!["Sentence", "with", "�replacement", "character."], /* is removed at a later stage, not in tokenize_with_offsets() */
                     vec![
                         Offset::new(0, 8),
                         Offset::new(9, 13),

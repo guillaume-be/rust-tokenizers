@@ -21,12 +21,36 @@ use crate::tokenizer::tokenization_utils::tokenize_wordpiece;
 use crate::vocab::{BertVocab, Vocab};
 use std::sync::Arc;
 
+/// # BERT tokenizer
+/// BERT tokenizer performing:
+/// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
+/// - WordPiece tokenization
 pub struct BertTokenizer {
     vocab: Arc<BertVocab>,
     base_tokenizer: BaseTokenizer<BertVocab>,
 }
 
 impl BertTokenizer {
+    /// Create a new instance of a `BertTokenizer`
+    /// Expects a vocabulary flat-file as an input.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the vocabulary file (only used for special character splitting)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Returns
+    /// `TokensWithOffsets` with the tokens and their offset information
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer};
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer =
+    ///     BertTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    /// ```
     pub fn from_file(
         path: &str,
         lower_case: bool,
@@ -41,6 +65,28 @@ impl BertTokenizer {
         })
     }
 
+    /// Create a new instance of a `BertTokenizer` from an existing vocabulary
+    ///
+    /// # Parameters
+    /// - vocab (`Arc<BertVocab>`): Thread-safe reference to a BERT vocabulary
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Returns
+    /// `TokensWithOffsets` with the tokens and their offset information
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BaseTokenizer, BertTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{BertVocab, Vocab};
+    /// use std::sync::Arc;
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let vocab = BertVocab::from_file("path/to/vocab/file").unwrap();
+    ///
+    /// let tokenizer = BertTokenizer::from_existing_vocab(Arc::new(vocab), lower_case, strip_accents);
+    /// ```
     pub fn from_existing_vocab(
         vocab: Arc<BertVocab>,
         lower_case: bool,

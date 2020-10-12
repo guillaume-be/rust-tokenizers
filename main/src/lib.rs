@@ -36,19 +36,25 @@
 //! use std::sync::Arc;
 //! # fn main() -> anyhow::Result<()> {
 //! use rust_tokenizers::adapters::Example;
-//! use rust_tokenizers::tokenizer::{BertTokenizer, TruncationStrategy, Tokenizer};
+//! use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer, TruncationStrategy};
 //! use rust_tokenizers::vocab::{BertVocab, Vocab};
 //! let vocab_path = "path/to/vocab";
 //! let vocab = Arc::new(BertVocab::from_file(&vocab_path)?);
 //!
 //! let test_sentence = Example::new_from_string("This is a sample sentence to be tokenized");
-//! let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab.clone(), true, true);
+//! let bert_tokenizer: BertTokenizer =
+//!     BertTokenizer::from_existing_vocab(vocab.clone(), true, true);
 //!
-//! println!("{:?}", bert_tokenizer.encode(&test_sentence.sentence_1,
-//!                                        None,
-//!                                        128,
-//!                                        &TruncationStrategy::LongestFirst,
-//!                                        0));
+//! println!(
+//!     "{:?}",
+//!     bert_tokenizer.encode(
+//!         &test_sentence.sentence_1,
+//!         None,
+//!         128,
+//!         &TruncationStrategy::LongestFirst,
+//!         0
+//!     )
+//! );
 //! # Ok(())
 //! # }
 //! ```

@@ -93,7 +93,6 @@ pub trait Vocab {
     ///
     /// # Returns
     /// - `i64`: index value for the provided token
-    ///
     fn _token_to_id(
         &self,
         token: &str,
@@ -123,7 +122,6 @@ pub trait Vocab {
     ///
     /// # Returns
     /// - `String`: token value for the index provided. If not found in the indices, returns the unknown token value
-    ///
     fn _id_to_token(
         &self,
         id: &i64,
@@ -146,7 +144,6 @@ pub trait Vocab {
     /// - token (`&str`): token to register as a special value
     /// - values (`&HashMap<String, i64>`): mapping from tokens to ids. This should contain the token to add and will be used to read the id for registration in `special_values`
     /// - special_values (`&HashMap<String, i64>`): mapping from special tokens to ids
-    ///
     fn _register_as_special_value(
         token: &str,
         values: &HashMap<String, i64>,
@@ -172,7 +169,6 @@ pub trait Vocab {
     ///
     /// # Returns
     /// - `i64`: token index for the value provided. If not found in the indices, returns the unknown token index
-    ///
     fn token_to_id(&self, token: &str) -> i64;
 
     /// Converts an id to a token.
@@ -182,7 +178,6 @@ pub trait Vocab {
     ///
     /// # Returns
     /// - `String`: token value for the index provided. If not found in the indices, returns the unknown token value
-    ///
     fn id_to_token(&self, id: &i64) -> String;
 
     /// Converts a list of tokens to a list of indices.
@@ -192,7 +187,6 @@ pub trait Vocab {
     ///
     /// # Returns
     /// - `Vec<i64>`: Vector containing the indices for the tokens provided
-    ///
     fn convert_tokens_to_ids(&self, tokens: &[&str]) -> Vec<i64> {
         tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
