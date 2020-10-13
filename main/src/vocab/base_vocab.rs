@@ -45,7 +45,7 @@ pub trait Vocab {
     ///Return the map of token IDs to strings for special values
     fn special_indices(&self) -> &HashMap<i64, String>;
 
-    ///Read a vocabulary file from file
+    ///Read a vocabulary from file
     ///
     /// # Example
     ///

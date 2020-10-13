@@ -49,6 +49,7 @@ mod xlnet_vocab;
 pub use albert_vocab::AlbertVocab;
 pub use base_vocab::{BaseVocab, Vocab};
 pub use bert_vocab::BertVocab;
+pub use bpe_vocab::{BpePairRef, BpePairVocab};
 pub use gpt2_vocab::Gpt2Vocab;
 pub use marian_vocab::MarianVocab;
 pub use openai_gpt_vocab::OpenAiGptVocab;

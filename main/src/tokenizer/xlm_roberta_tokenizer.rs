@@ -86,6 +86,14 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
         sub_tokens
     }
 
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens
+            .into_iter()
+            .map(|v| v.replace('\u{2581}', " "))
+            .collect::<Vec<String>>()
+            .join("")
+    }
+
     fn build_input_with_special_tokens(
         &self,
         tokens_ids_with_offsets_1: TokenIdsWithOffsets,
@@ -140,14 +148,6 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
             reference_offsets: original_offsets,
             mask,
         }
-    }
-
-    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
-        tokens
-            .into_iter()
-            .map(|v| v.replace('\u{2581}', " "))
-            .collect::<Vec<String>>()
-            .join("")
     }
 }
 

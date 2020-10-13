@@ -17,17 +17,36 @@ use std::io::{BufRead, BufReader};
 use std::mem::ManuallyDrop;
 use std::ptr;
 
+/// # Byte pair query
+/// Structure holding a pair of bytes for query in the BPE vocabulary
 #[derive(Eq, PartialEq, Hash, Clone, Debug)]
 pub struct BpePairRef<'a> {
     pub byte_1: &'a String,
     pub byte_2: &'a String,
 }
 
+/// # Byte pair Encoding Vocab
+/// BPE vocab containing the merges (dictionary of pairs with their priority) used to merge
+/// pairs together. This vocabulary element is used on BPE tokenizers such as GPT2 or RoBERTa.
+/// This vocabulary is not meant to be used directly, but rather as part of a BPE Tokenizer.
+#[derive(Clone)]
 pub struct BpePairVocab {
     pub values: HashMap<(String, String), i64>,
 }
 
 impl BpePairVocab {
+    /// Create a new `BpePairVocab` from a flat file containing merges in the format `first elment second element`)
+    /// The indices are implied by the lien position of each pair in the merges file. The first line needs to be a
+    /// header and is skipped.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::vocab::{BpePairVocab, Vocab};
+    /// let path = "path/to/file";
+    ///
+    /// let bpe_vocab = BpePairVocab::from_file(path);
+    /// ```
     pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizerError> {
         let f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
@@ -52,6 +71,20 @@ impl BpePairVocab {
         Ok(BpePairVocab { values: data })
     }
 
+    /// Gets the id of a "byte pair" in the merges vocab. Returns an optional index for the pair if
+    /// it is found in the vocabulary.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::vocab::{BpePairVocab, Vocab, BpePairRef};
+    /// let path = "path/to/file";
+    ///
+    /// let bpe_vocab = BpePairVocab::from_file(path).unwrap();
+    ///
+    /// let query = BpePairRef {byte_1: &"won".to_string(), byte_2: &"derful".to_string()};
+    /// let id = bpe_vocab.byte_pair_to_id(&query);
+    /// ```
     pub fn byte_pair_to_id(&self, byte_pair: &BpePairRef) -> Option<&i64> {
         unsafe {
             let byte_1 = byte_pair.byte_1;

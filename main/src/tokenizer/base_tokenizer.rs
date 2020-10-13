@@ -76,11 +76,11 @@ pub enum Mask {
     CJK,
     /// The token is a special marker (such as a separator marker, a class marker, etc)
     Special,
-    /// The token is the begin in a series of subtokens, the offset refers specifically to the subtoken. Subsequent tokens in this sequence will carry the 'Continuation' mask
+    /// The token is the begin in a series of subtokens, the offset refers specifically to the sub-token. Subsequent tokens in this sequence will carry the 'Continuation' mask
     Begin,
-    /// The token is the continuation of the previous token, the offset refers specifically to the subtoken. All but the first subtoken in a sequence carry this mask (the first carries 'Begin'). (this is the reverse of Mask::Unfinished)
+    /// The token is the continuation of the previous token, the offset refers specifically to the sub-token. All but the first sub-token in a sequence carry this mask (the first carries 'Begin'). (this is the reverse of Mask::Unfinished)
     Continuation,
-    /// The token is the start of a token but not finished yet. All but the last subtoken in the a token sequence carry this mask. This is the reverse of Mask::Continuation.
+    /// The token is the start of a token but not finished yet. All but the last sub-token in the a token sequence carry this mask. This is the reverse of Mask::Continuation.
     Unfinished,
     /// The token is out of vocabulary, it is unknown by the tokenizer and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
     Unknown,
@@ -1477,9 +1477,6 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
     ///
-    /// # Returns
-    /// `TokensWithOffsets` with the tokens and their offset information
-    ///
     /// # Example
     ///
     /// ```no_run
@@ -1509,9 +1506,6 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     /// - vocab (`Arc<Vocab>`): Thread-safe reference to a vocabulary
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
-    ///
-    /// # Returns
-    /// `TokensWithOffsets` with the tokens and their offset information
     ///
     /// # Example
     ///

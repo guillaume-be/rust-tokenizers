@@ -261,36 +261,36 @@ where
 
     if token.mask == Mask::None {
         //iterate over all characters, returning the byte position with each
-        for (charidx, (bytesidx, c)) in token.text.char_indices().enumerate() {
+        for (char_idx, (bytes_idx, c)) in token.text.char_indices().enumerate() {
             charcount += 1;
             if test_character(&c) {
-                if charbegin < charidx {
+                if charbegin < char_idx {
                     //add previous token
                     tokens.push(TokenRef {
-                        text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
+                        text: &token.text[bytesbegin..bytesbegin + (bytes_idx - bytesbegin)],
                         offset: Offset {
                             begin: token.offset.begin + charbegin as OffsetSize,
-                            end: token.offset.begin + charidx as OffsetSize,
+                            end: token.offset.begin + char_idx as OffsetSize,
                         },
-                        reference_offsets: &token.reference_offsets[charbegin..charidx],
+                        reference_offsets: &token.reference_offsets[charbegin..char_idx],
                         mask: Mask::None,
                     });
                 }
                 if add_separators {
                     //add separator as a singleton token
                     tokens.push(TokenRef {
-                        text: &token.text[bytesidx..bytesidx + c.len_utf8()],
+                        text: &token.text[bytes_idx..bytes_idx + c.len_utf8()],
                         offset: Offset {
-                            begin: token.offset.begin + charidx as OffsetSize,
-                            end: token.offset.begin + charidx as OffsetSize + 1,
+                            begin: token.offset.begin + char_idx as OffsetSize,
+                            end: token.offset.begin + char_idx as OffsetSize + 1,
                         },
-                        reference_offsets: &token.reference_offsets[charidx..charidx + 1],
+                        reference_offsets: &token.reference_offsets[char_idx..char_idx + 1],
                         mask: set_mask,
                     });
                 }
                 //reset
-                charbegin = charidx + 1;
-                bytesbegin = bytesidx + c.len_utf8();
+                charbegin = char_idx + 1;
+                bytesbegin = bytes_idx + c.len_utf8();
             }
         }
     }
@@ -302,9 +302,9 @@ where
         if charcount == 0 {
             charcount = token.text.chars().count();
         }
-        let bytesidx = token.text.len();
+        let bytes_idx = token.text.len();
         tokens.push(TokenRef {
-            text: &token.text[bytesbegin..bytesbegin + (bytesidx - bytesbegin)],
+            text: &token.text[bytesbegin..bytesbegin + (bytes_idx - bytesbegin)],
             offset: Offset {
                 begin: token.offset.begin + charbegin as OffsetSize,
                 end: token.offset.begin + charcount as OffsetSize,
@@ -525,7 +525,7 @@ where
 }
 
 ///Tokenize a token into word pieces according to the supplied vocabulary
-///Continuation wordpieces will all have the suffix `##`
+///Continuation word pieces will all have the suffix `##`
 pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usize) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
     if token.text.chars().count() > max_word_len {
@@ -551,7 +551,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
             while start < end {
                 let mut substr = token.text[start..end].to_owned();
                 let char_length = substr.chars().count();
-                let suboffset = Offset {
+                let sub_offset = Offset {
                     begin: token.offset.begin + pos_begin as OffsetSize,
                     end: token.offset.begin + pos_begin as OffsetSize + char_length as OffsetSize,
                 };
@@ -561,7 +561,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
                 if vocab.values().contains_key(&substr) {
                     tokens.push(Token {
                         text: substr,
-                        offset: suboffset,
+                        offset: sub_offset,
                         reference_offsets: token.reference_offsets
                             [pos_begin..(pos_begin + char_length)]
                             .to_vec(),

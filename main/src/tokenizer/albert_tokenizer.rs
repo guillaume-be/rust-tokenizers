@@ -47,9 +47,6 @@ impl AlbertTokenizer {
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
     ///
-    /// # Returns
-    /// `TokensWithOffsets` with the tokens and their offset information
-    ///
     /// # Example
     ///
     /// ```no_run
@@ -82,13 +79,10 @@ impl AlbertTokenizer {
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
     ///
-    /// # Returns
-    /// `TokensWithOffsets` with the tokens and their offset information
-    ///
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{AlbertVocab, SentencePieceModel, Vocab};
     /// use std::sync::Arc;
     /// let strip_accents = false;

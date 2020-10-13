@@ -25,6 +25,13 @@ use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+/// # CTRL tokenizer
+/// CTRL tokenizer performing:
+/// - splitting on special characters
+/// - whitespace splitting
+/// - (optional) lower casing
+/// - BPE tokenization
+///
 pub struct CtrlTokenizer {
     vocab: OpenAiGptVocab,
     bpe_ranks: BpePairVocab,
@@ -34,6 +41,22 @@ pub struct CtrlTokenizer {
 }
 
 impl CtrlTokenizer {
+    /// Create a new instance of a `CtrlTokenizer`
+    /// Expects a vocabulary json file as an input.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the vocabulary file
+    /// - merges_path (`&str`): path to the merges file (use as part of the BPE encoding process)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{Tokenizer, CtrlTokenizer};
+    /// let lower_case = false;
+    /// let tokenizer =
+    ///     CtrlTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case).unwrap();
+    /// ```
     pub fn from_file(
         vocab_path: &str,
         merges_path: &str,
@@ -52,6 +75,24 @@ impl CtrlTokenizer {
         })
     }
 
+    /// Create a new instance of a `CtrlTokenizer` from an existing vocabulary and merges
+    ///
+    /// # Parameters
+    /// - vocab (`OpenAiGptVocab`): GPT-like vocabulary
+    /// - merges (`BpePairVocab`): BPE pairs vocabulary
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{Tokenizer, CtrlTokenizer};
+    /// use rust_tokenizers::vocab::{BertVocab, Vocab, OpenAiGptVocab, BpePairVocab};
+    /// let lower_case = false;
+    /// let vocab = OpenAiGptVocab::from_file("path/to/vocab/file").unwrap();
+    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
+    ///
+    /// let tokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, lower_case);
+    /// ```
     pub fn from_existing_vocab_and_merges(
         vocab: OpenAiGptVocab,
         merges: BpePairVocab,
