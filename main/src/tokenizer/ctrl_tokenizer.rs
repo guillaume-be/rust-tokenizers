@@ -17,7 +17,7 @@ use crate::tokenizer::tokenization_utils::{
     ctrl_bpe, fix_mask, lowercase, split_on_bpe_pairs, split_on_regex, split_on_special_tokens,
     BpeCache,
 };
-use crate::tokenizer::Tokenizer;
+use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
@@ -148,6 +148,8 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
     }
 }
 
+impl MultiThreadedTokenizer<OpenAiGptVocab> for CtrlTokenizer {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -233,7 +235,7 @@ mod tests {
         }
 
         assert_eq!(
-            ctrl_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&ctrl_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -266,7 +268,7 @@ mod tests {
         }
 
         assert_eq!(
-            ctrl_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&ctrl_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -389,7 +391,13 @@ mod tests {
             );
         }
         assert_eq!(
-            ctrl_tokenizer.encode_list(&source_texts, 128, &truncation_strategy, 0),
+            MultiThreadedTokenizer::encode_list(
+                &ctrl_tokenizer,
+                &source_texts,
+                128,
+                &truncation_strategy,
+                0
+            ),
             expected_results
         );
     }

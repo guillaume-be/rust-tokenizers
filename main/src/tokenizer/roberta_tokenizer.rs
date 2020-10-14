@@ -23,6 +23,7 @@ use crate::tokenizer::tokenization_utils::{
     split_on_special_tokens,
 };
 use crate::tokenizer::tokenization_utils::{lowercase, BpeCache};
+use crate::tokenizer::MultiThreadedTokenizer;
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{RobertaVocab, Vocab};
 use itertools::Itertools;
@@ -256,6 +257,8 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
     }
 }
 
+impl MultiThreadedTokenizer<RobertaVocab> for RobertaTokenizer {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -383,7 +386,7 @@ mod tests {
         }
 
         assert_eq!(
-            roberta_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&roberta_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -472,7 +475,7 @@ mod tests {
         }
 
         assert_eq!(
-            roberta_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&roberta_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -570,7 +573,13 @@ mod tests {
             );
         }
         assert_eq!(
-            roberta_tokenizer.encode_list(&source_texts, 128, &truncation_strategy, 0),
+            MultiThreadedTokenizer::encode_list(
+                &roberta_tokenizer,
+                &source_texts,
+                128,
+                &truncation_strategy,
+                0
+            ),
             expected_results
         );
     }

@@ -1462,7 +1462,6 @@ where
 /// - (optional) accent stripping
 ///
 /// This tokenizer is used as a pre-tokenizer step in the BERT and GPT tokenizers.
-#[derive(Debug, Clone)]
 pub struct BaseTokenizer<T: Vocab> {
     vocab: Arc<T>,
     lower_case: bool,

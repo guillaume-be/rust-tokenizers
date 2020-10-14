@@ -14,7 +14,7 @@
 
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{openai_gpt_bpe, split_on_bpe_pairs, BpeCache};
-use crate::tokenizer::{BaseTokenizer, Tokenizer};
+use crate::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
@@ -137,6 +137,8 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     }
 }
 
+impl MultiThreadedTokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -223,7 +225,7 @@ mod tests {
         }
 
         assert_eq!(
-            openai_gpt_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&openai_gpt_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -253,7 +255,7 @@ mod tests {
         }
 
         assert_eq!(
-            openai_gpt_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&openai_gpt_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -323,7 +325,13 @@ mod tests {
             );
         }
         assert_eq!(
-            openai_gpt_tokenizer.encode_list(&source_texts, 128, &truncation_strategy, 0),
+            MultiThreadedTokenizer::encode_list(
+                &openai_gpt_tokenizer,
+                &source_texts,
+                128,
+                &truncation_strategy,
+                0
+            ),
             expected_results
         );
     }
