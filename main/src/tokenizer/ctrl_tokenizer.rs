@@ -22,8 +22,8 @@ use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 use regex::Regex;
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 /// # CTRL tokenizer
 /// CTRL tokenizer performing:
@@ -31,7 +31,6 @@ use std::collections::HashMap;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
-#[derive(Debug, Clone)]
 pub struct CtrlTokenizer {
     vocab: OpenAiGptVocab,
     bpe_ranks: BpePairVocab,
@@ -64,7 +63,7 @@ impl CtrlTokenizer {
     ) -> Result<CtrlTokenizer, TokenizerError> {
         let vocab = OpenAiGptVocab::from_file(vocab_path)?;
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
         Ok(CtrlTokenizer {
             vocab,
@@ -98,7 +97,7 @@ impl CtrlTokenizer {
         merges: BpePairVocab,
         lower_case: bool,
     ) -> CtrlTokenizer {
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
         CtrlTokenizer {
             vocab,

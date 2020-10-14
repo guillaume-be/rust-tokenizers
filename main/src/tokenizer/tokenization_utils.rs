@@ -23,15 +23,15 @@ use crate::vocab::{BertVocab, Vocab};
 use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 use regex::Regex;
 use std::borrow::BorrowMut;
-use std::cell::RefCell;
 use std::char;
 use std::char::REPLACEMENT_CHARACTER;
 use std::cmp::{min, Ordering};
 use std::collections::{HashMap, HashSet};
+use std::sync::RwLock;
 use unicode_normalization::char::decompose_canonical;
 use unicode_normalization_alignments::UnicodeNormalization;
 
-pub type BpeCache = RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>;
+pub type BpeCache = RwLock<HashMap<String, (Vec<String>, Vec<usize>)>>;
 
 ///Cleans text by removing control characters and normalizing whitespace
 pub fn _clean_text(token: &mut Token, strict: bool) {
@@ -977,7 +977,7 @@ pub fn split_on_bpe_pairs<'a, F>(
     token: TokenRef<'a>,
     bpe_function: F,
     bpe_ranks: &BpePairVocab,
-    cache: &RefCell<HashMap<String, (Vec<String>, Vec<usize>)>>,
+    cache: &BpeCache,
     as_bytes: bool,
 ) -> Vec<Token>
 where
@@ -1001,44 +1001,50 @@ where
     } else {
         (token.text, token.reference_offsets)
     };
-    let cached: bool = match cache.borrow().get(text) {
-        Some((cached_tokens, char_counts)) => {
-            let mut start = 0;
-            for (idx, (sub_token, &char_count)) in
-                cached_tokens.iter().zip(char_counts.iter()).enumerate()
-            {
-                tokens.push(Token {
-                    text: sub_token.clone(),
-                    offset: Offset {
-                        begin: reference_offsets[start],
-                        end: reference_offsets[start + char_count - 1] + 1,
-                    },
-                    reference_offsets: reference_offsets
-                        [start as usize..start as usize + char_count]
-                        .to_vec(),
-                    mask: {
-                        if cached_tokens.len() > 1 {
-                            if idx == 0 {
-                                Mask::Begin
+
+    let cached: bool = if let Ok(ref mut cache) = cache.try_read() {
+        match cache.get(text) {
+            Some((cached_tokens, char_counts)) => {
+                let mut start = 0;
+                for (idx, (sub_token, &char_count)) in
+                    cached_tokens.iter().zip(char_counts.iter()).enumerate()
+                {
+                    tokens.push(Token {
+                        text: sub_token.clone(),
+                        offset: Offset {
+                            begin: reference_offsets[start],
+                            end: reference_offsets[start + char_count - 1] + 1,
+                        },
+                        reference_offsets: reference_offsets
+                            [start as usize..start as usize + char_count]
+                            .to_vec(),
+                        mask: {
+                            if cached_tokens.len() > 1 {
+                                if idx == 0 {
+                                    Mask::Begin
+                                } else {
+                                    Mask::Continuation
+                                }
                             } else {
-                                Mask::Continuation
+                                Mask::None
                             }
-                        } else {
-                            Mask::None
-                        }
-                    },
-                });
-                start += char_count;
+                        },
+                    });
+                    start += char_count;
+                }
+                true
             }
-            true
+            None => false,
         }
-        None => false,
+    } else {
+        false
     };
+
     if !cached {
         let (bpe_output, char_counts) = bpe_function(text, bpe_ranks);
-        cache
-            .borrow_mut()
-            .insert(text.to_owned(), (bpe_output.clone(), char_counts.clone()));
+        if let Ok(mut cache) = cache.try_write() {
+            cache.insert(text.to_owned(), (bpe_output.clone(), char_counts.clone()));
+        }
         let mut start = 0;
         for (idx, (sub_token, &char_count)) in bpe_output.iter().zip(char_counts.iter()).enumerate()
         {

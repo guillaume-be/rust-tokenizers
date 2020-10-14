@@ -27,9 +27,9 @@ use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{RobertaVocab, Vocab};
 use itertools::Itertools;
 use regex::Regex;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::iter::Iterator;
+use std::sync::RwLock;
 
 /// # RoBERTa tokenizer
 /// RoBERTa tokenizer performing:
@@ -37,7 +37,6 @@ use std::iter::Iterator;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
-#[derive(Debug, Clone)]
 pub struct RobertaTokenizer {
     vocab: RobertaVocab,
     bpe_ranks: BpePairVocab,
@@ -79,7 +78,7 @@ impl RobertaTokenizer {
     ) -> Result<RobertaTokenizer, TokenizerError> {
         let vocab = RobertaVocab::from_file(vocab_path)?;
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
         let pattern_tokenization =
             Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
@@ -125,7 +124,7 @@ impl RobertaTokenizer {
         lower_case: bool,
         add_prefix_space: bool,
     ) -> RobertaTokenizer {
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
         let pattern_tokenization =
             Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
