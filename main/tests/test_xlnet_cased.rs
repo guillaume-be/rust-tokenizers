@@ -1,6 +1,8 @@
-use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
-use rust_tokenizers::{TokenizedInput, Tokenizer, TruncationStrategy, XLNetTokenizer};
 mod test_utils;
+use rust_tokenizers::tokenizer::{
+    MultiThreadedTokenizer, Tokenizer, TruncationStrategy, XLNetTokenizer,
+};
+use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
@@ -216,8 +218,9 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
     ]
     .to_vec();
 
-    let output = xlnet_tokenizer.encode_list(
-        original_strings.to_vec(),
+    let output = MultiThreadedTokenizer::encode_list(
+        &xlnet_tokenizer,
+        &original_strings,
         128,
         &TruncationStrategy::LongestFirst,
         0,

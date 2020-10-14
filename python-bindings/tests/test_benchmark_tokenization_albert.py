@@ -38,7 +38,7 @@ class TestBenchmarkAlbert:
         self.base_tokenizer = AlbertTokenizer.from_pretrained(str(self.test_dir / 'albert-base-v2-spiece.model'))
         self.rust_tokenizer = PyAlbertTokenizer(str(self.test_dir / 'albert-base-v2-spiece.model'),
                                                 do_lower_case=True,
-                                                keep_accents=False)
+                                                strip_accents=True)
 
     def setup_python_tokenizer(self):
         self.base_tokenizer = sentencepiece.SentencePieceProcessor()

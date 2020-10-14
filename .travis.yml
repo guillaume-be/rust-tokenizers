@@ -15,6 +15,15 @@ matrix:
       rust: stable
       os:
         - linux
+      before_script:
+        - rustup component add clippy
+      script:
+        - cargo clippy --manifest-path ./main/Cargo.toml --all-targets --all-features  -- -D warnings
+
+    - language: rust
+      rust: stable
+      os:
+        - linux
       script:
         - cargo build --manifest-path ./main/Cargo.toml --verbose
         - cargo test --manifest-path ./main/Cargo.toml

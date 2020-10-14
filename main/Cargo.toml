@@ -1,6 +1,6 @@
 [package]
 name = "rust_tokenizers"
-version = "5.0.1"
+version = "6.0.0"
 authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
 description = "High performance tokenizers for Rust"
@@ -8,6 +8,7 @@ repository = "https://github.com/guillaume-be/rust-tokenizers"
 license = "Apache-2.0"
 readme = "README.md"
 build = "build.rs"
+keywords = ["nlp", "machine-learning", "tokenizer"]
 
 [dependencies]
 csv = "1.1"

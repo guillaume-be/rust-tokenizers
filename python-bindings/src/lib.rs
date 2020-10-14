@@ -1,18 +1,13 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::{PyRawObject, PyResult, Python};
-use rust_tokenizers::preprocessing::tokenizer::albert_tokenizer::AlbertTokenizer;
-use rust_tokenizers::preprocessing::tokenizer::sentence_piece_tokenizer::SentencePieceTokenizer;
-use rust_tokenizers::preprocessing::tokenizer::t5_tokenizer::T5Tokenizer;
-use rust_tokenizers::preprocessing::tokenizer::xlm_roberta_tokenizer::XLMRobertaTokenizer;
-use rust_tokenizers::preprocessing::vocab::albert_vocab::AlbertVocab;
-use rust_tokenizers::preprocessing::vocab::sentence_piece_vocab::SentencePieceVocab;
-use rust_tokenizers::preprocessing::vocab::t5_vocab::T5Vocab;
-use rust_tokenizers::preprocessing::vocab::xlnet_vocab::XLNetVocab;
-use rust_tokenizers::{
-    BertTokenizer, BertVocab, CtrlTokenizer, Gpt2Tokenizer, Gpt2Vocab, MultiThreadedTokenizer,
-    OpenAiGptTokenizer, OpenAiGptVocab, RobertaTokenizer, RobertaVocab, Tokenizer,
-    TruncationStrategy, Vocab, XLMRobertaVocab, XLNetTokenizer,
+use rust_tokenizers::tokenizer::{
+    AlbertTokenizer, BertTokenizer, CtrlTokenizer, Gpt2Tokenizer, MultiThreadedTokenizer,
+    OpenAiGptTokenizer, RobertaTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer,
+    TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer,
+};
+use rust_tokenizers::vocab::{
+    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, RobertaVocab, SentencePieceVocab, T5Vocab,
+    Vocab, XLMRobertaVocab, XLNetVocab,
 };
 
 #[pyclass]
@@ -38,7 +33,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        Ok(self.tokenizer().tokenize_list(text_list))
+        Ok(self.tokenizer().tokenize_list(text_list.as_slice()))
     }
 
     fn encode(
@@ -68,7 +63,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     num_truncated_tokens: tokenized_input.num_truncated_tokens,
                 })
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e)),
+            Err(e) => Err(exceptions::PyValueError::new_err(e)),
         }
     }
 
@@ -104,7 +99,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     num_truncated_tokens: tokenized_input.num_truncated_tokens,
                 })
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e)),
+            Err(e) => Err(exceptions::PyValueError::new_err(e)),
         }
     }
 
@@ -124,9 +119,12 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         };
         match truncation_strategy {
             Ok(truncation_strategy) => {
-                let tokenized_inputs =
-                    self.tokenizer()
-                        .encode_list(text_list, max_len, &truncation_strategy, stride);
+                let tokenized_inputs = self.tokenizer().encode_list(
+                    text_list.as_slice(),
+                    max_len,
+                    &truncation_strategy,
+                    stride,
+                );
                 Ok(tokenized_inputs
                     .into_iter()
                     .map(|tokenized_input| PyTokenizedInput {
@@ -138,7 +136,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e)),
+            Err(e) => Err(exceptions::PyValueError::new_err(e)),
         }
     }
 
@@ -159,7 +157,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
         match truncation_strategy {
             Ok(truncation_strategy) => {
                 let tokenized_inputs = self.tokenizer().encode_pair_list(
-                    text_list,
+                    text_list.as_slice(),
                     max_len,
                     &truncation_strategy,
                     stride,
@@ -175,7 +173,7 @@ trait PyTokenizer<T: Tokenizer<U>, U: Vocab> {
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e)),
+            Err(e) => Err(exceptions::PyValueError::new_err(e)),
         }
     }
 }
@@ -187,7 +185,7 @@ where
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         Ok(MultiThreadedTokenizer::tokenize_list(
             self.tokenizer(),
-            text_list,
+            text_list.as_slice(),
         ))
     }
 
@@ -225,7 +223,7 @@ where
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e)),
+            Err(e) => Err(exceptions::PyValueError::new_err(e)),
         }
     }
 
@@ -263,12 +261,12 @@ where
                     })
                     .collect::<Vec<PyTokenizedInput>>())
             }
-            Err(e) => Err(exceptions::ValueError::py_err(e)),
+            Err(e) => Err(exceptions::PyValueError::new_err(e)),
         }
     }
 }
 
-#[pyclass(module = "rust_tokenizers")]
+#[pyclass(dict, module = "rust_tokenizers")]
 struct PyBertTokenizer {
     tokenizer: BertTokenizer,
 }
@@ -284,11 +282,11 @@ impl PyMultiThreadTokenizer<BertTokenizer, BertVocab> for PyBertTokenizer {}
 #[pymethods]
 impl PyBertTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
-        obj.init(PyBertTokenizer {
+    fn new(path: String, do_lower_case: bool, strip_accents: bool) -> Self {
+        PyBertTokenizer {
             tokenizer: BertTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
                 .unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -380,15 +378,15 @@ impl PyTokenizer<CtrlTokenizer, OpenAiGptVocab> for PyCtrlTokenizer {
 #[pymethods]
 impl PyCtrlTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
-        obj.init(PyCtrlTokenizer {
+    fn new(vocab_path: String, merges_path: String, do_lower_case: bool) -> Self {
+        PyCtrlTokenizer {
             tokenizer: CtrlTokenizer::from_file(
                 vocab_path.as_str(),
                 merges_path.as_str(),
                 do_lower_case,
             )
             .unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -480,15 +478,15 @@ impl PyTokenizer<Gpt2Tokenizer, Gpt2Vocab> for PyGpt2Tokenizer {
 #[pymethods]
 impl PyGpt2Tokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
-        obj.init(PyGpt2Tokenizer {
+    fn new(vocab_path: String, merges_path: String, do_lower_case: bool) -> Self {
+        PyGpt2Tokenizer {
             tokenizer: Gpt2Tokenizer::from_file(
                 vocab_path.as_str(),
                 &merges_path.as_str(),
                 do_lower_case,
             )
             .unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -581,13 +579,12 @@ impl PyTokenizer<RobertaTokenizer, RobertaVocab> for PyRobertaTokenizer {
 impl PyRobertaTokenizer {
     #[new]
     fn new(
-        obj: &PyRawObject,
         vocab_path: String,
         merges_path: String,
         do_lower_case: bool,
         add_prefix_space: bool,
-    ) {
-        obj.init(PyRobertaTokenizer {
+    ) -> Self {
+        PyRobertaTokenizer {
             tokenizer: RobertaTokenizer::from_file(
                 vocab_path.as_str(),
                 &merges_path.as_str(),
@@ -595,7 +592,7 @@ impl PyRobertaTokenizer {
                 add_prefix_space,
             )
             .unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -687,15 +684,15 @@ impl PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab> for PyOpenAiGptTokenizer {
 #[pymethods]
 impl PyOpenAiGptTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, vocab_path: String, merges_path: String, do_lower_case: bool) {
-        obj.init(PyOpenAiGptTokenizer {
+    fn new(vocab_path: String, merges_path: String, do_lower_case: bool) -> Self {
+        PyOpenAiGptTokenizer {
             tokenizer: OpenAiGptTokenizer::from_file(
                 vocab_path.as_str(),
                 merges_path.as_str(),
                 do_lower_case,
             )
             .unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -792,10 +789,10 @@ impl PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>
 #[pymethods]
 impl PySentencePieceTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
-        obj.init(PySentencePieceTokenizer {
+    fn new(path: String, do_lower_case: bool) -> Self {
+        PySentencePieceTokenizer {
             tokenizer: SentencePieceTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -885,11 +882,11 @@ impl PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab> for PyAlbertTokenizer 
 #[pymethods]
 impl PyAlbertTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
-        obj.init(PyAlbertTokenizer {
+    fn new(path: String, do_lower_case: bool, strip_accents: bool) -> Self {
+        PyAlbertTokenizer {
             tokenizer: AlbertTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
                 .unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -985,11 +982,11 @@ impl PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab> for PyXLNetTokenizer {}
 #[pymethods]
 impl PyXLNetTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool, strip_accents: bool) {
-        obj.init(PyXLNetTokenizer {
+    fn new(path: String, do_lower_case: bool, strip_accents: bool) -> Self {
+        PyXLNetTokenizer {
             tokenizer: XLNetTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
                 .unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -1085,10 +1082,10 @@ impl PyMultiThreadTokenizer<T5Tokenizer, T5Vocab> for PyT5Tokenizer {}
 #[pymethods]
 impl PyT5Tokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
-        obj.init(PyT5Tokenizer {
+    fn new(path: String, do_lower_case: bool) -> Self {
+        PyT5Tokenizer {
             tokenizer: T5Tokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
@@ -1182,10 +1179,10 @@ impl PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab> for PyXLMRober
 #[pymethods]
 impl PyXLMRobertaTokenizer {
     #[new]
-    fn new(obj: &PyRawObject, path: String, do_lower_case: bool) {
-        obj.init(PyXLMRobertaTokenizer {
+    fn new(path: String, do_lower_case: bool) -> Self {
+        PyXLMRobertaTokenizer {
             tokenizer: XLMRobertaTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
-        });
+        }
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {

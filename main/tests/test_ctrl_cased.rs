@@ -1,8 +1,7 @@
-use rust_tokenizers::preprocessing::tokenizer::base_tokenizer::Offset;
-use rust_tokenizers::{CtrlTokenizer, TokenizedInput, Tokenizer, TruncationStrategy};
-
 mod test_utils;
 
+use rust_tokenizers::tokenizer::{CtrlTokenizer, Tokenizer, TruncationStrategy};
+use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
@@ -217,12 +216,8 @@ fn test_ctrl_tokenization() -> anyhow::Result<()> {
     ]
     .to_vec();
 
-    let output = ctrl_tokenizer.encode_list(
-        original_strings.to_vec(),
-        128,
-        &TruncationStrategy::LongestFirst,
-        0,
-    );
+    let output =
+        ctrl_tokenizer.encode_list(&original_strings, 128, &TruncationStrategy::LongestFirst, 0);
 
     for (_idx, (predicted, expected)) in output.iter().zip(expected_results.iter()).enumerate() {
         let original_sentence_chars: Vec<char> = original_strings[_idx].chars().collect();
