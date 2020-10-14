@@ -27,6 +27,7 @@ use crate::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
 /// - NFKC decomposition
 /// - (optional) lower casing
 /// - SentencePiece decomposition
+#[derive(Debug, Clone)]
 pub struct XLMRobertaTokenizer {
     model: SentencePieceModel,
     vocab: XLMRobertaVocab,

@@ -31,6 +31,7 @@ use std::collections::HashMap;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
+#[derive(Debug, Clone)]
 pub struct CtrlTokenizer {
     vocab: OpenAiGptVocab,
     bpe_ranks: BpePairVocab,

@@ -25,6 +25,7 @@ use std::sync::Arc;
 /// BERT tokenizer performing:
 /// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
 /// - WordPiece tokenization
+#[derive(Debug, Clone)]
 pub struct BertTokenizer {
     vocab: Arc<BertVocab>,
     base_tokenizer: BaseTokenizer<BertVocab>,

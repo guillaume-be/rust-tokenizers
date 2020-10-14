@@ -29,6 +29,7 @@ use regex::Regex;
 /// - NFKC decomposition
 /// - (optional) lower casing
 /// - SentencePiece decomposition
+#[derive(Debug, Clone)]
 pub struct MarianTokenizer {
     model: SentencePieceModel,
     vocab: MarianVocab,

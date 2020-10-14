@@ -23,6 +23,7 @@ use crate::vocab::{SentencePieceModel, SentencePieceVocab, Vocab};
 /// - NFKC decomposition
 /// - (optional) lower casing
 /// - SentencePiece decomposition
+#[derive(Debug, Clone)]
 pub struct SentencePieceTokenizer {
     model: SentencePieceModel,
     vocab: SentencePieceVocab,

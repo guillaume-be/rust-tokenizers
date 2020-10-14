@@ -28,6 +28,7 @@ use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 /// - (optional) lower casing
 /// - (optional) accents stripping
 /// - SentencePiece decomposition
+#[derive(Debug, Clone)]
 pub struct XLNetTokenizer {
     model: SentencePieceModel,
     vocab: XLNetVocab,

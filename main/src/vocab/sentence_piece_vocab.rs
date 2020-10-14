@@ -387,6 +387,7 @@ impl SentencePieceModel {
 /// - MASK token
 ///
 /// Expects a SentencePiece protobuf file when created from file.
+#[derive(Debug, Clone)]
 pub struct SentencePieceVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,

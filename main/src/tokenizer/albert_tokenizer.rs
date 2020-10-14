@@ -31,6 +31,7 @@ use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 /// - (optional) lower casing
 /// - (optional) accent stripping
 /// - SentencePiece decomposition
+#[derive(Debug, Clone)]
 pub struct AlbertTokenizer {
     model: SentencePieceModel,
     vocab: AlbertVocab,

@@ -25,6 +25,7 @@ use crate::{Mask, Token, TokenRef};
 /// - NFKC decomposition
 /// - (optional) lower casing
 /// - SentencePiece decomposition
+#[derive(Debug, Clone)]
 pub struct T5Tokenizer {
     model: SentencePieceModel,
     vocab: T5Vocab,

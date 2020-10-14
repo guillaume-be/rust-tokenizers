@@ -34,6 +34,7 @@ use std::iter::Iterator;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
+#[derive(Debug, Clone)]
 pub struct Gpt2Tokenizer {
     vocab: Gpt2Vocab,
     bpe_ranks: BpePairVocab,

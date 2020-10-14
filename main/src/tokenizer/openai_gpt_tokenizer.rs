@@ -26,6 +26,7 @@ use std::sync::Arc;
 /// GPT tokenizer performing:
 /// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
 /// - BPE tokenization
+#[derive(Debug, Clone)]
 pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,

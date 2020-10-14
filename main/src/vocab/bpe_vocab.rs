@@ -29,7 +29,7 @@ pub struct BpePairRef<'a> {
 /// BPE vocab containing the merges (dictionary of pairs with their priority) used to merge
 /// pairs together. This vocabulary element is used on BPE tokenizers such as GPT2 or RoBERTa.
 /// This vocabulary is not meant to be used directly, but rather as part of a BPE Tokenizer.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct BpePairVocab {
     pub values: HashMap<(String, String), i64>,
 }

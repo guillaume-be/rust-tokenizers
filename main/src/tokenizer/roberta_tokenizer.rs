@@ -37,6 +37,7 @@ use std::iter::Iterator;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
+#[derive(Debug, Clone)]
 pub struct RobertaTokenizer {
     vocab: RobertaVocab,
     bpe_ranks: BpePairVocab,
