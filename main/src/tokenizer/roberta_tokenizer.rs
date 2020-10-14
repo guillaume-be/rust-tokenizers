@@ -31,6 +31,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::iter::Iterator;
 
+/// # RoBERTa tokenizer
+/// RoBERTa tokenizer performing:
+/// - splitting on special characters
+/// - whitespace splitting
+/// - (optional) lower casing
+/// - BPE tokenization
 pub struct RobertaTokenizer {
     vocab: RobertaVocab,
     bpe_ranks: BpePairVocab,
@@ -42,6 +48,28 @@ pub struct RobertaTokenizer {
 }
 
 impl RobertaTokenizer {
+    /// Create a new instance of a `RobertaTokenizer`
+    /// Expects a vocabulary json file and a merges file as an input.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the vocabulary file
+    /// - merges_path (`&str`): path to the merges file (use as part of the BPE encoding process)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{RobertaTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let add_prefix_space = true;
+    /// let tokenizer = RobertaTokenizer::from_file(
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
+    ///     lower_case,
+    ///     add_prefix_space,
+    /// )
+    /// .unwrap();
+    /// ```
     pub fn from_file(
         vocab_path: &str,
         merges_path: &str,
@@ -66,6 +94,30 @@ impl RobertaTokenizer {
         })
     }
 
+    /// Create a new instance of a `RobertaTokenizer` from an existing vocabulary and merges
+    ///
+    /// # Parameters
+    /// - vocab (`RobertaVocab`): GPT-like vocabulary
+    /// - merges (`BpePairVocab`): BPE pairs vocabulary
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{RobertaTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{BpePairVocab, RobertaVocab, Vocab};
+    /// let lower_case = false;
+    /// let add_prefix_space = true;
+    /// let vocab = RobertaVocab::from_file("path/to/vocab/file").unwrap();
+    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
+    ///
+    /// let tokenizer = RobertaTokenizer::from_existing_vocab_and_merges(
+    ///     vocab,
+    ///     merges,
+    ///     lower_case,
+    ///     add_prefix_space,
+    /// );
+    /// ```
     pub fn from_existing_vocab_and_merges(
         vocab: RobertaVocab,
         merges: BpePairVocab,

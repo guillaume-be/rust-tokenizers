@@ -17,6 +17,12 @@ use crate::tokenizer::tokenization_utils::{decompose_nfkc, is_whitespace};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{SentencePieceModel, SentencePieceVocab, Vocab};
 
+/// # SentencePiece tokenizer
+/// SentencePiece tokenizer performing:
+/// - text cleaning
+/// - NFKC decomposition
+/// - (optional) lower casing
+/// - SentencePiece decomposition
 pub struct SentencePieceTokenizer {
     model: SentencePieceModel,
     vocab: SentencePieceVocab,
@@ -24,6 +30,21 @@ pub struct SentencePieceTokenizer {
 }
 
 impl SentencePieceTokenizer {
+    /// Create a new instance of a `SentencePieceTokenizer`
+    /// Expects a SentencePiece protobuf file as an input.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{SentencePieceTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = SentencePieceTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
+    /// ```
     pub fn from_file(
         path: &str,
         lower_case: bool,
@@ -37,6 +58,25 @@ impl SentencePieceTokenizer {
         })
     }
 
+    /// Create a new instance of a `SentencePieceTokenizer` from an existing vocabulary and model
+    ///
+    /// # Parameters
+    /// - vocab (`SentencePieceVocab`): vocabulary
+    /// - model (`SentencePieceModel`): SentencePiece model
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{SentencePieceTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{SentencePieceModel, SentencePieceVocab, Vocab};
+    /// let lower_case = false;
+    /// let vocab = SentencePieceVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    ///
+    /// let tokenizer = SentencePieceTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
+    /// ```
     pub fn from_existing_vocab_and_model(
         vocab: SentencePieceVocab,
         model: SentencePieceModel,

@@ -20,6 +20,13 @@ use crate::tokenizer::tokenization_utils::{
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
 
+/// # XLM RoBERTa tokenizer
+/// XLM RoBERTa tokenizer performing:
+/// - Splitting on special tokens
+/// - text cleaning
+/// - NFKC decomposition
+/// - (optional) lower casing
+/// - SentencePiece decomposition
 pub struct XLMRobertaTokenizer {
     model: SentencePieceModel,
     vocab: XLMRobertaVocab,
@@ -27,6 +34,20 @@ pub struct XLMRobertaTokenizer {
 }
 
 impl XLMRobertaTokenizer {
+    /// Create a new instance of a `XLMRobertaTokenizer`
+    /// Expects a json vocab file and a SentencePiece protobuf file as an input.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = XLMRobertaTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
+    /// ```
     pub fn from_file(path: &str, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = XLMRobertaVocab::from_file(path)?;
@@ -37,6 +58,24 @@ impl XLMRobertaTokenizer {
         })
     }
 
+    /// Create a new instance of a `MarianTokenizer` from an existing vocabulary and model
+    ///
+    /// # Parameters
+    /// - vocab (`XLMRobertaVocab`): vocabulary
+    /// - model (`SentencePieceModel`): SentencePiece model
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
+    /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
+    /// let lower_case = false;
+    /// let vocab = XLMRobertaVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    ///
+    /// let tokenizer = XLMRobertaTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
+    /// ```
     pub fn from_existing_vocab_and_model(
         vocab: XLMRobertaVocab,
         model: SentencePieceModel,

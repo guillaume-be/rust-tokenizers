@@ -25,6 +25,7 @@ use std::io::Read;
 /// - EOS token
 ///
 /// Expects a SentencePiece protobuf file when created from file.
+#[derive(Debug, Clone)]
 pub struct T5Vocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,

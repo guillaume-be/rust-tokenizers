@@ -195,6 +195,7 @@ pub trait Vocab {
 /// # BaseVocab
 /// Base vocabulary with [UNK] unknown token used as a pre-tokenization step for BERT-class tokenizers.
 /// Expects a flat text vocabulary when created from file.
+#[derive(Debug, Clone)]
 pub struct BaseVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,

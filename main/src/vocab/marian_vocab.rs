@@ -25,6 +25,7 @@ use std::io::BufReader;
 /// - EOS token
 ///
 /// Expects a JSON-format vocabulary when created from file.
+#[derive(Debug, Clone)]
 pub struct MarianVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,

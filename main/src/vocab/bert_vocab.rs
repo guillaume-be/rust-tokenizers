@@ -23,6 +23,7 @@ use std::collections::HashMap;
 /// - MASK token
 ///
 /// Expects a flat text vocabulary when created from file.
+#[derive(Debug, Clone)]
 pub struct BertVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,

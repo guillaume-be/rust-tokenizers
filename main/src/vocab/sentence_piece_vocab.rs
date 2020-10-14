@@ -63,6 +63,7 @@ impl TrieNode {
 /// common prefix search.
 ///
 /// Expects a SentencePiece protobuf file when created from file.
+#[derive(Debug, Clone)]
 pub struct SentencePieceModel {
     /// Trie data structure containing the vocabulary elements and their unigram log-probabilities
     pub root: TrieNode,

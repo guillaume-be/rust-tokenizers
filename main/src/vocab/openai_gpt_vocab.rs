@@ -20,7 +20,7 @@ use std::io::BufReader;
 /// # GPT Vocab
 /// Vocabulary for GPT tokenizer. Only contains the unknown token as a special value.
 /// Expects a JSON-format vocabulary when created from file.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct OpenAiGptVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,

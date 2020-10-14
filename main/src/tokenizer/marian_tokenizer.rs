@@ -22,6 +22,13 @@ use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{MarianVocab, SentencePieceModel, Vocab};
 use regex::Regex;
 
+/// # Marian tokenizer
+/// Marian tokenizer performing:
+/// - splitting on language codes
+/// - text cleaning
+/// - NFKC decomposition
+/// - (optional) lower casing
+/// - SentencePiece decomposition
 pub struct MarianTokenizer {
     model: SentencePieceModel,
     vocab: MarianVocab,
@@ -30,6 +37,23 @@ pub struct MarianTokenizer {
 }
 
 impl MarianTokenizer {
+    /// Create a new instance of a `MarianTokenizer`
+    /// Expects a json vocab file and a SentencePiece protobuf file as an input.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the JSON vocab file
+    /// - model_path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer =
+    ///     MarianTokenizer::from_files("path/to/vocab/file", "path/to/model/file", lower_case)
+    ///         .unwrap();
+    /// ```
     pub fn from_files(
         vocab_path: &str,
         model_path: &str,
@@ -46,6 +70,24 @@ impl MarianTokenizer {
         })
     }
 
+    /// Create a new instance of a `MarianTokenizer` from an existing vocabulary and model
+    ///
+    /// # Parameters
+    /// - vocab (`MarianVocab`): vocabulary
+    /// - model (`SentencePieceModel`): SentencePiece model
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{MarianVocab, SentencePieceModel, Vocab};
+    /// let lower_case = false;
+    /// let vocab = MarianVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    ///
+    /// let tokenizer = MarianTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
+    /// ```
     pub fn from_existing_vocab_and_model(
         vocab: MarianVocab,
         model: SentencePieceModel,

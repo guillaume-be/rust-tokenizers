@@ -77,12 +77,15 @@ impl BpePairVocab {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::vocab::{BpePairVocab, Vocab, BpePairRef};
+    /// use rust_tokenizers::vocab::{BpePairRef, BpePairVocab, Vocab};
     /// let path = "path/to/file";
     ///
     /// let bpe_vocab = BpePairVocab::from_file(path).unwrap();
     ///
-    /// let query = BpePairRef {byte_1: &"won".to_string(), byte_2: &"derful".to_string()};
+    /// let query = BpePairRef {
+    ///     byte_1: &"won".to_string(),
+    ///     byte_2: &"derful".to_string(),
+    /// };
     /// let id = bpe_vocab.byte_pair_to_id(&query);
     /// ```
     pub fn byte_pair_to_id(&self, byte_pair: &BpePairRef) -> Option<&i64> {

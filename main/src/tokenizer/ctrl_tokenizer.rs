@@ -31,7 +31,6 @@ use std::collections::HashMap;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
-///
 pub struct CtrlTokenizer {
     vocab: OpenAiGptVocab,
     bpe_ranks: BpePairVocab,
@@ -42,7 +41,7 @@ pub struct CtrlTokenizer {
 
 impl CtrlTokenizer {
     /// Create a new instance of a `CtrlTokenizer`
-    /// Expects a vocabulary json file as an input.
+    /// Expects a vocabulary json file and a merges file as an input.
     ///
     /// # Parameters
     /// - vocab_path (`&str`): path to the vocabulary file
@@ -52,7 +51,7 @@ impl CtrlTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, CtrlTokenizer};
+    /// use rust_tokenizers::tokenizer::{CtrlTokenizer, Tokenizer};
     /// let lower_case = false;
     /// let tokenizer =
     ///     CtrlTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case).unwrap();
@@ -85,8 +84,8 @@ impl CtrlTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, CtrlTokenizer};
-    /// use rust_tokenizers::vocab::{BertVocab, Vocab, OpenAiGptVocab, BpePairVocab};
+    /// use rust_tokenizers::tokenizer::{CtrlTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{BpePairVocab, OpenAiGptVocab, Vocab};
     /// let lower_case = false;
     /// let vocab = OpenAiGptVocab::from_file("path/to/vocab/file").unwrap();
     /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();

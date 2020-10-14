@@ -18,6 +18,13 @@ use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{SentencePieceModel, T5Vocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 
+/// # T5 tokenizer
+/// T5 tokenizer performing:
+/// - Splitting on special tokens
+/// - text cleaning
+/// - NFKC decomposition
+/// - (optional) lower casing
+/// - SentencePiece decomposition
 pub struct T5Tokenizer {
     model: SentencePieceModel,
     vocab: T5Vocab,
@@ -25,6 +32,20 @@ pub struct T5Tokenizer {
 }
 
 impl T5Tokenizer {
+    /// Create a new instance of a `T5Tokenizer`
+    /// Expects a SentencePiece protobuf file as an input.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{T5Tokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = T5Tokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
+    /// ```
     pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = T5Vocab::from_file(path)?;
@@ -35,6 +56,24 @@ impl T5Tokenizer {
         })
     }
 
+    /// Create a new instance of a `T5Tokenizer` from an existing vocabulary and model
+    ///
+    /// # Parameters
+    /// - vocab (`T5Vocab`): vocabulary
+    /// - model (`SentencePieceModel`): SentencePiece model
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{T5Tokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{SentencePieceModel, T5Vocab, Vocab};
+    /// let lower_case = false;
+    /// let vocab = T5Vocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    ///
+    /// let tokenizer = T5Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
+    /// ```
     pub fn from_existing_vocab_and_model(
         vocab: T5Vocab,
         model: SentencePieceModel,

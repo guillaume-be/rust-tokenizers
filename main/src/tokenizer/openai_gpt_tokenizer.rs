@@ -22,6 +22,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+/// # GPT tokenizer
+/// GPT tokenizer performing:
+/// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
+/// - BPE tokenization
 pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
@@ -30,6 +34,23 @@ pub struct OpenAiGptTokenizer {
 }
 
 impl OpenAiGptTokenizer {
+    /// Create a new instance of a `OpenAiGptTokenizer`
+    /// Expects a vocabulary flat file and merges file as an input.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the vocabulary file
+    /// - merges_path (`&str`): path to the merges file (use as part of the BPE encoding process)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{OpenAiGptTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer =
+    ///     OpenAiGptTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case)
+    ///         .unwrap();
+    /// ```
     pub fn from_file(
         vocab_path: &str,
         merges_path: &str,
@@ -47,6 +68,26 @@ impl OpenAiGptTokenizer {
         })
     }
 
+    /// Create a new instance of a `OpenAiGptTokenizer` from an existing vocabulary and merges
+    ///
+    /// # Parameters
+    /// - vocab (`Gpt2Vocab`): GPT-like vocabulary
+    /// - merges (`BpePairVocab`): BPE pairs vocabulary
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{OpenAiGptTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{BpePairVocab, OpenAiGptVocab, Vocab};
+    /// use std::sync::Arc;
+    /// let lower_case = false;
+    /// let vocab = OpenAiGptVocab::from_file("path/to/vocab/file").unwrap();
+    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
+    ///
+    /// let tokenizer =
+    ///     OpenAiGptTokenizer::from_existing_vocab_and_merges(Arc::new(vocab), merges, lower_case);
+    /// ```
     pub fn from_existing_vocab_and_merges(
         vocab: Arc<OpenAiGptVocab>,
         merges: BpePairVocab,

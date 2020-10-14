@@ -40,7 +40,7 @@ pub struct AlbertTokenizer {
 
 impl AlbertTokenizer {
     /// Create a new instance of a `AlbertTokenizer`
-    /// Expects a a SentencePiece protobuf file as an input.
+    /// Expects a SentencePiece protobuf file as an input.
     ///
     /// # Parameters
     /// - path (`&str`): path to the SentencePiece model file
@@ -50,7 +50,7 @@ impl AlbertTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, BaseTokenizer, Tokenizer};
+    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let tokenizer =
@@ -84,7 +84,6 @@ impl AlbertTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{AlbertVocab, SentencePieceModel, Vocab};
-    /// use std::sync::Arc;
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let vocab = AlbertVocab::from_file("path/to/vocab/file").unwrap();

@@ -1,6 +1,7 @@
 mod test_utils;
 
 use rust_tokenizers::tokenizer::{Gpt2Tokenizer, Tokenizer, TruncationStrategy};
+use rust_tokenizers::vocab::{BpePairVocab, Gpt2Vocab, Vocab};
 use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
@@ -18,11 +19,20 @@ fn test_gpt2_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let gpt2_tokenizer = Gpt2Tokenizer::from_file(
-        vocab_path.to_str().unwrap(),
-        merges_path.to_str().unwrap(),
-        false,
-    )?;
+    let vocab = Gpt2Vocab::from_file(vocab_path.to_str().unwrap())?;
+    let merges = BpePairVocab::from_file(merges_path.to_str().unwrap())?;
+
+    let vocab_copy = vocab.clone();
+    let merges_copy = merges.clone();
+
+    // let gpt2_tokenizer = Gpt2Tokenizer::from_file(
+    //     vocab_path.to_str().unwrap(),
+    //     merges_path.to_str().unwrap(),
+    //     false,
+    // )?;
+
+    let gpt2_tokenizer =
+        Gpt2Tokenizer::from_existing_vocab_and_merges(vocab_copy, merges_copy, false);
 
     let original_strings = [
         "This is a sample sentence to be tokénized",

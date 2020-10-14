@@ -31,6 +31,7 @@ use std::io::Read;
 /// - MASK token
 ///
 /// Expects a SentencePiece protobuf file when created from file.
+#[derive(Debug, Clone)]
 pub struct AlbertVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
