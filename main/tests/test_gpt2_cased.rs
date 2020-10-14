@@ -22,17 +22,7 @@ fn test_gpt2_tokenization() -> anyhow::Result<()> {
     let vocab = Gpt2Vocab::from_file(vocab_path.to_str().unwrap())?;
     let merges = BpePairVocab::from_file(merges_path.to_str().unwrap())?;
 
-    let vocab_copy = vocab.clone();
-    let merges_copy = merges.clone();
-
-    // let gpt2_tokenizer = Gpt2Tokenizer::from_file(
-    //     vocab_path.to_str().unwrap(),
-    //     merges_path.to_str().unwrap(),
-    //     false,
-    // )?;
-
-    let gpt2_tokenizer =
-        Gpt2Tokenizer::from_existing_vocab_and_merges(vocab_copy, merges_copy, false);
+    let gpt2_tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, false);
 
     let original_strings = [
         "This is a sample sentence to be tokénized",
