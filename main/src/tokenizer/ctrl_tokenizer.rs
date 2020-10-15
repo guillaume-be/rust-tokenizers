@@ -17,13 +17,13 @@ use crate::tokenizer::tokenization_utils::{
     ctrl_bpe, fix_mask, lowercase, split_on_bpe_pairs, split_on_regex, split_on_special_tokens,
     BpeCache,
 };
-use crate::tokenizer::Tokenizer;
+use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 use regex::Regex;
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 /// # CTRL tokenizer
 /// CTRL tokenizer performing:
@@ -31,7 +31,6 @@ use std::collections::HashMap;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
-#[derive(Debug, Clone)]
 pub struct CtrlTokenizer {
     vocab: OpenAiGptVocab,
     bpe_ranks: BpePairVocab,
@@ -64,7 +63,7 @@ impl CtrlTokenizer {
     ) -> Result<CtrlTokenizer, TokenizerError> {
         let vocab = OpenAiGptVocab::from_file(vocab_path)?;
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
         Ok(CtrlTokenizer {
             vocab,
@@ -98,7 +97,7 @@ impl CtrlTokenizer {
         merges: BpePairVocab,
         lower_case: bool,
     ) -> CtrlTokenizer {
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let regex_pattern = Regex::new(r"\S+\n?").unwrap();
         CtrlTokenizer {
             vocab,
@@ -148,6 +147,8 @@ impl Tokenizer<OpenAiGptVocab> for CtrlTokenizer {
         tokens.join(" ").replace("@@ ", "").trim().to_owned()
     }
 }
+
+impl MultiThreadedTokenizer<OpenAiGptVocab> for CtrlTokenizer {}
 
 #[cfg(test)]
 mod tests {
@@ -234,7 +235,7 @@ mod tests {
         }
 
         assert_eq!(
-            ctrl_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&ctrl_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -267,7 +268,7 @@ mod tests {
         }
 
         assert_eq!(
-            ctrl_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&ctrl_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -390,7 +391,13 @@ mod tests {
             );
         }
         assert_eq!(
-            ctrl_tokenizer.encode_list(&source_texts, 128, &truncation_strategy, 0),
+            MultiThreadedTokenizer::encode_list(
+                &ctrl_tokenizer,
+                &source_texts,
+                128,
+                &truncation_strategy,
+                0
+            ),
             expected_results
         );
     }

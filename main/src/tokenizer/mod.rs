@@ -30,8 +30,7 @@
 //!     - T5
 //!     - Marian
 //!
-//! WordPiece tokenizers and SentencePiece tokenizers support multithreading (via the `MultiThreadedTokenizer` trait).
-//! Byte-Pair Encoding tokenizers do not support multithreading and instead rely on an internal cache for improving decoding efficiency.
+//! All tokenizers are `Send`, `Sync` and support multi-threaded tokenization and encoding.
 
 mod albert_tokenizer;
 pub(crate) mod base_tokenizer;

@@ -18,15 +18,15 @@ use crate::tokenizer::tokenization_utils::{
     bpe, fix_mask, split_on_bpe_pairs, split_on_regex_with_lookahead, split_on_special_tokens,
 };
 use crate::tokenizer::tokenization_utils::{lowercase, BpeCache};
-use crate::tokenizer::Tokenizer;
+use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{Gpt2Vocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 use itertools::Itertools;
 use regex::Regex;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::iter::Iterator;
+use std::sync::RwLock;
 
 /// # GPT2 tokenizer
 /// GPT2 tokenizer performing:
@@ -34,7 +34,6 @@ use std::iter::Iterator;
 /// - whitespace splitting
 /// - (optional) lower casing
 /// - BPE tokenization
-#[derive(Debug, Clone)]
 pub struct Gpt2Tokenizer {
     vocab: Gpt2Vocab,
     bpe_ranks: BpePairVocab,
@@ -68,7 +67,7 @@ impl Gpt2Tokenizer {
     ) -> Result<Gpt2Tokenizer, TokenizerError> {
         let vocab = Gpt2Vocab::from_file(vocab_path)?;
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
         let pattern_tokenization =
             Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
@@ -106,7 +105,7 @@ impl Gpt2Tokenizer {
         merges: BpePairVocab,
         lower_case: bool,
     ) -> Gpt2Tokenizer {
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
         let pattern_tokenization =
             Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
@@ -173,6 +172,8 @@ impl Tokenizer<Gpt2Vocab> for Gpt2Tokenizer {
         String::from_utf8_lossy(tokens.as_slice()).to_string()
     }
 }
+
+impl MultiThreadedTokenizer<Gpt2Vocab> for Gpt2Tokenizer {}
 
 #[cfg(test)]
 mod tests {
@@ -259,7 +260,7 @@ mod tests {
         }
 
         assert_eq!(
-            gpt2_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&gpt2_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -287,7 +288,7 @@ mod tests {
         }
 
         assert_eq!(
-            gpt2_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&gpt2_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -357,7 +358,13 @@ mod tests {
             );
         }
         assert_eq!(
-            gpt2_tokenizer.encode_list(&source_texts, 128, &truncation_strategy, 0),
+            MultiThreadedTokenizer::encode_list(
+                &gpt2_tokenizer,
+                &source_texts,
+                128,
+                &truncation_strategy,
+                0
+            ),
             expected_results
         );
     }

@@ -14,19 +14,17 @@
 
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{openai_gpt_bpe, split_on_bpe_pairs, BpeCache};
-use crate::tokenizer::{BaseTokenizer, Tokenizer};
+use crate::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 /// # GPT tokenizer
 /// GPT tokenizer performing:
 /// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
 /// - BPE tokenization
-#[derive(Debug, Clone)]
 pub struct OpenAiGptTokenizer {
     vocab: Arc<OpenAiGptVocab>,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
@@ -60,7 +58,7 @@ impl OpenAiGptTokenizer {
         let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path)?);
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         Ok(OpenAiGptTokenizer {
             vocab,
             base_tokenizer,
@@ -95,7 +93,7 @@ impl OpenAiGptTokenizer {
         lower_case: bool,
     ) -> OpenAiGptTokenizer {
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
-        let cache = RefCell::new(HashMap::new());
+        let cache = RwLock::new(HashMap::new());
         OpenAiGptTokenizer {
             vocab,
             base_tokenizer,
@@ -138,6 +136,8 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
         tokens.join("").replace("</w>", " ").trim().to_owned()
     }
 }
+
+impl MultiThreadedTokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {}
 
 #[cfg(test)]
 mod tests {
@@ -225,7 +225,7 @@ mod tests {
         }
 
         assert_eq!(
-            openai_gpt_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&openai_gpt_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -255,7 +255,7 @@ mod tests {
         }
 
         assert_eq!(
-            openai_gpt_tokenizer.tokenize_list(&source_texts),
+            MultiThreadedTokenizer::tokenize_list(&openai_gpt_tokenizer, &source_texts),
             expected_results
         );
     }
@@ -325,7 +325,13 @@ mod tests {
             );
         }
         assert_eq!(
-            openai_gpt_tokenizer.encode_list(&source_texts, 128, &truncation_strategy, 0),
+            MultiThreadedTokenizer::encode_list(
+                &openai_gpt_tokenizer,
+                &source_texts,
+                128,
+                &truncation_strategy,
+                0
+            ),
             expected_results
         );
     }

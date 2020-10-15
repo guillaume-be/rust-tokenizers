@@ -375,6 +375,8 @@ impl PyTokenizer<CtrlTokenizer, OpenAiGptVocab> for PyCtrlTokenizer {
     }
 }
 
+impl PyMultiThreadTokenizer<CtrlTokenizer, OpenAiGptVocab> for PyCtrlTokenizer {}
+
 #[pymethods]
 impl PyCtrlTokenizer {
     #[new]
@@ -394,7 +396,9 @@ impl PyCtrlTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<CtrlTokenizer, OpenAiGptVocab>>::tokenize_list(
+            &self, text_list,
+        )
     }
 
     fn encode(
@@ -438,7 +442,7 @@ impl PyCtrlTokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_list(
+        <Self as PyMultiThreadTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_list(
             &self,
             text_list,
             max_len,
@@ -454,7 +458,7 @@ impl PyCtrlTokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_pair_list(
+        <Self as PyMultiThreadTokenizer<CtrlTokenizer, OpenAiGptVocab>>::encode_pair_list(
             &self,
             text_list,
             max_len,
@@ -475,6 +479,8 @@ impl PyTokenizer<Gpt2Tokenizer, Gpt2Vocab> for PyGpt2Tokenizer {
     }
 }
 
+impl PyMultiThreadTokenizer<Gpt2Tokenizer, Gpt2Vocab> for PyGpt2Tokenizer {}
+
 #[pymethods]
 impl PyGpt2Tokenizer {
     #[new]
@@ -494,7 +500,7 @@ impl PyGpt2Tokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::tokenize_list(&self, text_list)
     }
 
     fn encode(
@@ -538,7 +544,7 @@ impl PyGpt2Tokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_list(
+        <Self as PyMultiThreadTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_list(
             &self,
             text_list,
             max_len,
@@ -554,7 +560,7 @@ impl PyGpt2Tokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair_list(
+        <Self as PyMultiThreadTokenizer<Gpt2Tokenizer, Gpt2Vocab>>::encode_pair_list(
             &self,
             text_list,
             max_len,
@@ -574,6 +580,8 @@ impl PyTokenizer<RobertaTokenizer, RobertaVocab> for PyRobertaTokenizer {
         &self.tokenizer
     }
 }
+
+impl PyMultiThreadTokenizer<RobertaTokenizer, RobertaVocab> for PyRobertaTokenizer {}
 
 #[pymethods]
 impl PyRobertaTokenizer {
@@ -600,7 +608,9 @@ impl PyRobertaTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<RobertaTokenizer, RobertaVocab>>::tokenize_list(
+            &self, text_list,
+        )
     }
 
     fn encode(
@@ -644,7 +654,7 @@ impl PyRobertaTokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_list(
+        <Self as PyMultiThreadTokenizer<RobertaTokenizer, RobertaVocab>>::encode_list(
             &self,
             text_list,
             max_len,
@@ -660,7 +670,7 @@ impl PyRobertaTokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<RobertaTokenizer, RobertaVocab>>::encode_pair_list(
+        <Self as PyMultiThreadTokenizer<RobertaTokenizer, RobertaVocab>>::encode_pair_list(
             &self,
             text_list,
             max_len,
@@ -681,6 +691,8 @@ impl PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab> for PyOpenAiGptTokenizer {
     }
 }
 
+impl PyMultiThreadTokenizer<OpenAiGptTokenizer, OpenAiGptVocab> for PyOpenAiGptTokenizer {}
+
 #[pymethods]
 impl PyOpenAiGptTokenizer {
     #[new]
@@ -700,7 +712,9 @@ impl PyOpenAiGptTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::tokenize_list(
+            &self, text_list,
+        )
     }
 
     fn encode(
@@ -744,7 +758,7 @@ impl PyOpenAiGptTokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_list(
+        <Self as PyMultiThreadTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_list(
             &self,
             text_list,
             max_len,
@@ -760,7 +774,7 @@ impl PyOpenAiGptTokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair_list(
+        <Self as PyMultiThreadTokenizer<OpenAiGptTokenizer, OpenAiGptVocab>>::encode_pair_list(
             &self,
             text_list,
             max_len,
