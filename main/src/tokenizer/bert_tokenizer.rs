@@ -19,14 +19,13 @@ use crate::tokenizer::base_tokenizer::{
 };
 use crate::tokenizer::tokenization_utils::tokenize_wordpiece;
 use crate::vocab::{BertVocab, Vocab};
-use std::sync::Arc;
 
 /// # BERT tokenizer
 /// BERT tokenizer performing:
 /// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
 /// - WordPiece tokenization
 pub struct BertTokenizer {
-    vocab: Arc<BertVocab>,
+    vocab: BertVocab,
     base_tokenizer: BaseTokenizer<BertVocab>,
 }
 
@@ -53,7 +52,7 @@ impl BertTokenizer {
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<BertTokenizer, TokenizerError> {
-        let vocab = Arc::new(BertVocab::from_file(path)?);
+        let vocab = BertVocab::from_file(path)?;
         let base_tokenizer =
             BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
         Ok(BertTokenizer {
@@ -65,7 +64,7 @@ impl BertTokenizer {
     /// Create a new instance of a `BertTokenizer` from an existing vocabulary
     ///
     /// # Parameters
-    /// - vocab (`Arc<BertVocab>`): Thread-safe reference to a BERT vocabulary
+    /// - vocab (`BertVocab`): Thread-safe reference to a BERT vocabulary
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
     ///
@@ -74,15 +73,14 @@ impl BertTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BertVocab, Vocab};
-    /// use std::sync::Arc;
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let vocab = BertVocab::from_file("path/to/vocab/file").unwrap();
     ///
-    /// let tokenizer = BertTokenizer::from_existing_vocab(Arc::new(vocab), lower_case, strip_accents);
+    /// let tokenizer = BertTokenizer::from_existing_vocab(vocab, lower_case, strip_accents);
     /// ```
     pub fn from_existing_vocab(
-        vocab: Arc<BertVocab>,
+        vocab: BertVocab,
         lower_case: bool,
         strip_accents: bool,
     ) -> BertTokenizer {
@@ -97,7 +95,7 @@ impl BertTokenizer {
 
 impl Tokenizer<BertVocab> for BertTokenizer {
     fn vocab(&self) -> &BertVocab {
-        self.vocab.as_ref()
+        &self.vocab
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
@@ -105,7 +103,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         self.base_tokenizer
             .tokenize_to_tokens(initial_token)
             .into_iter()
-            .map(|token| tokenize_wordpiece(token.as_ref(), self.vocab.as_ref(), 100))
+            .map(|token| tokenize_wordpiece(token.as_ref(), &self.vocab, 100))
             .flatten()
             .collect()
     }
@@ -229,7 +227,7 @@ mod tests {
     #[test]
     fn test_bert_tokenizer() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
         let test_tuples = [
             ("Hello [MASK] world!", vec!["hello", "[MASK]", "world", "!"]),
@@ -265,7 +263,7 @@ mod tests {
     #[test]
     fn test_bert_tokenizer_no_lower_casing() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, false, false);
         let test_tuples = [
             ("Hello [MASK] world!", vec!["[UNK]", "[MASK]", "world", "!"]),
@@ -301,7 +299,7 @@ mod tests {
     #[test]
     fn test_encode() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
@@ -460,7 +458,7 @@ mod tests {
                 &source_texts,
                 128,
                 &truncation_strategy,
-                0
+                0,
             ),
             expected_results
         );
@@ -469,7 +467,7 @@ mod tests {
     #[test]
     fn test_encode_sentence_pair() -> anyhow::Result<()> {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
         let truncation_strategy = TruncationStrategy::LongestFirst;
         let test_tuples = [
@@ -550,7 +548,7 @@ mod tests {
                     Some(source_text.1),
                     10,
                     &truncation_strategy,
-                    0
+                    0,
                 ),
                 *expected_result
             );
@@ -561,7 +559,7 @@ mod tests {
                 &source_texts,
                 10,
                 &truncation_strategy,
-                0
+                0,
             ),
             expected_results
         );
@@ -571,7 +569,7 @@ mod tests {
                 &source_texts,
                 10,
                 &truncation_strategy,
-                0
+                0,
             ),
             expected_results
         );
@@ -581,7 +579,7 @@ mod tests {
     #[test]
     fn test_decode() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
         let skip_special_tokens = false;
         let clean_up_tokenization_spaces = false;
@@ -601,7 +599,7 @@ mod tests {
                 bert_tokenizer.decode(
                     source_ids.clone(),
                     skip_special_tokens,
-                    clean_up_tokenization_spaces
+                    clean_up_tokenization_spaces,
                 ),
                 *expected_result
             );
@@ -611,7 +609,7 @@ mod tests {
                 &bert_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -620,7 +618,7 @@ mod tests {
                 &bert_tokenizer,
                 source_ids,
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -629,7 +627,7 @@ mod tests {
     #[test]
     fn test_decode_skip_special_tokens() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
         let skip_special_tokens = true;
         let clean_up_tokenization_spaces = true;
@@ -646,7 +644,7 @@ mod tests {
                 bert_tokenizer.decode(
                     source_ids.clone(),
                     skip_special_tokens,
-                    clean_up_tokenization_spaces
+                    clean_up_tokenization_spaces,
                 ),
                 *expected_result
             );
@@ -656,7 +654,7 @@ mod tests {
                 &bert_tokenizer,
                 source_ids.clone(),
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );
@@ -665,7 +663,7 @@ mod tests {
                 &bert_tokenizer,
                 source_ids,
                 skip_special_tokens,
-                clean_up_tokenization_spaces
+                clean_up_tokenization_spaces,
             ),
             expected_results
         );

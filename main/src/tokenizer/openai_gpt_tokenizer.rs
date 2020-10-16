@@ -19,14 +19,14 @@ use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 /// # GPT tokenizer
 /// GPT tokenizer performing:
 /// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
 /// - BPE tokenization
 pub struct OpenAiGptTokenizer {
-    vocab: Arc<OpenAiGptVocab>,
+    vocab: OpenAiGptVocab,
     base_tokenizer: BaseTokenizer<OpenAiGptVocab>,
     bpe_ranks: BpePairVocab,
     cache: BpeCache,
@@ -55,7 +55,7 @@ impl OpenAiGptTokenizer {
         merges_path: &str,
         lower_case: bool,
     ) -> Result<OpenAiGptTokenizer, TokenizerError> {
-        let vocab = Arc::new(OpenAiGptVocab::from_file(vocab_path)?);
+        let vocab = OpenAiGptVocab::from_file(vocab_path)?;
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RwLock::new(HashMap::new());
@@ -79,16 +79,14 @@ impl OpenAiGptTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{OpenAiGptTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BpePairVocab, OpenAiGptVocab, Vocab};
-    /// use std::sync::Arc;
     /// let lower_case = false;
     /// let vocab = OpenAiGptVocab::from_file("path/to/vocab/file").unwrap();
     /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
     ///
-    /// let tokenizer =
-    ///     OpenAiGptTokenizer::from_existing_vocab_and_merges(Arc::new(vocab), merges, lower_case);
+    /// let tokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, lower_case);
     /// ```
     pub fn from_existing_vocab_and_merges(
-        vocab: Arc<OpenAiGptVocab>,
+        vocab: OpenAiGptVocab,
         merges: BpePairVocab,
         lower_case: bool,
     ) -> OpenAiGptTokenizer {
@@ -105,7 +103,7 @@ impl OpenAiGptTokenizer {
 
 impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     fn vocab(&self) -> &OpenAiGptVocab {
-        self.vocab.as_ref()
+        &self.vocab
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
@@ -203,7 +201,7 @@ mod tests {
     #[test]
     fn test_openai_gpt_tokenizer() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
@@ -233,7 +231,7 @@ mod tests {
     #[test]
     fn test_openai_gpt_tokenizer_no_lower_casing() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, false);
@@ -263,7 +261,7 @@ mod tests {
     #[test]
     fn test_encode() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
@@ -339,7 +337,7 @@ mod tests {
     #[test]
     fn test_decode() {
         //        Given
-        let vocab = Arc::new(generate_test_vocab());
+        let vocab = generate_test_vocab();
         let merges = generate_test_merges();
         let openai_gpt_tokenizer: OpenAiGptTokenizer =
             OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, true);
