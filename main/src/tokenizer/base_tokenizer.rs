@@ -1502,7 +1502,7 @@ impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
     /// Create a new instance of a `BaseTokenizer` from an existing vocabulary
     ///
     /// # Parameters
-    /// - vocab (`Arc<Vocab>`): Thread-safe reference to a vocabulary
+    /// - vocab (`Vocab`): Thread-safe reference to a vocabulary
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
     ///
