@@ -2,12 +2,12 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use rust_tokenizers::tokenizer::{
     AlbertTokenizer, BertTokenizer, CtrlTokenizer, Gpt2Tokenizer, MultiThreadedTokenizer,
-    OpenAiGptTokenizer, RobertaTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer,
-    TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer,
+    OpenAiGptTokenizer, ReformerTokenizer, RobertaTokenizer, SentencePieceTokenizer, T5Tokenizer,
+    Tokenizer, TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer,
 };
 use rust_tokenizers::vocab::{
-    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, RobertaVocab, SentencePieceVocab, T5Vocab,
-    Vocab, XLMRobertaVocab, XLNetVocab,
+    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, ReformerVocab, RobertaVocab,
+    SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
 };
 
 #[pyclass]
@@ -1276,6 +1276,105 @@ impl PyXLMRobertaTokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyReformerTokenizer {
+    tokenizer: ReformerTokenizer,
+}
+
+impl PyTokenizer<ReformerTokenizer, ReformerVocab> for PyReformerTokenizer {
+    fn tokenizer(&self) -> &ReformerTokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<ReformerTokenizer, ReformerVocab> for PyReformerTokenizer {}
+
+#[pymethods]
+impl PyReformerTokenizer {
+    #[new]
+    fn new(path: String, do_lower_case: bool) -> Self {
+        PyReformerTokenizer {
+            tokenizer: ReformerTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
+        }
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<ReformerTokenizer, ReformerVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<ReformerTokenizer, ReformerVocab>>::tokenize_list(
+            &self, text_list,
+        )
+    }
+
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<ReformerTokenizer, ReformerVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<ReformerTokenizer, ReformerVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<ReformerTokenizer, ReformerVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<ReformerTokenizer, ReformerVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+}
+
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
@@ -1288,5 +1387,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyT5Tokenizer>()?;
     m.add_class::<PyXLMRobertaTokenizer>()?;
     m.add_class::<PyXLNetTokenizer>()?;
+    m.add_class::<PyReformerTokenizer>()?;
     Ok(())
 }
