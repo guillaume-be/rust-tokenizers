@@ -13,8 +13,8 @@
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{Token, TokenRef};
 use crate::tokenizer::tokenization_utils::{
-    bpe, fix_mask, is_whitespace, lowercase, split_on_bpe_pairs, split_on_special_tokens,
-    whitespace_tokenize, BpeCache,
+    bpe, decompose_nfkc, fix_mask, is_whitespace, lowercase, split_on_bpe_pairs,
+    split_on_special_tokens, whitespace_tokenize, BpeCache, _clean_text,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{BpePairVocab, ReformerVocab, Vocab};
@@ -23,11 +23,6 @@ use std::collections::HashMap;
 use std::sync::RwLock;
 
 /// # Reformer tokenizer
-/// Reformer tokenizer performing:
-/// - text cleaning
-/// - NFKC decomposition
-/// - (optional) lower casing
-/// - SentencePiece decomposition
 pub struct ReformerTokenizer {
     vocab: ReformerVocab,
     bpe_ranks: BpePairVocab,
@@ -79,27 +74,31 @@ impl Tokenizer<ReformerVocab> for ReformerTokenizer {
 
         let mut sub_tokens = Vec::new();
         for token in tokens.iter_mut() {
-            token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
-            if !token.text.starts_with('\u{2581}') {
-                token.text.insert(0, '\u{2581}');
-                token
-                    .reference_offsets
-                    .insert(0, token.reference_offsets[0]);
-            };
+            decompose_nfkc(token);
+            _clean_text(token, true);
+            if token.text.len() > 0 {
+                token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
+                if !token.text.starts_with('\u{2581}') {
+                    token.text.insert(0, '\u{2581}');
+                    token
+                        .reference_offsets
+                        .insert(0, token.reference_offsets[0]);
+                };
 
-            if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                if self.lower_case {
-                    lowercase(token);
+                if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    if self.lower_case {
+                        lowercase(token);
+                    }
+                    sub_tokens.extend(split_on_bpe_pairs(
+                        token.as_ref(),
+                        bpe,
+                        &self.bpe_ranks,
+                        &self.cache,
+                        false,
+                    ));
+                } else {
+                    sub_tokens.push(token.to_owned());
                 }
-                sub_tokens.extend(split_on_bpe_pairs(
-                    token.as_ref(),
-                    bpe,
-                    &self.bpe_ranks,
-                    &self.cache,
-                    false,
-                ));
-            } else {
-                sub_tokens.push(token.to_owned());
             }
 
             //     Consolidate consecutive unknown tokens
