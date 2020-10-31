@@ -11,9 +11,11 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
+use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use protobuf::parse_from_bytes;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::mem::ManuallyDrop;
 use std::ptr;
 
@@ -65,6 +67,49 @@ impl BpePairVocab {
             if tuple.len() > 1 {
                 data.insert((tuple[0].clone(), tuple[1].clone()), index);
                 index += 1;
+            }
+        }
+
+        Ok(BpePairVocab { values: data })
+    }
+
+    /// Create a new `BpePairVocab` from a SentencePiece file containing a BPE model.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::vocab::{BpePairVocab, Vocab};
+    /// let path = "path/to/spiece.model";
+    ///
+    /// let bpe_vocab = BpePairVocab::from_sentencepiece_file(path);
+    /// ```
+    pub fn from_sentencepiece_file(path: &str) -> Result<BpePairVocab, TokenizerError> {
+        let mut f = File::open(path).map_err(|e| {
+            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        })?;
+        let mut contents = Vec::new();
+        let proto = match f.read_to_end(&mut contents) {
+            Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
+                Ok(proto_value) => proto_value,
+                Err(e) => {
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+                }
+            },
+            Err(e) => {
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+            }
+        };
+        let mut values = HashMap::new();
+        for (idx, piece) in proto.get_pieces().iter().enumerate() {
+            values.insert(piece.get_piece().to_owned(), idx as i64);
+        }
+
+        let mut data = HashMap::new();
+        for l_piece in proto.get_pieces().iter().map(|v| v.get_piece()) {
+            for r_piece in proto.get_pieces().iter().map(|v| v.get_piece()) {
+                if let Some(id) = values.get(&[l_piece, r_piece].concat()) {
+                    data.insert((l_piece.to_string(), r_piece.to_string()), *id);
+                }
             }
         }
 
