@@ -1,5 +1,6 @@
-// Copyright 2019 Google LLC. All Rights Reserved.
-// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2020 The Trax Authors and The HuggingFace Inc. team.
+// Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+// Copyright 2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -67,7 +68,7 @@ impl Tokenizer<ReformerVocab> for ReformerTokenizer {
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut tokens = split_on_special_tokens(text, &self.vocab)
             .into_iter()
-            .map(|token| whitespace_tokenize(token))
+            .map(whitespace_tokenize)
             .flatten()
             .map(|token| token.to_owned())
             .collect::<Vec<Token>>();
@@ -76,7 +77,7 @@ impl Tokenizer<ReformerVocab> for ReformerTokenizer {
         for token in tokens.iter_mut() {
             decompose_nfkc(token);
             _clean_text(token, true);
-            if token.text.len() > 0 {
+            if !token.text.is_empty() {
                 token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
                 if !token.text.starts_with('\u{2581}') {
                     token.text.insert(0, '\u{2581}');
@@ -104,11 +105,11 @@ impl Tokenizer<ReformerVocab> for ReformerTokenizer {
             //     Consolidate consecutive unknown tokens
             let mut prev_is_unk = false;
             let mut indices_to_remove = vec![];
-            for index in 0..sub_tokens.len() {
-                if self.vocab.values.get(&sub_tokens[index].text).is_none() {
-                    sub_tokens[index].mask = Mask::Unknown;
+            for (index, sub_token) in sub_tokens.iter_mut().enumerate() {
+                if self.vocab.values.get(&sub_token.text).is_none() {
+                    sub_token.mask = Mask::Unknown;
                 }
-                if sub_tokens[index].mask == Mask::Unknown {
+                if sub_token.mask == Mask::Unknown {
                     if prev_is_unk {
                         indices_to_remove.push(index);
                     }
