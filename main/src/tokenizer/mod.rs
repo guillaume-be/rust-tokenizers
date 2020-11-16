@@ -29,6 +29,7 @@
 //!     - XLNet
 //!     - T5
 //!     - Marian
+//!     - Reformer
 //!
 //! All tokenizers are `Send`, `Sync` and support multi-threaded tokenization and encoding.
 
@@ -40,6 +41,7 @@ mod ctrl_tokenizer;
 mod gpt2_tokenizer;
 mod marian_tokenizer;
 mod openai_gpt_tokenizer;
+mod reformer_tokenizer;
 mod roberta_tokenizer;
 mod sentence_piece_tokenizer;
 mod t5_tokenizer;
@@ -54,6 +56,7 @@ pub use ctrl_tokenizer::CtrlTokenizer;
 pub use gpt2_tokenizer::Gpt2Tokenizer;
 pub use marian_tokenizer::MarianTokenizer;
 pub use openai_gpt_tokenizer::OpenAiGptTokenizer;
+pub use reformer_tokenizer::ReformerTokenizer;
 pub use roberta_tokenizer::RobertaTokenizer;
 pub use sentence_piece_tokenizer::SentencePieceTokenizer;
 pub use t5_tokenizer::T5Tokenizer;
