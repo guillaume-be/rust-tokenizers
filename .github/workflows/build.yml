@@ -1,0 +1,133 @@
+on: [ push, pull_request ]
+#  push:
+#    branches: [ master ]
+#  pull_request:
+#    branches: [ master ]
+
+name: Build
+
+jobs:
+  linux-stable:
+    name: Build and test Linux (stable)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build --manifest-path ./main/Cargo.toml --verbose
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test --manifest-path ./main/Cargo.toml
+
+  linux-beta:
+    name: Check Linux (beta)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build --manifest-path ./main/Cargo.toml --verbose
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check --manifest-path ./main/Cargo.toml
+
+  linux-nightly:
+    name: Check Linux (nightly)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: beta
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build --manifest-path ./main/Cargo.toml --verbose
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check --manifest-path ./main/Cargo.toml
+
+  windows-stable:
+    name: Build and test Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build --manifest-path ./main/Cargo.toml --verbose
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test --manifest-path ./main/Cargo.toml
+
+  test:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - run: |
+          cd python-bindings
+          pip install -r requirements-dev.txt
+          pip install transformers==3.0.2
+          python setup.py install
+      - run : pytest ./tests/test_tokenization_sst2.py
+      - run : pytest ./tests/test_tokenization_qnli.py
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --manifest-path ./main/Cargo.toml -- --check
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --manifest-path ./python-bindings/Cargo.toml -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --manifest-path ./main/Cargo.toml --all-targets --all-features  -- -D warnings
