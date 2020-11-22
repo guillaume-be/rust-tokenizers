@@ -19,10 +19,12 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: build --manifest-path ./main/Cargo.toml --verbose
+          command: build
+          args: --manifest-path ./main/Cargo.toml --verbose
       - uses: actions-rs/cargo@v1
         with:
-          command: test --manifest-path ./main/Cargo.toml
+          command: test
+          args: --manifest-path ./main/Cargo.toml
 
   linux-beta:
     name: Check Linux (beta)
@@ -36,10 +38,8 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: build --manifest-path ./main/Cargo.toml --verbose
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check --manifest-path ./main/Cargo.toml
+          command: check
+          args: --manifest-path ./main/Cargo.toml --verbose
 
   linux-nightly:
     name: Check Linux (nightly)
@@ -53,10 +53,8 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: build --manifest-path ./main/Cargo.toml --verbose
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check --manifest-path ./main/Cargo.toml
+          command: check
+          args: --manifest-path ./main/Cargo.toml --verbose
 
   windows-stable:
     name: Build and test Windows
@@ -70,10 +68,12 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: build --manifest-path ./main/Cargo.toml --verbose
+          command: build
+          args: --manifest-path ./main/Cargo.toml --verbose
       - uses: actions-rs/cargo@v1
         with:
-          command: test --manifest-path ./main/Cargo.toml
+          command: test
+          args: --manifest-path ./main/Cargo.toml
 
   test:
     name: Integration tests
@@ -93,8 +93,8 @@ jobs:
           pip install -r requirements-dev.txt
           pip install transformers==3.0.2
           python setup.py install
-      - run : pytest ./tests/test_tokenization_sst2.py
-      - run : pytest ./tests/test_tokenization_qnli.py
+      - run : pytest ./python-bindings/tests/test_tokenization_sst2.py
+      - run : pytest ./python-bindings/tests/test_tokenization_qnli.py
 
   fmt:
     name: Rustfmt
