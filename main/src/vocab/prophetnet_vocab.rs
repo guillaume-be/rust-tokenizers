@@ -192,7 +192,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(
             vocab_file,
-            "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD]"
+            "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD] \n [CLS]"
         )?;
         let path = vocab_file.into_temp_path();
         let target_values: HashMap<String, i64> = [
@@ -204,6 +204,7 @@ mod tests {
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
             ("[PAD]".to_owned(), 7),
+            ("[CLS]".to_owned(), 8),
         ]
         .iter()
         .cloned()
@@ -215,6 +216,7 @@ mod tests {
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
             ("[PAD]".to_owned(), 7),
+            ("[CLS]".to_owned(), 8),
         ]
         .iter()
         .cloned()
@@ -249,7 +251,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(
             vocab_file,
-            "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD]"
+            "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD] \n [CLS]"
         )?;
         let path = vocab_file.into_temp_path();
         let base_vocab = ProphetNetVocab::from_file(path.to_path_buf().to_str().unwrap())?;
@@ -264,6 +266,7 @@ mod tests {
         assert_eq!(base_vocab.token_to_id("[MASK]"), 6);
         assert_eq!(base_vocab.token_to_id("[X_SEP]"), 4);
         assert_eq!(base_vocab.token_to_id("[SEP]"), 5);
+        assert_eq!(base_vocab.token_to_id("[CLS]"), 8);
 
         drop(path);
         Ok(())
@@ -275,7 +278,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(
             vocab_file,
-            "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD]"
+            "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD] \n [CLS]"
         )?;
         let path = vocab_file.into_temp_path();
         let bert_vocab = ProphetNetVocab::from_file(path.to_path_buf().to_str().unwrap())?;
@@ -289,6 +292,7 @@ mod tests {
         assert_eq!(bert_vocab.id_to_token(&(6 as i64)), "[MASK]");
         assert_eq!(bert_vocab.id_to_token(&(4 as i64)), "[X_SEP]");
         assert_eq!(bert_vocab.id_to_token(&(5 as i64)), "[SEP]");
+        assert_eq!(bert_vocab.id_to_token(&(8 as i64)), "[CLS]");
 
         drop(path);
         Ok(())
