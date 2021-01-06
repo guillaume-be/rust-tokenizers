@@ -14,9 +14,9 @@ import tempfile
 from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_distilbert import DistilBertTokenizer
+from transformers import DistilBertTokenizer
 from rust_tokenizers import PyBertTokenizer
-from transformers.modeling_distilbert import DistilBertForSequenceClassification
+from transformers import DistilBertForSequenceClassification
 import torch
 from timeit import default_timer as timer
 

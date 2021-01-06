@@ -2,12 +2,13 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use rust_tokenizers::tokenizer::{
     AlbertTokenizer, BertTokenizer, CtrlTokenizer, Gpt2Tokenizer, MultiThreadedTokenizer,
-    OpenAiGptTokenizer, ReformerTokenizer, RobertaTokenizer, SentencePieceTokenizer, T5Tokenizer,
-    Tokenizer, TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer,
+    OpenAiGptTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
+    SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy, XLMRobertaTokenizer,
+    XLNetTokenizer,
 };
 use rust_tokenizers::vocab::{
-    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, ReformerVocab, RobertaVocab,
-    SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
+    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, ProphetNetVocab, ReformerVocab,
+    RobertaVocab, SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
 };
 
 #[pyclass]
@@ -1375,6 +1376,106 @@ impl PyReformerTokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyProphetNetTokenizer {
+    tokenizer: ProphetNetTokenizer,
+}
+
+impl PyTokenizer<ProphetNetTokenizer, ProphetNetVocab> for PyProphetNetTokenizer {
+    fn tokenizer(&self) -> &ProphetNetTokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<ProphetNetTokenizer, ProphetNetVocab> for PyProphetNetTokenizer {}
+
+#[pymethods]
+impl PyProphetNetTokenizer {
+    #[new]
+    fn new(path: String, do_lower_case: bool, strip_accents: bool) -> Self {
+        PyProphetNetTokenizer {
+            tokenizer: ProphetNetTokenizer::from_file(path.as_str(), do_lower_case, strip_accents)
+                .unwrap(),
+        }
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::tokenize_list(
+            &self, text_list,
+        )
+    }
+
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+}
+
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
@@ -1388,5 +1489,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyXLMRobertaTokenizer>()?;
     m.add_class::<PyXLNetTokenizer>()?;
     m.add_class::<PyReformerTokenizer>()?;
+    m.add_class::<PyProphetNetTokenizer>()?;
     Ok(())
 }

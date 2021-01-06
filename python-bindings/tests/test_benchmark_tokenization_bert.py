@@ -18,7 +18,7 @@ from zipfile import ZipFile
 import requests
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_bert import BertTokenizer
+from transformers import BertTokenizer
 from rust_tokenizers import PyBertTokenizer
 
 

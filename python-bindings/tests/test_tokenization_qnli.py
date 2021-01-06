@@ -20,8 +20,8 @@ import sentencepiece
 from rust_tokenizers.rust_tokenizers import PySentencePieceTokenizer
 from transformers.data.processors.glue import QnliProcessor
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_bert import BertTokenizer
-from transformers.tokenization_distilbert import DistilBertTokenizer
+from transformers import BertTokenizer
+from transformers import DistilBertTokenizer
 from rust_tokenizers import PyBertTokenizer
 import re
 

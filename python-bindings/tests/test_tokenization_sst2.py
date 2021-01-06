@@ -14,17 +14,18 @@ import tempfile
 from pathlib import Path
 import pytest
 from rust_tokenizers.rust_tokenizers import PySentencePieceTokenizer, PyXLMRobertaTokenizer
-from transformers import AlbertTokenizer, T5Tokenizer, XLMRobertaTokenizer, XLNetTokenizer, ReformerTokenizer
+from transformers import AlbertTokenizer, T5Tokenizer, XLMRobertaTokenizer, XLNetTokenizer, ReformerTokenizer, \
+    ProphetNetTokenizer
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_bert import BertTokenizer
-from transformers.tokenization_distilbert import DistilBertTokenizer
-from transformers.tokenization_ctrl import CTRLTokenizer
-from transformers.tokenization_gpt2 import GPT2Tokenizer
-from transformers.tokenization_roberta import RobertaTokenizer
-from transformers.tokenization_openai import OpenAIGPTTokenizer
+from transformers import BertTokenizer
+from transformers import DistilBertTokenizer
+from transformers import CTRLTokenizer
+from transformers import GPT2Tokenizer
+from transformers import RobertaTokenizer
+from transformers import OpenAIGPTTokenizer
 from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer, \
-    PyOpenAiGptTokenizer, PyAlbertTokenizer, PyT5Tokenizer, PyXLNetTokenizer, PyReformerTokenizer
+    PyOpenAiGptTokenizer, PyAlbertTokenizer, PyT5Tokenizer, PyXLNetTokenizer, PyReformerTokenizer, PyProphetNetTokenizer
 from zipfile import ZipFile
 import requests
 import sentencepiece
@@ -35,12 +36,12 @@ class TestTokenizationSST2:
     def setup_class(self):
         self.processor = Sst2Processor()
         self.test_dir = Path(tempfile.mkdtemp())
-        sst2_url = 'https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FSST-2.zip?alt=media&token=aabc5f6b-e466-44a2-b9b4-cf6337f84ac8'
+        sst2_url = 'https://dl.fbaipublicfiles.com/glue/data/STS-B.zip'
         contents = requests.get(sst2_url)
-        (self.test_dir / 'SST-2.zip').open('wb').write(contents.content)
-        with ZipFile(self.test_dir / 'SST-2.zip', 'r') as zipObj:
+        (self.test_dir / 'STS-B.zip').open('wb').write(contents.content)
+        with ZipFile(self.test_dir / 'STS-B.zip', 'r') as zipObj:
             zipObj.extractall(self.test_dir)
-        self.examples = self.processor.get_train_examples(self.test_dir / 'SST-2')
+        self.examples = self.processor.get_train_examples(self.test_dir / 'STS-B')
         sentence_piece_url = 'https://s3.amazonaws.com/models.huggingface.co/bert/xlnet-base-cased-spiece.model'
         contents = requests.get(sentence_piece_url)
         (self.test_dir / 'spiece.model').open('wb').write(contents.content)
@@ -491,6 +492,43 @@ class TestTokenizationSST2:
                               f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
                               f'Rust: {rust.token_ids} \n' \
                               f'Python {baseline["input_ids"]}'
+            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
+
+    def test_tokenization_prophetnet(self):
+        # Given
+        self.base_tokenizer = ProphetNetTokenizer.from_pretrained('microsoft/prophetnet-large-uncased',
+                                                                  do_lower_case=True,
+                                                                  strip_accents=True,
+                                                                  cache_dir=self.test_dir)
+        self.rust_tokenizer = PyProphetNetTokenizer(
+            get_from_cache(
+                self.base_tokenizer.pretrained_vocab_files_map['vocab_file']['microsoft/prophetnet-large-uncased']),
+            do_lower_case=True,
+            strip_accents=True)
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
+                                                                   add_special_tokens=True,
+                                                                   return_overflowing_tokens=True,
+                                                                   return_special_tokens_mask=True,
+                                                                   max_length=128))
+
+        # When
+        output_rust = self.rust_tokenizer.encode_list([example.text_a for example in self.examples],
+                                                      max_len=128,
+                                                      truncation_strategy='longest_first',
+                                                      stride=0)
+
+        # Then
+        for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f' Python {baseline["input_ids"]}'
+            assert (rust.segment_ids == baseline['token_type_ids'])
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def get_token_diff(self, rust_tokens, python_tokens):
