@@ -12,7 +12,7 @@
 
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{
-    _clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
+    clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
     strip_accents,
 };
 use crate::vocab::{AlbertVocab, SentencePieceModel};
@@ -168,7 +168,7 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
                 replace_string(token, "``", "\"");
                 replace_string(token, "\'\'", "\"");
-                _clean_text(token, true);
+                clean_text(token, true);
                 decompose_nfkc(token);
                 if self.lower_case {
                     lowercase(token);

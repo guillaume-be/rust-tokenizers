@@ -14,8 +14,8 @@
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{Token, TokenRef};
 use crate::tokenizer::tokenization_utils::{
-    bpe, decompose_nfkc, fix_mask, is_whitespace, lowercase, split_on_bpe_pairs,
-    split_on_special_tokens, whitespace_tokenize, BpeCache, _clean_text,
+    bpe, clean_text, decompose_nfkc, fix_mask, is_whitespace, lowercase, split_on_bpe_pairs,
+    split_on_special_tokens, whitespace_tokenize, BpeCache,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{BpePairVocab, ReformerVocab, Vocab};
@@ -76,7 +76,7 @@ impl Tokenizer<ReformerVocab> for ReformerTokenizer {
         let mut sub_tokens = Vec::new();
         for token in tokens.iter_mut() {
             decompose_nfkc(token);
-            _clean_text(token, true);
+            clean_text(token, true);
             if !token.text.is_empty() {
                 token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
                 if !token.text.starts_with('\u{2581}') {

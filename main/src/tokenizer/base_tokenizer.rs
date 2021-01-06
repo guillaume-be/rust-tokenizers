@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::tokenizer::tokenization_utils::lowercase;
+use crate::tokenizer::tokenization_utils::{clean_text, lowercase};
 use crate::tokenizer::tokenization_utils::{
     split_on_punct, split_on_special_tokens, strip_accents, tokenize_cjk_chars, truncate_sequences,
     whitespace_tokenize,
@@ -1563,6 +1563,7 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
                     mask: token.mask,
                 };
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
+                    clean_text(&mut token, true);
                     //apply the necessary transformations to the actual tokens (unless it's a special value)
                     if self.lower_case {
                         lowercase(&mut token);
