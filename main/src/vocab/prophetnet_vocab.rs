@@ -111,9 +111,6 @@ impl Vocab for ProphetNetVocab {
         let sep_value = ProphetNetVocab::sep_value();
         ProphetNetVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
 
-        let x_sep_value = ProphetNetVocab::x_sep_value();
-        ProphetNetVocab::_register_as_special_value(x_sep_value, &values, &mut special_values)?;
-
         let mask_value = ProphetNetVocab::mask_value();
         ProphetNetVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
 
