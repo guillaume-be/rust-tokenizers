@@ -209,7 +209,6 @@ mod tests {
 
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
-            ("[X_SEP]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
             ("[PAD]".to_owned(), 7),

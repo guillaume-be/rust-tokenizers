@@ -29,7 +29,7 @@ pub struct ProphetNetTokenizer {
 }
 
 impl ProphetNetTokenizer {
-    /// Create a new instance of a `ProphetNetTokenizer`
+    /// Create a new instance of a `ProphetNetTokenizer`.
     /// Expects a vocabulary flat-file as an input.
     ///
     /// # Parameters

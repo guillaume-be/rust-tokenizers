@@ -55,11 +55,8 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     }
     token.text = cleaned_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token
-        .reference_offsets
-        .first()
-        .unwrap_or(&(0 as OffsetSize));
-    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize)) + 1;
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
 }
 
 /// Replaces a pattern &str by a replacement &str keeping track of the offsets
@@ -116,14 +113,14 @@ pub fn tokenize_cjk_chars(token: TokenRef) -> Vec<TokenRef> {
 
 fn is_cjk_char(character: &char) -> bool {
     let u32_char = *character as u32;
-    ((u32_char >= 0x4E00) & (u32_char <= 0x9FFF))
-        | ((u32_char >= 0x3400) & (u32_char <= 0x4DBF))
-        | ((u32_char >= 0x20000) & (u32_char <= 0x2A6DF))
-        | ((u32_char >= 0x2A700) & (u32_char <= 0x2B73F))
-        | ((u32_char >= 0x2B740) & (u32_char <= 0x2B81F))
-        | ((u32_char >= 0x2B820) & (u32_char <= 0x2CEAF))
-        | ((u32_char >= 0xF900) & (u32_char <= 0xFAFF))
-        | ((u32_char >= 0x2F800) & (u32_char <= 0x2FA1F))
+    (0x4E00..=0x9FFF).contains(&u32_char)
+        | (0x3400..=0x4DBF).contains(&u32_char)
+        | (0x20000..=0x2A6DF).contains(&u32_char)
+        | (0x2A700..=0x2B73F).contains(&u32_char)
+        | (0x2B740..=0x2B81F).contains(&u32_char)
+        | (0x2B820..=0x2CEAF).contains(&u32_char)
+        | (0xF900..=0xFAFF).contains(&u32_char)
+        | (0x2F800..=0x2FA1F).contains(&u32_char)
 }
 
 pub fn is_whitespace(character: &char) -> bool {
@@ -142,14 +139,14 @@ pub fn is_control(character: &char, strict: bool) -> bool {
     } else if strict {
         let u32_char = *character as u32;
         (u32_char <= 0x001F)
-            | ((u32_char >= 0x0080) & (u32_char <= 0x009F))
-            | ((u32_char >= 0xE0020) & (u32_char <= 0xE007F))
-            | ((u32_char >= 0xE000) & (u32_char <= 0xF8FF))
-            | ((u32_char >= 0xF0000) & (u32_char <= 0xFFFFD))
-            | ((u32_char >= 0x100000) & (u32_char <= 0x10FFFD))
-            | ((u32_char >= 0xD800) & (u32_char <= 0xDB7F))
-            | ((u32_char >= 0xDB80) & (u32_char <= 0xDBFF))
-            | ((u32_char >= 0xDC00) & (u32_char <= 0xDFFF))
+            | (0x0080..=0x009F).contains(&u32_char)
+            | (0xE0020..=0xE007F).contains(&u32_char)
+            | (0xE000..=0xF8FF).contains(&u32_char)
+            | (0xF0000..=0xFFFFD).contains(&u32_char)
+            | (0x100000..=0x10FFFD).contains(&u32_char)
+            | (0xD800..=0xDB7F).contains(&u32_char)
+            | (0xDB80..=0xDBFF).contains(&u32_char)
+            | (0xDC00..=0xDFFF).contains(&u32_char)
             | CONTROL_CHARS.contains(&u32_char)
     } else {
         character.is_control()
@@ -158,10 +155,10 @@ pub fn is_control(character: &char, strict: bool) -> bool {
 
 pub fn is_punctuation(character: &char) -> bool {
     let u32_char = *character as u32;
-    if ((u32_char >= 33) & (u32_char <= 47))
-        | ((u32_char >= 58) & (u32_char <= 64))
-        | ((u32_char >= 91) & (u32_char <= 96))
-        | ((u32_char >= 123) & (u32_char <= 126))
+    if (33..=47).contains(&u32_char)
+        | (58..=64).contains(&u32_char)
+        | (91..=96).contains(&u32_char)
+        | (123..=126).contains(&u32_char)
     {
         true
     } else {
@@ -187,11 +184,8 @@ pub fn lowercase(token: &mut Token) {
     }
     token.text = lower_cased_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token
-        .reference_offsets
-        .first()
-        .unwrap_or(&(0 as OffsetSize));
-    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize)) + 1;
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
 }
 
 ///Remove diacritics
@@ -209,11 +203,8 @@ pub fn strip_accents(token: &mut Token) {
     }
     token.text = decomposed_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token
-        .reference_offsets
-        .first()
-        .unwrap_or(&(0 as OffsetSize));
-    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize)) + 1;
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
 }
 
 ///NFKC decomposition
@@ -229,11 +220,8 @@ pub fn decompose_nfkc(token: &mut Token) {
     }
     token.text = decomposed_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token
-        .reference_offsets
-        .first()
-        .unwrap_or(&(0 as OffsetSize));
-    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0 as OffsetSize)) + 1;
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0));
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
 }
 
 ///Split a token on punctuation

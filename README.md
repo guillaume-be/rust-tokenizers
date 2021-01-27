@@ -14,6 +14,7 @@ A broad range of tokenizers for state-of-the-art transformers architectures is i
 - RoBERTa
 - GPT
 - GPT2
+- ProphetNet
 - CTRL
 
 The wordpiece based tokenizers include both single-threaded and multi-threaded processing. The Byte-Pair-Encoding tokenizers favor the use of a shared cache and are only available as single-threaded tokenizers
