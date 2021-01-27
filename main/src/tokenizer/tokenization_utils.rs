@@ -1082,7 +1082,6 @@ mod tests {
     use crate::error::TokenizerError;
     use crate::vocab::base_vocab::swap_key_values;
     use std::collections::HashMap;
-    use std::iter::FromIterator;
 
     fn generate_test_vocab() -> BertVocab {
         let values: HashMap<String, i64> = [
@@ -2390,7 +2389,7 @@ mod tests {
         let test_tuples = [
             (
                 vec![h.clone(), e.clone(), l.clone(), l.clone(), o.clone()],
-                Some(HashSet::from_iter(
+                Some(
                     [
                         BpePairRef {
                             byte_1: &h,
@@ -2410,8 +2409,9 @@ mod tests {
                         },
                     ]
                     .iter()
-                    .cloned(),
-                )),
+                    .cloned()
+                    .collect::<HashSet<BpePairRef>>(),
+                ),
             ),
             (
                 vec![
@@ -2423,7 +2423,7 @@ mod tests {
                     l.clone(),
                     o.clone(),
                 ],
-                Some(HashSet::from_iter(
+                Some(
                     [
                         BpePairRef {
                             byte_1: &h,
@@ -2443,23 +2443,25 @@ mod tests {
                         },
                     ]
                     .iter()
-                    .cloned(),
-                )),
+                    .cloned()
+                    .collect::<HashSet<BpePairRef>>(),
+                ),
             ),
             (
                 vec![h.clone(), e.clone()],
-                Some(HashSet::from_iter(
+                Some(
                     [BpePairRef {
                         byte_1: &h,
                         byte_2: &e,
                     }]
                     .iter()
-                    .cloned(),
-                )),
+                    .cloned()
+                    .collect::<HashSet<BpePairRef>>(),
+                ),
             ),
             (
                 vec![h.clone(), space.clone(), e.clone()],
-                Some(HashSet::from_iter(
+                Some(
                     [
                         BpePairRef {
                             byte_1: &h,
@@ -2471,8 +2473,9 @@ mod tests {
                         },
                     ]
                     .iter()
-                    .cloned(),
-                )),
+                    .cloned()
+                    .collect::<HashSet<BpePairRef>>(),
+                ),
             ),
             (vec![h.clone()], None),
             (vec![], None),

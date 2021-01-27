@@ -27,7 +27,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
 
     let expected_results = [
         TokenizedInput {
-            token_ids: vec![100, 19, 3, 9, 3106, 7142, 12, 36, 12, 157, 154, 29, 1601],
+            token_ids: vec![100, 19, 3, 9, 3106, 7142, 12, 36, 12, 157, 154, 29, 1601, 1],
             segment_ids: vec![],
             special_tokens_mask: vec![],
             overflowing_tokens: vec![],
@@ -46,12 +46,13 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 35, end: 36 }),
                 Some(Offset { begin: 37, end: 38 }),
                 Some(Offset { begin: 38, end: 42 }),
+                None,
             ],
             reference_offsets: vec![],
             mask: vec![],
         },
         TokenizedInput {
-            token_ids: vec![16347, 53, 149, 48, 56, 129, 14145, 1601, 3, 2, 3, 58],
+            token_ids: vec![16347, 53, 149, 48, 56, 129, 14145, 1601, 3, 2, 3, 58, 1],
             segment_ids: vec![],
             special_tokens_mask: vec![],
             overflowing_tokens: vec![],
@@ -69,6 +70,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 38, end: 39 }),
                 Some(Offset { begin: 39, end: 40 }),
                 Some(Offset { begin: 40, end: 41 }),
+                None,
             ],
             reference_offsets: vec![],
             mask: vec![],
@@ -76,7 +78,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 3, 2, 7, 3, 189, 55, 7, 3, 2, 3, 2, 3, 2, 412, 122, 40, 354, 2, 23, 2, 3, 26, 2,
-                76, 3, 29, 2, 1725,
+                76, 3, 29, 2, 1725, 1,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -111,6 +113,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 27, end: 28 }),
                 Some(Offset { begin: 28, end: 29 }),
                 Some(Offset { begin: 29, end: 31 }),
+                None,
             ],
             reference_offsets: vec![],
             mask: vec![],
@@ -118,7 +121,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 3, 3, 3, 2, 7, 3, 189, 55, 7, 3, 3, 3, 3, 2, 3, 2, 3, 2, 3, 3, 412, 122, 40, 354,
-                2, 23, 2, 3, 3, 26, 2, 76, 3, 29, 2, 1725, 3, 3, 3, 3, 3,
+                2, 23, 2, 3, 3, 26, 2, 76, 3, 29, 2, 1725, 3, 3, 3, 3, 3, 1,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -166,6 +169,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 42, end: 43 }),
                 Some(Offset { begin: 43, end: 44 }),
                 Some(Offset { begin: 44, end: 45 }),
+                None,
             ],
             reference_offsets: vec![],
             mask: vec![],
@@ -173,7 +177,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
         TokenizedInput {
             token_ids: vec![
                 3, 3, 2, 7, 3, 189, 55, 7, 3, 3, 2, 3, 2, 3, 2, 3, 3, 412, 122, 40, 354, 2, 23, 2,
-                3, 3, 26, 2, 76, 3, 29, 2, 1725, 3, 3, 3, 3, 3,
+                3, 3, 26, 2, 76, 3, 29, 2, 1725, 3, 3, 3, 3, 3, 1,
             ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
@@ -218,6 +222,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 42, end: 43 }),
                 Some(Offset { begin: 43, end: 44 }),
                 Some(Offset { begin: 44, end: 45 }),
+                None,
             ],
             reference_offsets: vec![],
             mask: vec![],
