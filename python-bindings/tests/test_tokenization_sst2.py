@@ -29,19 +29,19 @@ from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, P
 from zipfile import ZipFile
 import requests
 import sentencepiece
-
+from collections import Counter
 
 @pytest.mark.slow
 class TestTokenizationSST2:
     def setup_class(self):
         self.processor = Sst2Processor()
         self.test_dir = Path(tempfile.mkdtemp())
-        sst2_url = 'https://dl.fbaipublicfiles.com/glue/data/STS-B.zip'
+        sst2_url = 'https://dl.fbaipublicfiles.com/glue/data/SST-2.zip'
         contents = requests.get(sst2_url)
-        (self.test_dir / 'STS-B.zip').open('wb').write(contents.content)
-        with ZipFile(self.test_dir / 'STS-B.zip', 'r') as zipObj:
+        (self.test_dir / 'SST-2.zip').open('wb').write(contents.content)
+        with ZipFile(self.test_dir / 'SST-2.zip', 'r') as zipObj:
             zipObj.extractall(self.test_dir)
-        self.examples = self.processor.get_train_examples(self.test_dir / 'STS-B')
+        self.examples = self.processor.get_train_examples(self.test_dir / 'SST-2')
         sentence_piece_url = 'https://s3.amazonaws.com/models.huggingface.co/bert/xlnet-base-cased-spiece.model'
         contents = requests.get(sentence_piece_url)
         (self.test_dir / 'spiece.model').open('wb').write(contents.content)
@@ -312,20 +312,23 @@ class TestTokenizationSST2:
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
             if rust.token_ids != baseline['input_ids']:
-                for pos, (rust_id, baseline_id) in enumerate(zip(rust.token_ids, baseline['input_ids'])):
-                    # This check is required a SentencePiece can also be ambiguous in very rare cases
-                    # (e.g. "eee" -> "e, ee" or "ee, e" have the same score)
-                    if rust_id != baseline_id:
-                        if pos < len(baseline):
-                            if (rust_id != baseline['input_ids'][pos + 1]) & \
-                                    (rust_id != baseline['input_ids'][pos - 1]):
-                                raise AssertionError(
-                                    f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
-                                    f'Sentence a: {self.examples[idx].text_a} \n'
-                                    f'Sentence b: {self.examples[idx].text_b} \n'
-                                    f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
-                                    f'Rust: {rust.token_ids} \n'
-                                    f'Python {baseline["input_ids"]}')
+                if len(rust.token_ids) == len(baseline['input_ids']):
+                    if Counter(rust.token_ids) != Counter(baseline['input_ids']):
+                        raise AssertionError(
+                            f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                            f'Sentence a: {self.examples[idx].text_a} \n'
+                            f'Sentence b: {self.examples[idx].text_b} \n'
+                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                            f'Rust: {rust.token_ids} \n'
+                            f'Python {baseline["input_ids"]}')
+                else:
+                    raise AssertionError(
+                        f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                        f'Sentence a: {self.examples[idx].text_a} \n'
+                        f'Sentence b: {self.examples[idx].text_b} \n'
+                        f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                        f'Rust: {rust.token_ids} \n'
+                        f'Python {baseline["input_ids"]}')
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_xlnet(self):
@@ -356,20 +359,23 @@ class TestTokenizationSST2:
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
             if rust.token_ids != baseline['input_ids']:
-                for pos, (rust_id, baseline_id) in enumerate(zip(rust.token_ids, baseline['input_ids'])):
-                    # This check is required a SentencePiece can also be ambiguous in very rare cases
-                    # (e.g. "eee" -> "e, ee" or "ee, e" have the same score)
-                    if rust_id != baseline_id:
-                        if pos < len(baseline):
-                            if (rust_id != baseline['input_ids'][pos + 1]) & \
-                                    (rust_id != baseline['input_ids'][pos - 1]):
-                                raise AssertionError(
-                                    f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
-                                    f'Sentence a: {self.examples[idx].text_a} \n'
-                                    f'Sentence b: {self.examples[idx].text_b} \n'
-                                    f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
-                                    f'Rust: {rust.token_ids} \n'
-                                    f'Python {baseline["input_ids"]}')
+                if len(rust.token_ids) == len(baseline['input_ids']):
+                    if Counter(rust.token_ids) != Counter(baseline['input_ids']):
+                        raise AssertionError(
+                            f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                            f'Sentence a: {self.examples[idx].text_a} \n'
+                            f'Sentence b: {self.examples[idx].text_b} \n'
+                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                            f'Rust: {rust.token_ids} \n'
+                            f'Python {baseline["input_ids"]}')
+                else:
+                    raise AssertionError(
+                        f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                        f'Sentence a: {self.examples[idx].text_a} \n'
+                        f'Sentence b: {self.examples[idx].text_b} \n'
+                        f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                        f'Rust: {rust.token_ids} \n'
+                        f'Python {baseline["input_ids"]}')
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_t5(self):
@@ -399,20 +405,23 @@ class TestTokenizationSST2:
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
             if rust.token_ids != baseline['input_ids']:
-                for pos, (rust_id, baseline_id) in enumerate(zip(rust.token_ids, baseline['input_ids'])):
-                    # This check is required a SentencePiece can also be ambiguous in very rare cases
-                    # (e.g. "eee" -> "e, ee" or "ee, e" have the same score)
-                    if rust_id != baseline_id:
-                        if pos < len(baseline):
-                            if (rust_id != baseline['input_ids'][pos + 1]) & \
-                                    (rust_id != baseline['input_ids'][pos - 1]):
-                                raise AssertionError(
-                                    f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
-                                    f'Sentence a: {self.examples[idx].text_a} \n'
-                                    f'Sentence b: {self.examples[idx].text_b} \n'
-                                    f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
-                                    f'Rust: {rust.token_ids} \n'
-                                    f'Python {baseline["input_ids"]}')
+                if len(rust.token_ids) == len(baseline['input_ids']):
+                    if Counter(rust.token_ids) != Counter(baseline['input_ids']):
+                        raise AssertionError(
+                            f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                            f'Sentence a: {self.examples[idx].text_a} \n'
+                            f'Sentence b: {self.examples[idx].text_b} \n'
+                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                            f'Rust: {rust.token_ids} \n'
+                            f'Python {baseline["input_ids"]}')
+                else:
+                    raise AssertionError(
+                        f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                        f'Sentence a: {self.examples[idx].text_a} \n'
+                        f'Sentence b: {self.examples[idx].text_b} \n'
+                        f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                        f'Rust: {rust.token_ids} \n'
+                        f'Python {baseline["input_ids"]}')
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_xlm_roberta(self):
@@ -443,20 +452,23 @@ class TestTokenizationSST2:
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
             if rust.token_ids != baseline['input_ids']:
-                for pos, (rust_id, baseline_id) in enumerate(zip(rust.token_ids, baseline['input_ids'])):
-                    # This check is required a SentencePiece can also be ambiguous in very rare cases
-                    # (e.g. "eee" -> "e, ee" or "ee, e" have the same score)
-                    if rust_id != baseline_id:
-                        if pos < len(baseline):
-                            if (rust_id != baseline['input_ids'][pos + 1]) & \
-                                    (rust_id != baseline['input_ids'][pos - 1]):
-                                raise AssertionError(
-                                    f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
-                                    f'Sentence a: {self.examples[idx].text_a} \n'
-                                    f'Sentence b: {self.examples[idx].text_b} \n'
-                                    f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
-                                    f'Rust: {rust.token_ids} \n'
-                                    f'Python {baseline["input_ids"]}')
+                if len(rust.token_ids) == len(baseline['input_ids']):
+                    if Counter(rust.token_ids) != Counter(baseline['input_ids']):
+                        raise AssertionError(
+                            f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                            f'Sentence a: {self.examples[idx].text_a} \n'
+                            f'Sentence b: {self.examples[idx].text_b} \n'
+                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                            f'Rust: {rust.token_ids} \n'
+                            f'Python {baseline["input_ids"]}')
+                else:
+                    raise AssertionError(
+                        f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                        f'Sentence a: {self.examples[idx].text_a} \n'
+                        f'Sentence b: {self.examples[idx].text_b} \n'
+                        f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                        f'Rust: {rust.token_ids} \n'
+                        f'Python {baseline["input_ids"]}')
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_reformer(self):

@@ -298,14 +298,14 @@ mod tests {
         let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        When & Then
-        assert_eq!(roberta_vocab.id_to_token(&(1 as i64)), "hello");
-        assert_eq!(roberta_vocab.id_to_token(&(0 as i64)), "world");
-        assert_eq!(roberta_vocab.id_to_token(&(3 as i64)), "!");
-        assert_eq!(roberta_vocab.id_to_token(&(2 as i64)), "<unk>");
-        assert_eq!(roberta_vocab.id_to_token(&(5 as i64)), "<s>");
-        assert_eq!(roberta_vocab.id_to_token(&(6 as i64)), "</s>");
-        assert_eq!(roberta_vocab.id_to_token(&(7 as i64)), "<mask>");
-        assert_eq!(roberta_vocab.id_to_token(&(4 as i64)), "<pad>");
+        assert_eq!(roberta_vocab.id_to_token(&(1_i64)), "hello");
+        assert_eq!(roberta_vocab.id_to_token(&(0_i64)), "world");
+        assert_eq!(roberta_vocab.id_to_token(&(3_i64)), "!");
+        assert_eq!(roberta_vocab.id_to_token(&(2_i64)), "<unk>");
+        assert_eq!(roberta_vocab.id_to_token(&(5_i64)), "<s>");
+        assert_eq!(roberta_vocab.id_to_token(&(6_i64)), "</s>");
+        assert_eq!(roberta_vocab.id_to_token(&(7_i64)), "<mask>");
+        assert_eq!(roberta_vocab.id_to_token(&(4_i64)), "<pad>");
         drop(path);
         Ok(())
     }

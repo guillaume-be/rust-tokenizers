@@ -231,10 +231,10 @@ mod tests {
         let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        When & Then
-        assert_eq!(openai_gpt_vocab.id_to_token(&(1 as i64)), "hello");
-        assert_eq!(openai_gpt_vocab.id_to_token(&(0 as i64)), "world");
-        assert_eq!(openai_gpt_vocab.id_to_token(&(3 as i64)), "!");
-        assert_eq!(openai_gpt_vocab.id_to_token(&(2 as i64)), "<unk>");
+        assert_eq!(openai_gpt_vocab.id_to_token(&(1_i64)), "hello");
+        assert_eq!(openai_gpt_vocab.id_to_token(&(0_i64)), "world");
+        assert_eq!(openai_gpt_vocab.id_to_token(&(3_i64)), "!");
+        assert_eq!(openai_gpt_vocab.id_to_token(&(2_i64)), "<unk>");
 
         drop(path);
         Ok(())
