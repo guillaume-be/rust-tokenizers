@@ -1,10 +1,10 @@
 # rust-tokenizers
 
-[![Build Status](https://travis-ci.com/guillaume-be/rust-tokenizers.svg?branch=master)](https://travis-ci.com/guillaume-be/rust-tokenizers)
+[![Build Status](https://github.com/guillaume-be/rust-tokenizers/workflows/Build/badge.svg?event=push)](https://github.com/guillaume-be/rust-tokenizers/actions)
 [![Latest version](https://img.shields.io/crates/v/rust_tokenizers.svg)](https://crates.io/crates/rust_tokenizers)
 ![License](https://img.shields.io/crates/l/rust_tokenizers.svg)
 
-Rust-tokenizer is a drop-in replacement for the tokenization methods from the [Transformers library](https://github.com/huggingface/transformers)
+Rust-tokenizer offers high-performance tokenizers for modern language models, including WordPiece, Byte-Pair Encoding (BPE) and Unigram (SentencePiece) models.
 These tokenizers are used in the [rust-bert](https://github.com/guillaume-be/rust-bert) crate.
 A broad range of tokenizers for state-of-the-art transformers architectures is included, including:
 - Sentence Piece (unigram model)
