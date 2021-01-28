@@ -4,10 +4,12 @@ Rust-tokenizer is a drop-in replacement for the tokenization methods from the [T
 It includes a broad range of tokenizers for state-of-the-art transformers architectures, including:
 - Sentence Piece (unigram model)
 - BERT
+- ALBERT
 - DistilBERT
 - RoBERTa
 - GPT
 - GPT2
+- ProphetNet
 - CTRL
 
 The wordpiece based tokenizers include both single-threaded and multi-threaded processing. The Byte-Pair-Encoding tokenizers favor the use of a shared cache and are only available as single-threaded tokenizers

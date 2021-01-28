@@ -14,9 +14,9 @@ import tempfile
 from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_openai import OpenAIGPTTokenizer
+from transformers import OpenAIGPTTokenizer
 from rust_tokenizers import PyOpenAiGptTokenizer
-from transformers.modeling_openai import OpenAIGPTModel
+from transformers import OpenAIGPTModel
 import torch
 from timeit import default_timer as timer
 

@@ -12,11 +12,11 @@
 
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{
-    _clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
+    clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{SentencePieceModel, T5Vocab, Vocab};
-use crate::{Mask, Token, TokenRef};
+use crate::{Mask, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef};
 
 /// # T5 tokenizer
 /// T5 tokenizer performing:
@@ -29,6 +29,7 @@ pub struct T5Tokenizer {
     model: SentencePieceModel,
     vocab: T5Vocab,
     lower_case: bool,
+    eos_token_id: i64,
 }
 
 impl T5Tokenizer {
@@ -49,10 +50,12 @@ impl T5Tokenizer {
     pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = T5Vocab::from_file(path)?;
+        let eos_token_id = vocab.token_to_id(T5Vocab::eos_value());
         Ok(T5Tokenizer {
             model,
             vocab,
             lower_case,
+            eos_token_id,
         })
     }
 
@@ -79,10 +82,20 @@ impl T5Tokenizer {
         model: SentencePieceModel,
         lower_case: bool,
     ) -> T5Tokenizer {
+        let eos_token_id = vocab.token_to_id(T5Vocab::eos_value());
         T5Tokenizer {
             model,
             vocab,
             lower_case,
+            eos_token_id,
+        }
+    }
+
+    fn ends_with_eos(&self, tokens: &TokenIdsWithOffsets) -> bool {
+        if tokens.ids.is_empty() {
+            false
+        } else {
+            *tokens.ids.last().unwrap() == self.eos_token_id
         }
     }
 }
@@ -101,7 +114,7 @@ impl Tokenizer<T5Vocab> for T5Tokenizer {
         let mut sub_tokens: Vec<Token> = Vec::new();
         for token in tokens.iter_mut() {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                _clean_text(token, true);
+                clean_text(token, true);
                 decompose_nfkc(token);
                 if self.lower_case {
                     lowercase(token);
@@ -129,6 +142,59 @@ impl Tokenizer<T5Vocab> for T5Tokenizer {
             .map(|v| v.replace('\u{2581}', " "))
             .collect::<Vec<String>>()
             .join("")
+    }
+
+    fn build_input_with_special_tokens(
+        &self,
+        mut tokens_ids_with_offsets_1: TokenIdsWithOffsets,
+        tokens_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
+    ) -> TokenIdsWithSpecialTokens {
+        let mut token_segment_ids: Vec<i8> = vec![0; tokens_ids_with_offsets_1.ids.len()];
+        let mut special_tokens_mask: Vec<i8> = vec![0; tokens_ids_with_offsets_1.ids.len()];
+
+        if !self.ends_with_eos(&tokens_ids_with_offsets_1) {
+            token_segment_ids.push(0);
+            special_tokens_mask.push(1);
+            tokens_ids_with_offsets_1.ids.push(self.eos_token_id);
+            tokens_ids_with_offsets_1.offsets.push(None);
+            tokens_ids_with_offsets_1.reference_offsets.push(vec![]);
+            tokens_ids_with_offsets_1.masks.push(Mask::Special);
+        }
+        if let Some(tokens_ids_with_offsets_2_value) = tokens_ids_with_offsets_2 {
+            let length = tokens_ids_with_offsets_2_value.ids.len();
+            let ends_with_eos = self.ends_with_eos(&tokens_ids_with_offsets_2_value);
+            token_segment_ids.extend(vec![1; length]);
+            special_tokens_mask.extend(vec![0; length]);
+            tokens_ids_with_offsets_1
+                .ids
+                .extend(tokens_ids_with_offsets_2_value.ids);
+            tokens_ids_with_offsets_1
+                .offsets
+                .extend(tokens_ids_with_offsets_2_value.offsets);
+            tokens_ids_with_offsets_1
+                .reference_offsets
+                .extend(tokens_ids_with_offsets_2_value.reference_offsets);
+            tokens_ids_with_offsets_1
+                .masks
+                .extend(tokens_ids_with_offsets_2_value.masks);
+            if !ends_with_eos {
+                token_segment_ids.push(1);
+                special_tokens_mask.push(1);
+                tokens_ids_with_offsets_1.ids.push(self.eos_token_id);
+                tokens_ids_with_offsets_1.offsets.push(None);
+                tokens_ids_with_offsets_1.reference_offsets.push(vec![]);
+                tokens_ids_with_offsets_1.masks.push(Mask::Special);
+            }
+        };
+
+        TokenIdsWithSpecialTokens {
+            token_ids: tokens_ids_with_offsets_1.ids,
+            segment_ids: token_segment_ids,
+            special_tokens_mask,
+            token_offsets: tokens_ids_with_offsets_1.offsets,
+            reference_offsets: tokens_ids_with_offsets_1.reference_offsets,
+            mask: tokens_ids_with_offsets_1.masks,
+        }
     }
 }
 

@@ -16,7 +16,7 @@ use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
 use crate::tokenizer::tokenization_utils::{
-    _clean_text, decompose_nfkc, is_whitespace, lowercase, split_at_regex,
+    clean_text, decompose_nfkc, is_whitespace, lowercase, split_at_regex,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{MarianVocab, SentencePieceModel, Vocab};
@@ -129,7 +129,7 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
             }
         };
 
-        _clean_text(&mut token, true);
+        clean_text(&mut token, true);
         decompose_nfkc(&mut token);
         if self.lower_case {
             lowercase(&mut token);

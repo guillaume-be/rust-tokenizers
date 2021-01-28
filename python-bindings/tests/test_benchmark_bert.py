@@ -15,9 +15,9 @@ import tempfile
 from pathlib import Path
 import gc
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_bert import BertTokenizer
+from transformers import BertTokenizer
 from rust_tokenizers import PyBertTokenizer
-from transformers.modeling_bert import BertForSequenceClassification
+from transformers import BertForSequenceClassification
 import torch
 from timeit import default_timer as timer
 

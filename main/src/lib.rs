@@ -24,6 +24,7 @@
 //! - GPT
 //! - GPT2
 //! - CTRL
+//! - ProphetNet
 //! - XLNet
 //!
 //! The library is structured into vocabularies (for the encoding and decoding of the tokens and registration of special tokens)

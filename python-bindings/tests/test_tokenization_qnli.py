@@ -20,8 +20,8 @@ import sentencepiece
 from rust_tokenizers.rust_tokenizers import PySentencePieceTokenizer
 from transformers.data.processors.glue import QnliProcessor
 from transformers.file_utils import get_from_cache
-from transformers.tokenization_bert import BertTokenizer
-from transformers.tokenization_distilbert import DistilBertTokenizer
+from transformers import BertTokenizer
+from transformers import DistilBertTokenizer
 from rust_tokenizers import PyBertTokenizer
 import re
 
@@ -31,7 +31,7 @@ class TestTokenizationQNLI:
     def setup_class(self):
         self.processor = QnliProcessor()
         self.test_dir = Path(tempfile.mkdtemp())
-        qnli_url = 'https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FQNLIv2.zip?alt=media&token=6fdcf570-0fc5-4631-8456-9505272d1601'
+        qnli_url = 'https://dl.fbaipublicfiles.com/glue/data/QNLIv2.zip'
         contents = requests.get(qnli_url)
         (self.test_dir / 'QNLI.zip').open('wb').write(contents.content)
         with ZipFile(self.test_dir / 'QNLI.zip', 'r') as zipObj:

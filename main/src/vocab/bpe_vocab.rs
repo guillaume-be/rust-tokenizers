@@ -211,10 +211,10 @@ mod tests {
         let e_eow_token = String::from("e</w>");
 
         let test_tuples = [
-            ((t_token, h_token), Some(&(0 as i64))),
-            ((a_token.clone(), n_token.clone()), Some(&(1 as i64))),
-            ((i_token, n_token), Some(&(2 as i64))),
-            ((th_token, e_eow_token.clone()), Some(&(3 as i64))),
+            ((t_token, h_token), Some(&(0_i64))),
+            ((a_token.clone(), n_token.clone()), Some(&(1_i64))),
+            ((i_token, n_token), Some(&(2_i64))),
+            ((th_token, e_eow_token.clone()), Some(&(3_i64))),
             ((a_token, e_eow_token), None),
         ];
 

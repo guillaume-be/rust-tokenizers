@@ -14,7 +14,7 @@ use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{TokenIdsWithOffsets, TokenIdsWithSpecialTokens};
 use crate::tokenizer::tokenization_utils::strip_accents;
 use crate::tokenizer::tokenization_utils::{
-    _clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
+    clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{SentencePieceModel, Vocab, XLNetVocab};
@@ -165,7 +165,7 @@ impl Tokenizer<XLNetVocab> for XLNetTokenizer {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
                 replace_string(token, "``", "\"");
                 replace_string(token, "\'\'", "\"");
-                _clean_text(token, true);
+                clean_text(token, true);
                 decompose_nfkc(token);
                 if self.lower_case {
                     lowercase(token);

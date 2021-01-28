@@ -15,7 +15,7 @@ use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
 use crate::tokenizer::tokenization_utils::{
-    _clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
+    clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
@@ -103,7 +103,7 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
         let mut sub_tokens: Vec<Token> = Vec::new();
         for token in tokens.iter_mut() {
             if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                _clean_text(token, true);
+                clean_text(token, true);
                 decompose_nfkc(token);
                 if self.lower_case {
                     lowercase(token);
