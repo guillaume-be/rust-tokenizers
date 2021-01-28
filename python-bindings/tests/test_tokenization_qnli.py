@@ -31,7 +31,7 @@ class TestTokenizationQNLI:
     def setup_class(self):
         self.processor = QnliProcessor()
         self.test_dir = Path(tempfile.mkdtemp())
-        qnli_url = 'https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FQNLIv2.zip?alt=media&token=6fdcf570-0fc5-4631-8456-9505272d1601'
+        qnli_url = 'https://dl.fbaipublicfiles.com/glue/data/QNLIv2.zip'
         contents = requests.get(qnli_url)
         (self.test_dir / 'QNLI.zip').open('wb').write(contents.content)
         with ZipFile(self.test_dir / 'QNLI.zip', 'r') as zipObj:
