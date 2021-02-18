@@ -454,7 +454,7 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_sentence_pair() -> anyhow::Result<()> {
+    fn test_encode_sentence_pair() {
         //        Given
         let vocab = generate_test_vocab();
         let bert_tokenizer: ProphetNetTokenizer =
@@ -563,7 +563,6 @@ mod tests {
             ),
             expected_results
         );
-        Ok(())
     }
 
     #[test]

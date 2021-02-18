@@ -1640,7 +1640,7 @@ mod tests {
     }
 
     #[test]
-    fn test_base_tokenizer() -> anyhow::Result<()> {
+    fn test_base_tokenizer() {
         //        Given
         let vocab = generate_test_vocab();
         let base_tokenizer: BaseTokenizer<BertVocab> =
@@ -1854,7 +1854,6 @@ mod tests {
             assert_eq!(tokens_with_offsets.reference_offsets, expected_result.2);
             assert_eq!(tokens_with_offsets.masks, expected_result.3);
         }
-        Ok(())
     }
 
     #[test]

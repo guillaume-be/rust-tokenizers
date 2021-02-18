@@ -239,6 +239,7 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
             output.extend(tokens_ids_with_offsets_2_value.ids);
             output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
+            offsets.push(None);
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);
