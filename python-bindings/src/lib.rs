@@ -2,13 +2,13 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use rust_tokenizers::tokenizer::{
     AlbertTokenizer, BertTokenizer, CtrlTokenizer, Gpt2Tokenizer, MultiThreadedTokenizer,
-    OpenAiGptTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
+    OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
     SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy, XLMRobertaTokenizer,
     XLNetTokenizer,
 };
 use rust_tokenizers::vocab::{
-    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, ProphetNetVocab, ReformerVocab,
-    RobertaVocab, SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
+    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab,
+    ReformerVocab, RobertaVocab, SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
 };
 
 #[pyclass]
@@ -1476,6 +1476,105 @@ impl PyProphetNetTokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyPegasusTokenizer {
+    tokenizer: PegasusTokenizer,
+}
+
+impl PyTokenizer<PegasusTokenizer, PegasusVocab> for PyPegasusTokenizer {
+    fn tokenizer(&self) -> &PegasusTokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<PegasusTokenizer, PegasusVocab> for PyPegasusTokenizer {}
+
+#[pymethods]
+impl PyPegasusTokenizer {
+    #[new]
+    fn new(path: String, do_lower_case: bool, strip_accents: bool) -> Self {
+        PyPegasusTokenizer {
+            tokenizer: PegasusTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
+        }
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<PegasusTokenizer, PegasusVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<PegasusTokenizer, PegasusVocab>>::tokenize_list(
+            &self, text_list,
+        )
+    }
+
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<PegasusTokenizer, PegasusVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<PegasusTokenizer, PegasusVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<PegasusTokenizer, PegasusVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<PegasusTokenizer, PegasusVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+}
+
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
@@ -1490,5 +1589,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyXLNetTokenizer>()?;
     m.add_class::<PyReformerTokenizer>()?;
     m.add_class::<PyProphetNetTokenizer>()?;
+    m.add_class::<PyPegasusTokenizer>()?;
     Ok(())
 }
