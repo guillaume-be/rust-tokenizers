@@ -1492,7 +1492,7 @@ impl PyMultiThreadTokenizer<PegasusTokenizer, PegasusVocab> for PyPegasusTokeniz
 #[pymethods]
 impl PyPegasusTokenizer {
     #[new]
-    fn new(path: String, do_lower_case: bool, strip_accents: bool) -> Self {
+    fn new(path: String, do_lower_case: bool) -> Self {
         PyPegasusTokenizer {
             tokenizer: PegasusTokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
         }

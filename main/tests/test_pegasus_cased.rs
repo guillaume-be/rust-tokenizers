@@ -7,13 +7,13 @@ use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
-fn test_albert_tokenization() -> anyhow::Result<()> {
+fn test_pegasus_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://cdn.huggingface.co/google/pegasus-cnn_dailymail/spiece.model",
         "pegasus-cnn_dailymail-spiece.model",
     )?;
 
-    let albert_tokenizer = PegasusTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
+    let pegasus_tokenizer = PegasusTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
     let original_strings = [
         "This is a sample sentence to be tokénized",
@@ -223,7 +223,7 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
     .to_vec();
 
     let output = MultiThreadedTokenizer::encode_list(
-        &albert_tokenizer,
+        &pegasus_tokenizer,
         &original_strings,
         128,
         &TruncationStrategy::LongestFirst,
@@ -243,7 +243,7 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
                         "{:<2?} | {:<10} | {:<10} | {:<10?}",
                         offset,
                         text,
-                        albert_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false),
+                        pegasus_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false),
                         predicted.mask[idx]
                     )
                 }
