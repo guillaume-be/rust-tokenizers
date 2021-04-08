@@ -28,6 +28,7 @@ use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 /// - (optional) lower casing
 /// - (optional) accents stripping
 /// - SentencePiece decomposition
+#[allow(clippy::upper_case_acronyms)]
 pub struct XLNetTokenizer {
     model: SentencePieceModel,
     vocab: XLNetVocab,

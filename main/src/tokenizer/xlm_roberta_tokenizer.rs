@@ -27,6 +27,7 @@ use crate::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
 /// - NFKC decomposition
 /// - (optional) lower casing
 /// - SentencePiece decomposition
+#[allow(clippy::upper_case_acronyms)]
 pub struct XLMRobertaTokenizer {
     model: SentencePieceModel,
     vocab: XLMRobertaVocab,

@@ -30,6 +30,7 @@ use std::io::Read;
 /// - CLS token
 ///
 /// Expects a SentencePiece protobuf file when created from file.
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone)]
 pub struct XLMRobertaVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
