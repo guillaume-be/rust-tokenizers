@@ -1,4 +1,5 @@
-// Copyright 2018 Google AI, Google Brain and Carnegie Mellon University Authors and the HuggingFace Inc. team.
+// Copyright 2018-2020 The HuggingFace Inc. team.
+// Copyright 2020 Marian Team Authors
 // Copyright 2019-2020 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,29 +15,25 @@ use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
-use crate::tokenizer::tokenization_utils::{
-    clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
-};
+use crate::tokenizer::tokenization_utils::{clean_text, decompose_nfkc, is_whitespace, lowercase};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
-use crate::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
+use crate::vocab::{PegasusVocab, SentencePieceModel, Vocab};
 
-/// # XLM RoBERTa tokenizer
-/// XLM RoBERTa tokenizer performing:
-/// - Splitting on special tokens
+/// # Pegasus tokenizer
+/// Pegasus tokenizer performing:
 /// - text cleaning
 /// - NFKC decomposition
 /// - (optional) lower casing
 /// - SentencePiece decomposition
-#[allow(clippy::upper_case_acronyms)]
-pub struct XLMRobertaTokenizer {
+pub struct PegasusTokenizer {
     model: SentencePieceModel,
-    vocab: XLMRobertaVocab,
+    vocab: PegasusVocab,
     lower_case: bool,
 }
 
-impl XLMRobertaTokenizer {
-    /// Create a new instance of a `XLMRobertaTokenizer`
-    /// Expects a json vocab file and a SentencePiece protobuf file as an input.
+impl PegasusTokenizer {
+    /// Create a new instance of a `PegasusTokenizer`
+    /// Expects a SentencePiece protobuf file as an input.
     ///
     /// # Parameters
     /// - path (`&str`): path to the SentencePiece model file
@@ -45,44 +42,46 @@ impl XLMRobertaTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
+    /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
     /// let lower_case = false;
-    /// let tokenizer = XLMRobertaTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
+    /// let tokenizer =
+    ///     MarianTokenizer::from_files("path/to/vocab/file", "path/to/model/file", lower_case)
+    ///         .unwrap();
     /// ```
-    pub fn from_file(path: &str, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizerError> {
+    pub fn from_file(path: &str, lower_case: bool) -> Result<PegasusTokenizer, TokenizerError> {
+        let vocab = PegasusVocab::from_file(path)?;
         let model = SentencePieceModel::from_file(path)?;
-        let vocab = XLMRobertaVocab::from_file(path)?;
-        Ok(XLMRobertaTokenizer {
+        Ok(PegasusTokenizer {
             model,
             vocab,
             lower_case,
         })
     }
 
-    /// Create a new instance of a `MarianTokenizer` from an existing vocabulary and model
+    /// Create a new instance of a `PegasusTokenizer` from an existing vocabulary and model
     ///
     /// # Parameters
-    /// - vocab (`XLMRobertaVocab`): vocabulary
+    /// - vocab (`PegasusVocab`): vocabulary
     /// - model (`SentencePieceModel`): SentencePiece model
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
-    /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
+    /// use rust_tokenizers::tokenizer::{PegasusTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{PegasusVocab, SentencePieceModel, Vocab};
     /// let lower_case = false;
-    /// let vocab = XLMRobertaVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = PegasusVocab::from_file("path/to/vocab/file").unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
-    /// let tokenizer = XLMRobertaTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
+    /// let tokenizer = PegasusTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
     /// ```
     pub fn from_existing_vocab_and_model(
-        vocab: XLMRobertaVocab,
+        vocab: PegasusVocab,
         model: SentencePieceModel,
         lower_case: bool,
-    ) -> XLMRobertaTokenizer {
-        XLMRobertaTokenizer {
+    ) -> PegasusTokenizer {
+        PegasusTokenizer {
             model,
             vocab,
             lower_case,
@@ -90,40 +89,57 @@ impl XLMRobertaTokenizer {
     }
 }
 
-impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
-    fn vocab(&self) -> &XLMRobertaVocab {
+impl Tokenizer<PegasusVocab> for PegasusTokenizer {
+    fn vocab(&self) -> &PegasusVocab {
         &self.vocab
     }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-        let mut tokens = split_on_special_tokens(text, &self.vocab)
-            .into_iter()
-            .map(|token| token.to_owned())
-            .collect::<Vec<Token>>();
-
-        let mut sub_tokens: Vec<Token> = Vec::new();
-        for token in tokens.iter_mut() {
-            if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                clean_text(token, true);
-                decompose_nfkc(token);
-                if self.lower_case {
-                    lowercase(token);
-                }
-                token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
-                if !token.text.starts_with('\u{2581}') {
-                    token.text.insert(0, '\u{2581}');
-                    token.reference_offsets.insert(0, 0);
-                };
-                let output = self.model.decode_forward_token_ref(token.as_ref());
-                let decoded = self.model.decode_backward(&output);
-
-                let output: Vec<Token> = self.model.parse_nodes_to_tokens(decoded);
-                sub_tokens.extend(output)
-            } else {
-                sub_tokens.push(token.clone());
-            }
+        let mut token = text.to_owned();
+        clean_text(&mut token, true);
+        decompose_nfkc(&mut token);
+        if self.lower_case {
+            lowercase(&mut token);
         }
-        sub_tokens
+        token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
+        if !token.text.starts_with('\u{2581}') {
+            token.text.insert(0, '\u{2581}');
+            token.reference_offsets.insert(0, 0);
+        };
+        let output = self.model.decode_forward_token_ref(token.as_ref());
+        let decoded = self.model.decode_backward(&output);
+
+        let mut output: Vec<Token> = Vec::with_capacity(decoded.len() + 1);
+
+        let mut is_prev_unknown = false;
+        for node in decoded {
+            // Group unknown tokens
+            if is_prev_unknown & (node.index == 0) {
+                let prev_token = output.last().unwrap();
+                let mut text = prev_token.text.clone();
+                text.push_str(node.text);
+                let mut reference_offsets = prev_token.reference_offsets.clone();
+                reference_offsets.extend_from_slice(node.reference_offsets);
+                let consolidated_unknown = Token {
+                    text,
+                    offset: Offset { begin: 0, end: 0 },
+                    reference_offsets,
+                    mask: Default::default(),
+                };
+                output.pop();
+                output.push(consolidated_unknown);
+            } else {
+                output.push(Token {
+                    text: node.text.to_owned(),
+                    offset: Offset { begin: 0, end: 0 },
+                    reference_offsets: node.reference_offsets.to_vec(),
+                    mask: Default::default(),
+                });
+            }
+            is_prev_unknown = node.index == 0;
+        }
+        self.model.populate_masks(output.as_mut_slice(), '\u{2581}');
+        output
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
@@ -145,41 +161,29 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
         let mut offsets: Vec<Option<Offset>> = vec![];
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
         let mut mask: Vec<Mask> = vec![];
-        special_tokens_mask.push(1);
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
-        special_tokens_mask.push(1);
-        token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
-        output.push(self.vocab.token_to_id(XLMRobertaVocab::cls_value()));
+        token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(XLMRobertaVocab::sep_value()));
-        offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
-        offsets.push(None);
-        original_offsets.push(vec![]);
         original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
-        original_offsets.push(vec![]);
-        mask.push(Mask::Special);
         mask.extend(tokens_ids_with_offsets_1.masks);
-        mask.push(Mask::Special);
+
         if let Some(tokens_ids_with_offsets_2_value) = tokens_ids_with_offsets_2 {
             let length = tokens_ids_with_offsets_2_value.ids.len();
-            special_tokens_mask.push(1);
             special_tokens_mask.extend(vec![0; length]);
-            special_tokens_mask.push(1);
-            token_segment_ids.extend(vec![1; length + 2]);
-            output.push(self.vocab.token_to_id(XLMRobertaVocab::sep_value()));
+            token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(XLMRobertaVocab::sep_value()));
-            offsets.push(None);
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
-            original_offsets.push(vec![]);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
-            offsets.push(None);
-            original_offsets.push(vec![]);
-            mask.push(Mask::Special);
             mask.extend(tokens_ids_with_offsets_2_value.masks);
-            mask.push(Mask::Special);
         }
+        special_tokens_mask.push(1);
+        token_segment_ids.push(1);
+        output.push(self.vocab.token_to_id(PegasusVocab::eos_value()));
+        offsets.push(None);
+        original_offsets.push(vec![]);
+        mask.push(Mask::Special);
+
         TokenIdsWithSpecialTokens {
             token_ids: output,
             segment_ids: token_segment_ids,
@@ -191,4 +195,4 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
     }
 }
 
-impl MultiThreadedTokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {}
+impl MultiThreadedTokenizer<PegasusVocab> for PegasusTokenizer {}

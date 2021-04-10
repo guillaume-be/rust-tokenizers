@@ -14,7 +14,7 @@ use crate::error::TokenizerError;
 use crate::vocab::base_vocab::swap_key_values;
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
-use protobuf::parse_from_bytes;
+use protobuf::Message;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -31,6 +31,7 @@ use std::io::Read;
 /// - EOD token
 ///
 /// Expects a SentencePiece protobuf file when created from file.
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone)]
 pub struct XLNetVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
@@ -124,7 +125,7 @@ impl Vocab for XLNetVocab {
         })?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match parse_from_bytes::<ModelProto>(contents.as_slice()) {
+            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
                 Ok(proto_value) => proto_value,
                 Err(e) => {
                     return Err(TokenizerError::VocabularyParsingError(e.to_string()));

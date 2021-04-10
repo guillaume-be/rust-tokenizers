@@ -63,6 +63,7 @@ impl Offset {
 }
 
 /// # Type indication for tokens (e.g. special token, white space, unknown...)
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
 pub enum Mask {
     /// The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.

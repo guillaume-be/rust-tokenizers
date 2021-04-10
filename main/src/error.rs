@@ -1,6 +1,7 @@
 //! # Tokenizer error variants
 use thiserror::Error;
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Error, Debug)]
 pub enum TokenizerError {
     #[error("File not found error: {0}")]
