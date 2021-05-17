@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-static FAIRSEQ_LANGUAGE_CODES: [&str; 52] = [
+pub static FAIRSEQ_LANGUAGE_CODES: [&str; 52] = [
     "ar_AR", "cs_CZ", "de_DE", "en_XX", "es_XX", "et_EE", "fi_FI", "fr_XX", "gu_IN", "hi_IN",
     "it_IT", "ja_XX", "kk_KZ", "ko_KR", "lt_LT", "lv_LV", "my_MM", "ne_NP", "nl_XX", "ro_RO",
     "ru_RU", "si_LK", "tr_TR", "vi_VN", "zh_CN", "af_ZA", "az_AZ", "bn_IN", "fa_IR", "he_IL",
@@ -56,6 +56,9 @@ pub struct MBart50Vocab {
 
     /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
+
+    /// Language code stored as bytes for extraction of the prefix in input sequences
+    pub language_codes_bytes: Vec<Vec<u8>>,
 }
 
 impl MBart50Vocab {
@@ -165,6 +168,10 @@ impl Vocab for MBart50Vocab {
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
+        let language_codes_bytes = FAIRSEQ_LANGUAGE_CODES
+            .iter()
+            .map(|f| f.as_bytes().to_vec())
+            .collect::<Vec<Vec<u8>>>();
 
         Ok(MBart50Vocab {
             values,
@@ -172,6 +179,7 @@ impl Vocab for MBart50Vocab {
             unknown_value,
             special_values,
             special_indices,
+            language_codes_bytes,
         })
     }
 

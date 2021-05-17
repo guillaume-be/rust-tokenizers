@@ -14,9 +14,7 @@ use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
-use crate::tokenizer::tokenization_utils::{
-    clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
-};
+use crate::tokenizer::tokenization_utils::{clean_text, decompose_nfkc, is_whitespace, lowercase};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{MBart50Vocab, SentencePieceModel, Vocab};
 
@@ -88,6 +86,62 @@ impl MBart50Tokenizer {
             lower_case,
         }
     }
+
+    fn split_on_language_code<'a>(
+        &self,
+        token: TokenRef<'a>,
+        code_length: usize,
+    ) -> Vec<TokenRef<'a>> {
+        let mut tokens: Vec<TokenRef<'a>> = Vec::new();
+        let mut begin_char: usize = 0usize;
+        let mut start_byte: usize = 0usize;
+        let mut char_indices = token.text.char_indices();
+        while let Some((c_start, c)) = char_indices.next() {
+            start_byte = c_start;
+            if !c.is_whitespace() {
+                break;
+            }
+            begin_char += 1;
+        }
+        let leading_bytes = &token.text.as_bytes()[start_byte..start_byte + code_length];
+        for language_code in self.vocab.language_codes_bytes.iter() {
+            if leading_bytes == language_code {
+                tokens.push(TokenRef {
+                    text: &token.text[start_byte..start_byte + code_length],
+                    offset: Offset::new(
+                        token.offset.begin + begin_char as OffsetSize,
+                        token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
+                    ),
+                    reference_offsets: &token.reference_offsets
+                        [begin_char..begin_char + code_length],
+                    mask: Mask::None,
+                });
+                start_byte = start_byte + code_length;
+                begin_char = begin_char + code_length;
+                for _ in 0..code_length {
+                    char_indices.next();
+                }
+                break;
+            }
+        }
+        while let Some((c_start, c)) = char_indices.next() {
+            start_byte = c_start;
+            if !c.is_whitespace() {
+                break;
+            }
+            begin_char += 1;
+        }
+        tokens.push(TokenRef {
+            text: &token.text[start_byte..],
+            offset: Offset::new(
+                token.offset.begin + begin_char as OffsetSize,
+                token.text.chars().count() as OffsetSize,
+            ),
+            reference_offsets: &token.reference_offsets[begin_char..],
+            mask: Mask::None,
+        });
+        tokens
+    }
 }
 
 impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
@@ -96,35 +150,39 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
     }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-        // ToDo: split on the leading language code (similar to Marian, but checking on first 5 characters)
-        let mut tokens = split_on_special_tokens(text, &self.vocab)
-            .into_iter()
-            .map(|token| token.to_owned())
-            .collect::<Vec<Token>>();
-
-        let mut sub_tokens: Vec<Token> = Vec::new();
-        for token in tokens.iter_mut() {
-            if token.mask != Mask::Special && token.mask != Mask::Unknown {
-                clean_text(token, true);
-                decompose_nfkc(token);
-                if self.lower_case {
-                    lowercase(token);
-                }
-                token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
-                if !token.text.starts_with('\u{2581}') {
-                    token.text.insert(0, '\u{2581}');
-                    token.reference_offsets.insert(0, 0);
-                };
-                let output = self.model.decode_forward_token_ref(token.as_ref());
-                let decoded = self.model.decode_backward(&output);
-
-                let output: Vec<Token> = self.model.parse_nodes_to_tokens(decoded);
-                sub_tokens.extend(output)
-            } else {
-                sub_tokens.push(token.clone());
+        let tokens = self.split_on_language_code(text, 5);
+        let (code_token, mut token) = match tokens.len() {
+            0 => {
+                return vec![];
             }
+            1 => (None, tokens[0].to_owned()),
+            _ => (Some(tokens[0].to_owned()), tokens[1].to_owned()),
+        };
+
+        clean_text(&mut token, true);
+        decompose_nfkc(&mut token);
+        if self.lower_case {
+            lowercase(&mut token);
         }
-        sub_tokens
+        token.text = token.text.replace(|c: char| is_whitespace(&c), "\u{2581}");
+        if !token.text.starts_with('\u{2581}') {
+            token.text.insert(0, '\u{2581}');
+            token
+                .reference_offsets
+                .insert(0, token.reference_offsets[0]);
+        };
+        let output = self.model.decode_forward_token_ref(token.as_ref());
+        let decoded = self.model.decode_backward(&output);
+
+        let mut output: Vec<Token> = Vec::with_capacity(decoded.len() + 1);
+        if let Some(code) = code_token {
+            output.push(code);
+        };
+        output.extend(self.model.parse_nodes_to_tokens(decoded));
+
+        self.model.populate_masks(output.as_mut_slice(), '\u{2581}');
+
+        output
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
