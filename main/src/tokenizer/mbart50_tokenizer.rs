@@ -97,10 +97,10 @@ impl MBart50Tokenizer {
         let mut start_byte: usize = 0usize;
         let mut char_indices = token.text.char_indices();
         while let Some((c_start, c)) = char_indices.next() {
-            start_byte = c_start;
             if !c.is_whitespace() {
                 break;
             }
+            start_byte = c_start;
             begin_char += 1;
         }
         let leading_bytes = &token.text.as_bytes()[start_byte..start_byte + code_length];
@@ -125,10 +125,10 @@ impl MBart50Tokenizer {
             }
         }
         while let Some((c_start, c)) = char_indices.next() {
-            start_byte = c_start;
             if !c.is_whitespace() {
                 break;
             }
+            start_byte = c_start;
             begin_char += 1;
         }
         tokens.push(TokenRef {
