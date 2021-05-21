@@ -13,9 +13,8 @@
 import tempfile
 from pathlib import Path
 import pytest
-from rust_tokenizers.rust_tokenizers import PySentencePieceTokenizer, PyXLMRobertaTokenizer
 from transformers import AlbertTokenizer, T5Tokenizer, XLMRobertaTokenizer, XLNetTokenizer, ReformerTokenizer, \
-    ProphetNetTokenizer, PegasusTokenizer
+    ProphetNetTokenizer, PegasusTokenizer, MBart50Tokenizer
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
 from transformers import BertTokenizer
@@ -26,7 +25,7 @@ from transformers import RobertaTokenizer
 from transformers import OpenAIGPTTokenizer
 from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer, \
     PyOpenAiGptTokenizer, PyAlbertTokenizer, PyT5Tokenizer, PyXLNetTokenizer, PyReformerTokenizer, \
-    PyProphetNetTokenizer, PyPegasusTokenizer
+    PyProphetNetTokenizer, PyPegasusTokenizer, PySentencePieceTokenizer, PyXLMRobertaTokenizer, PyMBart50Tokenizer
 from zipfile import ZipFile
 import requests
 import sentencepiece
@@ -564,6 +563,52 @@ class TestTokenizationSST2:
         # When
         # Note: the original sentence piece tokenizer strips trailing spaces
         output_rust = self.rust_tokenizer.encode_list([example.text_a.strip() for example in self.examples],
+                                                      max_len=256,
+                                                      truncation_strategy='longest_first',
+                                                      stride=0)
+
+        # Then
+        for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
+            if rust.token_ids != baseline['input_ids']:
+                if len(rust.token_ids) == len(baseline['input_ids']):
+                    if Counter(rust.token_ids) != Counter(baseline['input_ids']):
+                        raise AssertionError(
+                            f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                            f'Sentence a: {self.examples[idx].text_a} \n'
+                            f'Sentence b: {self.examples[idx].text_b} \n'
+                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                            f'Rust: {rust.token_ids} \n'
+                            f'Python {baseline["input_ids"]}')
+                else:
+                    raise AssertionError(
+                        f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                        f'Sentence a: {self.examples[idx].text_a} \n'
+                        f'Sentence b: {self.examples[idx].text_b} \n'
+                        f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                        f'Rust: {rust.token_ids} \n'
+                        f'Python {baseline["input_ids"]}')
+            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
+
+    def test_tokenization_mbart50(self):
+        # Given
+        self.base_tokenizer = MBart50Tokenizer.from_pretrained('facebook/mbart-large-50-many-to-many-mmt',
+                                                               do_lower_case=False,
+                                                               cache_dir=self.test_dir)
+        self.rust_tokenizer = PyMBart50Tokenizer(
+            get_from_cache('https://huggingface.co/facebook/mbart-large-50-many-to-many-mmt/resolve/main/sentencepiece.bpe.model'),
+            do_lower_case=False)
+        self.base_tokenizer.src_lang = "fr_XX"
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
+                                                                   add_special_tokens=True,
+                                                                   return_overflowing_tokens=True,
+                                                                   return_special_tokens_mask=True,
+                                                                   max_length=128))
+
+        # When
+        # Note: the original sentence piece tokenizer strips trailing spaces
+        output_rust = self.rust_tokenizer.encode_list(["fr_XX " + example.text_a.strip() for example in self.examples],
                                                       max_len=256,
                                                       truncation_strategy='longest_first',
                                                       stride=0)

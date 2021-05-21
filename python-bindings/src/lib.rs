@@ -1,13 +1,13 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use rust_tokenizers::tokenizer::{
-    AlbertTokenizer, BertTokenizer, CtrlTokenizer, Gpt2Tokenizer, MultiThreadedTokenizer,
-    OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
-    SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy, XLMRobertaTokenizer,
-    XLNetTokenizer,
+    AlbertTokenizer, BertTokenizer, CtrlTokenizer, Gpt2Tokenizer, MBart50Tokenizer,
+    MultiThreadedTokenizer, OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer,
+    ReformerTokenizer, RobertaTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer,
+    TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer,
 };
 use rust_tokenizers::vocab::{
-    AlbertVocab, BertVocab, Gpt2Vocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab,
+    AlbertVocab, BertVocab, Gpt2Vocab, MBart50Vocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab,
     ReformerVocab, RobertaVocab, SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
 };
 
@@ -1575,6 +1575,105 @@ impl PyPegasusTokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyMBart50Tokenizer {
+    tokenizer: MBart50Tokenizer,
+}
+
+impl PyTokenizer<MBart50Tokenizer, MBart50Vocab> for PyMBart50Tokenizer {
+    fn tokenizer(&self) -> &MBart50Tokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<MBart50Tokenizer, MBart50Vocab> for PyMBart50Tokenizer {}
+
+#[pymethods]
+impl PyMBart50Tokenizer {
+    #[new]
+    fn new(path: String, do_lower_case: bool) -> Self {
+        PyMBart50Tokenizer {
+            tokenizer: MBart50Tokenizer::from_file(path.as_str(), do_lower_case).unwrap(),
+        }
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<MBart50Tokenizer, MBart50Vocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<MBart50Tokenizer, MBart50Vocab>>::tokenize_list(
+            &self, text_list,
+        )
+    }
+
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+}
+
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
@@ -1590,5 +1689,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyReformerTokenizer>()?;
     m.add_class::<PyProphetNetTokenizer>()?;
     m.add_class::<PyPegasusTokenizer>()?;
+    m.add_class::<PyMBart50Tokenizer>()?;
     Ok(())
 }

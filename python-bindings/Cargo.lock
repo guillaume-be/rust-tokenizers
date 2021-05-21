@@ -377,9 +377,9 @@ dependencies = [
 
 [[package]]
 name = "protobuf"
-version = "2.22.0"
+version = "2.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73f72884896d22e0da0e5b266cb9a780b791f6c3b2f5beab6368d6cd4f0dbb86"
+checksum = "1b7f4a129bb3754c25a4e04032a90173c68f85168f77118ac4cb4936e7f06f92"
 
 [[package]]
 name = "pyo3"
@@ -546,7 +546,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers"
-version = "6.2.2"
+version = "6.2.3"
 dependencies = [
  "csv",
  "hashbrown",
@@ -564,7 +564,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers_python"
-version = "6.2.2"
+version = "6.2.3"
 dependencies = [
  "pyo3",
  "rust_tokenizers",
