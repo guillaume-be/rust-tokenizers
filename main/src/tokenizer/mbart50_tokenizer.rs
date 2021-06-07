@@ -116,15 +116,15 @@ impl MBart50Tokenizer {
                         [begin_char..begin_char + code_length],
                     mask: Mask::None,
                 });
-                start_byte = start_byte + code_length;
-                begin_char = begin_char + code_length;
+                start_byte += code_length;
+                begin_char += code_length;
                 for _ in 0..code_length {
                     char_indices.next();
                 }
                 break;
             }
         }
-        while let Some((c_start, c)) = char_indices.next() {
+        for (c_start, c) in char_indices {
             if !c.is_whitespace() {
                 break;
             }
@@ -207,7 +207,7 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
         let mut mask: Vec<Mask> = vec![];
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
-        if special_tokens_mask.len() > 0 {
+        if !special_tokens_mask.is_empty() {
             special_tokens_mask[0] = 1;
         }
         special_tokens_mask.push(1);
@@ -215,17 +215,17 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
         output.extend(tokens_ids_with_offsets_1.ids);
         output.push(self.vocab.token_to_id(MBart50Vocab::sep_value()));
         offsets.extend(tokens_ids_with_offsets_1.offsets);
-        if offsets.len() > 0 {
+        if !offsets.is_empty() {
             offsets[0] = None;
         }
         offsets.push(None);
         original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
-        if original_offsets.len() > 0 {
+        if !original_offsets.is_empty() {
             original_offsets[0] = vec![];
         }
         original_offsets.push(vec![]);
         mask.extend(tokens_ids_with_offsets_1.masks);
-        if mask.len() > 0 {
+        if !mask.is_empty() {
             mask[0] = Mask::Special;
         }
         mask.push(Mask::Special);
