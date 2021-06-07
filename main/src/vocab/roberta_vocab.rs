@@ -193,8 +193,8 @@ mod tests {
             values,
             indices,
             unknown_value,
-            special_indices,
             special_values,
+            special_indices,
         };
 
         //        Then

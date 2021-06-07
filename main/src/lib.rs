@@ -27,6 +27,7 @@
 //! - ProphetNet
 //! - XLNet
 //! - Pegasus
+//! - MBart50
 //!
 //! The library is structured into vocabularies (for the encoding and decoding of the tokens and registration of special tokens)
 //! and tokenizers (splitting the input text into tokens). Generally, a tokenizer will contain a reference vocabulary that may
