@@ -11,6 +11,8 @@ It includes a broad range of tokenizers for state-of-the-art transformers archit
 - GPT2
 - ProphetNet
 - CTRL
+- Pegasus
+- MBart50
 
 The wordpiece based tokenizers include both single-threaded and multi-threaded processing. The Byte-Pair-Encoding tokenizers favor the use of a shared cache and are only available as single-threaded tokenizers
 Using the tokenizers requires downloading manually the tokenizers required files (vocabulary or merge files). These can be found in the [Transformers library](https://github.com/huggingface/transformers).
