@@ -119,7 +119,18 @@ impl Vocab for M2M100Vocab {
         };
 
         for language_code in FAIRSEQ_LANGUAGE_CODES.iter() {
-            values.insert(format!(">>{}<<", language_code), values.len() as i64);
+            values.insert(
+                if language_code.len() == 2 {
+                    format!(">>{}.<<", language_code)
+                } else if language_code.len() == 3 {
+                    format!(">>{}<<", language_code)
+                } else {
+                    return Err(TokenizerError::VocabularyParsingError(
+                        "M2M100 Vocab only supports language code of length 2 or 3".to_string(),
+                    ));
+                },
+                values.len() as i64,
+            );
         }
 
         let mut special_values = HashMap::new();
@@ -142,7 +153,15 @@ impl Vocab for M2M100Vocab {
         let special_indices = swap_key_values(&special_values);
         let language_codes_bytes = FAIRSEQ_LANGUAGE_CODES
             .iter()
-            .map(|f| format!(">>{}<<", f).as_bytes().to_vec())
+            .map(|f| {
+                if f.len() == 2 {
+                    format!(">>{}.<<", f)
+                } else {
+                    format!(">>{}<<", f)
+                }
+                .as_bytes()
+                .to_vec()
+            })
             .collect::<Vec<Vec<u8>>>();
 
         Ok(M2M100Vocab {

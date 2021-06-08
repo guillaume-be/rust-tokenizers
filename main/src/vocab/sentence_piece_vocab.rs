@@ -193,7 +193,7 @@ impl SentencePieceModel {
         let mut char_positions = token.text.char_indices().map(|(pos, _)| pos).collect_vec();
         char_positions.push(token.text.len());
         let mut results = vec![None; char_positions.len()];
-        let mut scores = vec![std::f32::NEG_INFINITY; char_positions.len()];
+        let mut scores = vec![f32::NEG_INFINITY; char_positions.len()];
         scores[0] = 0f32;
 
         for char_start in 0..char_positions.len() - 1 {
@@ -213,10 +213,10 @@ impl SentencePieceModel {
                     scores[char_end] = local_score;
                 }
             }
-            if scores[char_start + 1] <= std::f32::MIN {
+            if scores[char_start + 1] <= f32::MIN {
                 results[char_start + 1] = Some(Node {
                     text: &token.text[char_positions[char_start]..char_positions[char_start + 1]],
-                    score: std::f32::MIN,
+                    score: f32::MIN,
                     index: 0,
                     start: char_start,
                     end: char_start + 1,

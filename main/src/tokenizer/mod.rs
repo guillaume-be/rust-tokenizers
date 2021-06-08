@@ -39,6 +39,7 @@ mod bert_tokenizer;
 mod constants;
 mod ctrl_tokenizer;
 mod gpt2_tokenizer;
+mod m2m100_tokenizer;
 mod marian_tokenizer;
 mod mbart50_tokenizer;
 mod openai_gpt_tokenizer;
@@ -57,6 +58,7 @@ pub use base_tokenizer::{BaseTokenizer, MultiThreadedTokenizer, Tokenizer, Trunc
 pub use bert_tokenizer::BertTokenizer;
 pub use ctrl_tokenizer::CtrlTokenizer;
 pub use gpt2_tokenizer::Gpt2Tokenizer;
+pub use m2m100_tokenizer::M2M100Tokenizer;
 pub use marian_tokenizer::MarianTokenizer;
 pub use mbart50_tokenizer::MBart50Tokenizer;
 pub use openai_gpt_tokenizer::OpenAiGptTokenizer;

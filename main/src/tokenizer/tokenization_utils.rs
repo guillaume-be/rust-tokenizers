@@ -1072,6 +1072,64 @@ pub fn fix_mask(tokens: &mut Vec<Token>) {
     }
 }
 
+pub(crate) fn split_on_language_code<'a>(
+    token: TokenRef<'a>,
+    code_length: usize,
+    language_codes_bytes: &Vec<Vec<u8>>,
+) -> Vec<TokenRef<'a>> {
+    if token.text.as_bytes().len() < code_length {
+        return vec![token];
+    }
+    let mut tokens: Vec<TokenRef<'a>> = Vec::new();
+    let mut begin_char: usize = 0usize;
+    let mut start_byte: usize = 0usize;
+    let mut char_indices = token.text.char_indices();
+    while let Some((c_start, c)) = char_indices.next() {
+        if !c.is_whitespace() {
+            break;
+        }
+        start_byte = c_start;
+        begin_char += 1;
+    }
+    let leading_bytes = &token.text.as_bytes()[start_byte..start_byte + code_length];
+    for language_code in language_codes_bytes.iter() {
+        if leading_bytes == language_code {
+            tokens.push(TokenRef {
+                text: &token.text[start_byte..start_byte + code_length],
+                offset: Offset::new(
+                    token.offset.begin + begin_char as OffsetSize,
+                    token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
+                ),
+                reference_offsets: &token.reference_offsets[begin_char..begin_char + code_length],
+                mask: Mask::None,
+            });
+            start_byte += code_length;
+            begin_char += code_length;
+            for _ in 0..code_length {
+                char_indices.next();
+            }
+            break;
+        }
+    }
+    for (c_start, c) in char_indices {
+        if !c.is_whitespace() {
+            break;
+        }
+        start_byte = c_start;
+        begin_char += 1;
+    }
+    tokens.push(TokenRef {
+        text: &token.text[start_byte..],
+        offset: Offset::new(
+            token.offset.begin + begin_char as OffsetSize,
+            token.text.chars().count() as OffsetSize,
+        ),
+        reference_offsets: &token.reference_offsets[begin_char..],
+        mask: Mask::None,
+    });
+    tokens
+}
+
 //==============================
 // Unit tests
 //==============================
