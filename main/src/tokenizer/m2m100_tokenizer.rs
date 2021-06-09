@@ -14,6 +14,7 @@ use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
+use crate::tokenizer::sentence_piece_bpe_tokenizer::SentencePieceBpeTokenizer;
 use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_language_code,
 };
@@ -29,7 +30,7 @@ use crate::vocab::{M2M100Vocab, SentencePieceModel, Vocab};
 /// - SentencePiece decomposition
 #[allow(clippy::upper_case_acronyms)]
 pub struct M2M100Tokenizer {
-    model: SentencePieceModel,
+    model: SentencePieceBpeTokenizer,
     vocab: M2M100Vocab,
     lower_case: bool,
 }
@@ -56,7 +57,7 @@ impl M2M100Tokenizer {
         lower_case: bool,
     ) -> Result<M2M100Tokenizer, TokenizerError> {
         let vocab = M2M100Vocab::from_file(vocab_path)?;
-        let model = SentencePieceModel::from_file(model_path)?;
+        let model = SentencePieceBpeTokenizer::from_file(model_path)?;
 
         Ok(M2M100Tokenizer {
             model,

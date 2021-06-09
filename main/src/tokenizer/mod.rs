@@ -47,6 +47,7 @@ mod pegasus_tokenizer;
 mod prophetnet_tokenizer;
 mod reformer_tokenizer;
 mod roberta_tokenizer;
+mod sentence_piece_bpe_tokenizer;
 mod sentence_piece_tokenizer;
 mod t5_tokenizer;
 pub(crate) mod tokenization_utils;
