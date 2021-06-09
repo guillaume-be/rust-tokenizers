@@ -46,7 +46,7 @@ mod prophetnet_vocab;
 mod reformer_vocab;
 mod roberta_vocab;
 mod sentence_piece_vocab;
-mod sentencepiece_proto;
+pub(crate) mod sentencepiece_proto;
 mod t5_vocab;
 mod xlm_roberta_vocab;
 mod xlnet_vocab;

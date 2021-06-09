@@ -827,7 +827,7 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
             .iter()
             .min_by_key(|pair| match bpe_ranks.byte_pair_to_id(pair) {
                 Some(&rank) => rank,
-                None => i64::max_value(),
+                None => i64::MAX,
             })
             .unwrap();
         if bpe_ranks.byte_pair_to_id(bigram).is_none() {

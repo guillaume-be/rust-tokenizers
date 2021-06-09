@@ -19,7 +19,7 @@ use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_language_code,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
-use crate::vocab::{M2M100Vocab, SentencePieceModel, Vocab};
+use crate::vocab::{M2M100Vocab, Vocab};
 
 /// # M2M100 tokenizer
 /// M2M100 tokenizer performing:
@@ -80,13 +80,13 @@ impl M2M100Tokenizer {
     /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, M2M100Vocab};
     /// let lower_case = false;
     /// let vocab = M2M100Vocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    /// let model = SentencePieceBpeTokenizer::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = M2M100Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
     /// ```
     pub fn from_existing_vocab_and_model(
         vocab: M2M100Vocab,
-        model: SentencePieceModel,
+        model: SentencePieceBpeTokenizer,
         lower_case: bool,
     ) -> M2M100Tokenizer {
         M2M100Tokenizer {
@@ -125,17 +125,14 @@ impl Tokenizer<M2M100Vocab> for M2M100Tokenizer {
                 .reference_offsets
                 .insert(0, token.reference_offsets[0]);
         };
-        let output = self.model.decode_forward_token_ref(token.as_ref());
-        println!("forward: {:?}", output);
-        let decoded = self.model.decode_backward(&output);
 
-        let mut output: Vec<Token> = Vec::with_capacity(decoded.len() + 1);
+        let mut output: Vec<Token> = Vec::new();
         if let Some(code) = code_token {
             output.push(code);
         };
-        output.extend(self.model.parse_nodes_to_tokens(decoded));
+        output.extend(self.model.tokenize_to_tokens(token.as_ref()));
 
-        self.model.populate_masks(output.as_mut_slice(), '\u{2581}');
+        // self.model.populate_masks(output.as_mut_slice(), '\u{2581}');
 
         output
     }

@@ -39,7 +39,7 @@ pub enum TruncationStrategy {
 /// Crate-wide primitive used to store offset positions
 pub type OffsetSize = u32;
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize, Eq)]
 ///Offset information (in unicode points) to relate a token back to its original input string
 pub struct Offset {
     pub begin: OffsetSize,
@@ -64,7 +64,7 @@ impl Offset {
 
 /// # Type indication for tokens (e.g. special token, white space, unknown...)
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize, Eq)]
 pub enum Mask {
     /// The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.
     None,
@@ -102,7 +102,7 @@ pub trait TokenTrait {
     fn as_str(&self) -> &str;
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq)]
 /// Reference token that references the original text, with a string slice representation
 pub struct TokenRef<'a> {
     /// String representation
