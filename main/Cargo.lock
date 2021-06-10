@@ -888,7 +888,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers"
-version = "6.2.4"
+version = "6.2.5"
 dependencies = [
  "anyhow",
  "csv",

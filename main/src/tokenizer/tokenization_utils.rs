@@ -1101,7 +1101,7 @@ pub(crate) fn split_on_language_code<'a>(
                     token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
                 ),
                 reference_offsets: &token.reference_offsets[begin_char..begin_char + code_length],
-                mask: Mask::None,
+                mask: Mask::Special,
             });
             start_byte += code_length;
             begin_char += code_length;

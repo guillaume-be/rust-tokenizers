@@ -125,9 +125,6 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
             output.push(code);
         };
         output.extend(self.model.parse_nodes_to_tokens(decoded));
-
-        SentencePieceModel::populate_masks(output.as_mut_slice(), '\u{2581}');
-
         output
     }
 

@@ -14,12 +14,11 @@ use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
-use crate::tokenizer::sentence_piece_bpe_tokenizer::SentencePieceBpeTokenizer;
 use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_language_code,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
-use crate::vocab::{M2M100Vocab, SentencePieceModel, Vocab};
+use crate::vocab::{M2M100Vocab, SentencePieceBpeModel, Vocab};
 
 /// # M2M100 tokenizer
 /// M2M100 tokenizer performing:
@@ -30,7 +29,7 @@ use crate::vocab::{M2M100Vocab, SentencePieceModel, Vocab};
 /// - SentencePiece decomposition
 #[allow(clippy::upper_case_acronyms)]
 pub struct M2M100Tokenizer {
-    model: SentencePieceBpeTokenizer,
+    model: SentencePieceBpeModel,
     vocab: M2M100Vocab,
     lower_case: bool,
 }
@@ -57,7 +56,7 @@ impl M2M100Tokenizer {
         lower_case: bool,
     ) -> Result<M2M100Tokenizer, TokenizerError> {
         let vocab = M2M100Vocab::from_file(vocab_path)?;
-        let model = SentencePieceBpeTokenizer::from_file(model_path)?;
+        let model = SentencePieceBpeModel::from_file(model_path)?;
 
         Ok(M2M100Tokenizer {
             model,
@@ -70,23 +69,23 @@ impl M2M100Tokenizer {
     ///
     /// # Parameters
     /// - vocab (`M2M100Vocab`): vocabulary
-    /// - model (`SentencePieceModel`): SentencePiece model
+    /// - model (`SentencePieceBpeModel`): SentencePiece BPE model
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     ///
     /// # Example
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Tokenizer, M2M100Tokenizer};
-    /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, M2M100Vocab};
+    /// use rust_tokenizers::vocab::{SentencePieceBpeModel, Vocab, M2M100Vocab};
     /// let lower_case = false;
     /// let vocab = M2M100Vocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceBpeTokenizer::from_file("path/to/model/file").unwrap();
+    /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = M2M100Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
     /// ```
     pub fn from_existing_vocab_and_model(
         vocab: M2M100Vocab,
-        model: SentencePieceBpeTokenizer,
+        model: SentencePieceBpeModel,
         lower_case: bool,
     ) -> M2M100Tokenizer {
         M2M100Tokenizer {
@@ -131,8 +130,6 @@ impl Tokenizer<M2M100Vocab> for M2M100Tokenizer {
             output.push(code);
         };
         output.extend(self.model.tokenize_to_tokens(token.as_ref()));
-
-        SentencePieceModel::populate_masks(output.as_mut_slice(), '\u{2581}');
 
         output
     }
