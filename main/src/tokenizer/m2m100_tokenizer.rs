@@ -19,7 +19,7 @@ use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_language_code,
 };
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
-use crate::vocab::{M2M100Vocab, Vocab};
+use crate::vocab::{M2M100Vocab, SentencePieceModel, Vocab};
 
 /// # M2M100 tokenizer
 /// M2M100 tokenizer performing:
@@ -132,7 +132,7 @@ impl Tokenizer<M2M100Vocab> for M2M100Tokenizer {
         };
         output.extend(self.model.tokenize_to_tokens(token.as_ref()));
 
-        // self.model.populate_masks(output.as_mut_slice(), '\u{2581}');
+        SentencePieceModel::populate_masks(output.as_mut_slice(), '\u{2581}');
 
         output
     }

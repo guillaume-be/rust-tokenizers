@@ -6,7 +6,7 @@ use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
-fn test_albert_tokenization() -> anyhow::Result<()> {
+fn test_xlnet_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://cdn.huggingface.co/xlnet-base-cased-spiece.model",
         "xlnet-base-cased-spiece.model",

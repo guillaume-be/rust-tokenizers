@@ -138,7 +138,7 @@ impl Tokenizer<PegasusVocab> for PegasusTokenizer {
             }
             is_prev_unknown = node.index == 0;
         }
-        self.model.populate_masks(output.as_mut_slice(), '\u{2581}');
+        SentencePieceModel::populate_masks(output.as_mut_slice(), '\u{2581}');
         output
     }
 

@@ -1,5 +1,5 @@
 // Copyright 2016 Google Inc.
-// Adapter from https://github.com/google/sentencepiece/blob/master/src/bpe_model.cc
+// Adapted from https://github.com/google/sentencepiece/blob/master/src/bpe_model.cc
 // Copyright 2019-2021 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,10 +68,14 @@ impl SentencePieceBpeTokenizer {
 
             // Pre-populate symbols
             let mut symbols = Vec::with_capacity(initial_token.text.len());
-            for (character_start, character) in initial_token.text.char_indices() {
+            for (character_index, (character_start, character)) in
+                initial_token.text.char_indices().enumerate()
+            {
                 symbols.push(Symbol {
-                    start: character_start,
-                    end: character_start + character.len_utf8(),
+                    start_byte: character_start,
+                    end_byte: character_start + character.len_utf8(),
+                    start_offset: character_index,
+                    end_offset: character_index + 1,
                 });
             }
 
@@ -99,8 +103,10 @@ impl SentencePieceBpeTokenizer {
                 symbols.insert(
                     left_index,
                     Symbol {
-                        start: symbol_pair.left.start,
-                        end: symbol_pair.right.end,
+                        start_byte: symbol_pair.left.start_byte,
+                        end_byte: symbol_pair.right.end_byte,
+                        start_offset: symbol_pair.left.start_offset,
+                        end_offset: symbol_pair.right.end_offset,
                     },
                 );
                 if left_index > 0 {
@@ -121,12 +127,15 @@ impl SentencePieceBpeTokenizer {
                 }
             }
             for symbol in symbols {
-                let begin = symbol.start as OffsetSize + initial_token.offset.begin;
-                let end = symbol.end as OffsetSize + initial_token.offset.begin;
                 sub_tokens.push(Token {
-                    text: initial_token.text[symbol.start..symbol.end].to_string(),
-                    offset: Offset { begin, end },
-                    reference_offsets: (begin..end).collect::<Vec<_>>(),
+                    text: initial_token.text[symbol.start_byte..symbol.end_byte].to_string(),
+                    offset: Offset {
+                        begin: symbol.start_offset as OffsetSize + initial_token.offset.begin,
+                        end: symbol.end_offset as OffsetSize + initial_token.offset.begin,
+                    },
+                    reference_offsets: initial_token.reference_offsets
+                        [symbol.start_offset..symbol.end_offset]
+                        .to_vec(),
                     mask: Default::default(),
                 })
             }
@@ -143,7 +152,7 @@ impl SentencePieceBpeTokenizer {
         text_reference: &str,
         mut agenda: BinaryHeap<SymbolPair>,
     ) -> BinaryHeap<SymbolPair> {
-        let merged_str = &text_reference[left.start..right.end];
+        let merged_str = &text_reference[left.start_byte..right.end_byte];
         if let Some(&score) = self.bpe_ranks.values.get(merged_str) {
             agenda.push(SymbolPair { left, right, score })
         }
@@ -153,8 +162,10 @@ impl SentencePieceBpeTokenizer {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Symbol {
-    start: usize,
-    end: usize,
+    start_byte: usize,
+    end_byte: usize,
+    start_offset: usize,
+    end_offset: usize,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -169,7 +180,7 @@ impl Ord for SymbolPair {
         other
             .score
             .cmp(&self.score)
-            .then_with(|| other.left.start.cmp(&self.left.start))
+            .then_with(|| other.left.start_byte.cmp(&self.left.start_byte))
     }
 }
 

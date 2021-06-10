@@ -316,7 +316,7 @@ impl SentencePieceModel {
             }
             is_prev_unknown = node.index == 0;
         }
-        self.populate_masks(output.as_mut_slice(), '\u{2581}');
+        SentencePieceModel::populate_masks(output.as_mut_slice(), '\u{2581}');
         output
     }
 
@@ -339,9 +339,9 @@ impl SentencePieceModel {
     /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
     /// let best_nodes_sequence = sentence_piece_model.decode_backward(&lattice_nodes);
     /// let mut sub_tokens = sentence_piece_model.parse_nodes_to_tokens(best_nodes_sequence);
-    /// let sub_tokens_with_masks = sentence_piece_model.populate_masks(&mut sub_tokens, ' ');
+    /// let sub_tokens_with_masks = SentencePieceModel::populate_masks(&mut sub_tokens, ' ');
     /// ```
-    pub fn populate_masks(&self, tokens: &mut [Token], whitespace_token: char) {
+    pub fn populate_masks(tokens: &mut [Token], whitespace_token: char) {
         let mut previous_mask = Mask::None;
         for token in tokens {
             if token.text.chars().count() == 1 {
