@@ -67,6 +67,7 @@ pub use pegasus_tokenizer::PegasusTokenizer;
 pub use prophetnet_tokenizer::ProphetNetTokenizer;
 pub use reformer_tokenizer::ReformerTokenizer;
 pub use roberta_tokenizer::RobertaTokenizer;
+pub use sentence_piece_bpe_tokenizer::SentencePieceBpeTokenizer;
 pub use sentence_piece_tokenizer::SentencePieceTokenizer;
 pub use t5_tokenizer::T5Tokenizer;
 pub use tokenization_utils::truncate_sequences;
