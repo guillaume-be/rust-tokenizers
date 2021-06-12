@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 import pytest
 from transformers import AlbertTokenizer, T5Tokenizer, XLMRobertaTokenizer, XLNetTokenizer, ReformerTokenizer, \
-    ProphetNetTokenizer, PegasusTokenizer, MBart50Tokenizer
+    ProphetNetTokenizer, PegasusTokenizer, MBart50Tokenizer, M2M100Tokenizer
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
 from transformers import BertTokenizer
@@ -25,7 +25,8 @@ from transformers import RobertaTokenizer
 from transformers import OpenAIGPTTokenizer
 from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, PyRobertaTokenizer, \
     PyOpenAiGptTokenizer, PyAlbertTokenizer, PyT5Tokenizer, PyXLNetTokenizer, PyReformerTokenizer, \
-    PyProphetNetTokenizer, PyPegasusTokenizer, PySentencePieceTokenizer, PyXLMRobertaTokenizer, PyMBart50Tokenizer
+    PyProphetNetTokenizer, PyPegasusTokenizer, PySentencePieceTokenizer, PyXLMRobertaTokenizer, \
+    PyMBart50Tokenizer, PySentencePieceBpeTokenizer, PyM2M100Tokenizer
 from zipfile import ZipFile
 import requests
 import sentencepiece
@@ -46,6 +47,9 @@ class TestTokenizationSST2:
         sentence_piece_url = 'https://s3.amazonaws.com/models.huggingface.co/bert/xlnet-base-cased-spiece.model'
         contents = requests.get(sentence_piece_url)
         (self.test_dir / 'spiece.model').open('wb').write(contents.content)
+        sentence_piece_bpe_url = 'https://huggingface.co/facebook/m2m100_418M/resolve/main/sentencepiece.bpe.model'
+        contents = requests.get(sentence_piece_bpe_url)
+        (self.test_dir / 'spiece.bpe.model').open('wb').write(contents.content)
 
     def test_tokenization_bert(self):
         # Given
@@ -258,6 +262,34 @@ class TestTokenizationSST2:
             assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
 
     def test_tokenization_sentence_piece(self):
+        # Given
+        self.base_tokenizer = sentencepiece.SentencePieceProcessor()
+        self.base_tokenizer.Load(str(self.test_dir / 'spiece.bpe.model'))
+        self.rust_tokenizer = PySentencePieceBpeTokenizer(str(self.test_dir / 'spiece.bpe.model'), do_lower_case=False)
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.EncodeAsIds(example.text_a))
+
+        # When
+        # Note: the original sentence piece tokenizer strips trailing spaces
+        output_rust = self.rust_tokenizer.encode_list([example.text_a.strip() for example in self.examples],
+                                                      max_len=256,
+                                                      truncation_strategy='longest_first',
+                                                      stride=0)
+
+        # Then
+        for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
+            if rust.token_ids != baseline:
+                assert sum(self.base_tokenizer.get_score(baseline)) == \
+                       sum(self.base_tokenizer.get_score(rust.token_ids)), \
+                    f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                    f'Sentence a: {self.examples[idx].text_a} \n' \
+                    f'Sentence b: {self.examples[idx].text_b} \n' \
+                    f'Token mismatch: {self.get_token_diff_sentence_piece(rust.token_ids, baseline)} \n' \
+                    f'Rust: {rust.token_ids} \n' \
+                    f'Python {baseline}'
+
+    def test_tokenization_sentence_piece_bpe(self):
         # Given
         self.base_tokenizer = sentencepiece.SentencePieceProcessor()
         self.base_tokenizer.Load(str(self.test_dir / 'spiece.model'))
@@ -595,7 +627,8 @@ class TestTokenizationSST2:
                                                                do_lower_case=False,
                                                                cache_dir=self.test_dir)
         self.rust_tokenizer = PyMBart50Tokenizer(
-            get_from_cache('https://huggingface.co/facebook/mbart-large-50-many-to-many-mmt/resolve/main/sentencepiece.bpe.model'),
+            get_from_cache(
+                'https://huggingface.co/facebook/mbart-large-50-many-to-many-mmt/resolve/main/sentencepiece.bpe.model'),
             do_lower_case=False)
         self.base_tokenizer.src_lang = "fr_XX"
         output_baseline = []
@@ -612,6 +645,55 @@ class TestTokenizationSST2:
                                                       max_len=256,
                                                       truncation_strategy='longest_first',
                                                       stride=0)
+
+        # Then
+        for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
+            if rust.token_ids != baseline['input_ids']:
+                if len(rust.token_ids) == len(baseline['input_ids']):
+                    if Counter(rust.token_ids) != Counter(baseline['input_ids']):
+                        raise AssertionError(
+                            f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                            f'Sentence a: {self.examples[idx].text_a} \n'
+                            f'Sentence b: {self.examples[idx].text_b} \n'
+                            f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                            f'Rust: {rust.token_ids} \n'
+                            f'Python {baseline["input_ids"]}')
+                else:
+                    raise AssertionError(
+                        f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n '
+                        f'Sentence a: {self.examples[idx].text_a} \n'
+                        f'Sentence b: {self.examples[idx].text_b} \n'
+                        f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n'
+                        f'Rust: {rust.token_ids} \n'
+                        f'Python {baseline["input_ids"]}')
+            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
+
+    def test_tokenization_m2m100(self):
+        # Given
+        self.base_tokenizer = M2M100Tokenizer.from_pretrained('facebook/m2m100_418M',
+                                                              do_lower_case=False,
+                                                              cache_dir=self.test_dir)
+        self.rust_tokenizer = PyM2M100Tokenizer(
+            get_from_cache(
+                'https://huggingface.co/facebook/m2m100_418M/resolve/main/vocab.json'),
+            get_from_cache(
+                'https://huggingface.co/facebook/m2m100_418M/resolve/main/sentencepiece.bpe.model'),
+            do_lower_case=False)
+        self.base_tokenizer.src_lang = "fr"
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
+                                                                   add_special_tokens=True,
+                                                                   return_overflowing_tokens=True,
+                                                                   return_special_tokens_mask=True,
+                                                                   max_length=128))
+
+        # When
+        output_rust = self.rust_tokenizer.encode_list(
+            [">>fr.<< " + example.text_a.strip() for example in self.examples],
+            max_len=256,
+            truncation_strategy='longest_first',
+            stride=0)
 
         # Then
         for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
