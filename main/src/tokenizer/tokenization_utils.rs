@@ -1075,7 +1075,7 @@ pub fn fix_mask(tokens: &mut Vec<Token>) {
 pub(crate) fn split_on_language_code<'a>(
     token: TokenRef<'a>,
     code_length: usize,
-    language_codes_bytes: &Vec<Vec<u8>>,
+    language_codes_bytes: &HashSet<Vec<u8>>,
 ) -> Vec<TokenRef<'a>> {
     if token.text.as_bytes().len() < code_length {
         return vec![token];
@@ -1092,23 +1092,20 @@ pub(crate) fn split_on_language_code<'a>(
         begin_char += 1;
     }
     let leading_bytes = &token.text.as_bytes()[start_byte..start_byte + code_length];
-    for language_code in language_codes_bytes.iter() {
-        if leading_bytes == language_code {
-            tokens.push(TokenRef {
-                text: &token.text[start_byte..start_byte + code_length],
-                offset: Offset::new(
-                    token.offset.begin + begin_char as OffsetSize,
-                    token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
-                ),
-                reference_offsets: &token.reference_offsets[begin_char..begin_char + code_length],
-                mask: Mask::Special,
-            });
-            start_byte += code_length;
-            begin_char += code_length;
-            for _ in 0..code_length {
-                char_indices.next();
-            }
-            break;
+    if language_codes_bytes.contains(leading_bytes) {
+        tokens.push(TokenRef {
+            text: &token.text[start_byte..start_byte + code_length],
+            offset: Offset::new(
+                token.offset.begin + begin_char as OffsetSize,
+                token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
+            ),
+            reference_offsets: &token.reference_offsets[begin_char..begin_char + code_length],
+            mask: Mask::Special,
+        });
+        start_byte += code_length;
+        begin_char += code_length;
+        for _ in 0..code_length {
+            char_indices.next();
         }
     }
     for (c_start, c) in char_indices {

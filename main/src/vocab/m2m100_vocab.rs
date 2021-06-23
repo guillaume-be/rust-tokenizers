@@ -13,7 +13,7 @@
 use crate::error::TokenizerError;
 use crate::vocab::base_vocab::swap_key_values;
 use crate::vocab::Vocab;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
 
@@ -56,7 +56,7 @@ pub struct M2M100Vocab {
     pub special_indices: HashMap<i64, String>,
 
     /// Language code stored as bytes for extraction of the prefix in input sequences
-    pub language_codes_bytes: Vec<Vec<u8>>,
+    pub language_codes_bytes: HashSet<Vec<u8>>,
 }
 
 impl M2M100Vocab {
@@ -162,7 +162,7 @@ impl Vocab for M2M100Vocab {
                 .as_bytes()
                 .to_vec()
             })
-            .collect::<Vec<Vec<u8>>>();
+            .collect::<HashSet<Vec<u8>>>();
 
         Ok(M2M100Vocab {
             values,
