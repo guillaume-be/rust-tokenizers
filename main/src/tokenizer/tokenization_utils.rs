@@ -47,11 +47,10 @@ pub fn clean_text(token: &mut Token, strict: bool) {
         }
         if is_whitespace(&character) {
             cleaned_string.push(' ');
-            character_mapping.push(*position);
         } else {
             cleaned_string.push(character);
-            character_mapping.push(*position);
         }
+        character_mapping.push(*position);
     }
     token.text = cleaned_string;
     token.reference_offsets = character_mapping;
