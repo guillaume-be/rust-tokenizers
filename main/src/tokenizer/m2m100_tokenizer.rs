@@ -1,5 +1,5 @@
-// Copyright 2021 The Facebook AI Research Team Authors and The HuggingFace Inc. team.
-// Copyright 2019-2020 Guillaume Becquin
+// Copyright 2021 The Fairseq Authors and The HuggingFace Inc. team. All rights reserved.
+// Copyright 2019-2021 Guillaume Becquin
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
