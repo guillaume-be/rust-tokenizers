@@ -104,24 +104,20 @@ impl MBart50Tokenizer {
             begin_char += 1;
         }
         let leading_bytes = &token.text.as_bytes()[start_byte..start_byte + code_length];
-        for language_code in self.vocab.language_codes_bytes.iter() {
-            if leading_bytes == language_code {
-                tokens.push(TokenRef {
-                    text: &token.text[start_byte..start_byte + code_length],
-                    offset: Offset::new(
-                        token.offset.begin + begin_char as OffsetSize,
-                        token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
-                    ),
-                    reference_offsets: &token.reference_offsets
-                        [begin_char..begin_char + code_length],
-                    mask: Mask::None,
-                });
-                start_byte += code_length;
-                begin_char += code_length;
-                for _ in 0..code_length {
-                    char_indices.next();
-                }
-                break;
+        if self.vocab.language_codes_bytes.contains(leading_bytes) {
+            tokens.push(TokenRef {
+                text: &token.text[start_byte..start_byte + code_length],
+                offset: Offset::new(
+                    token.offset.begin + begin_char as OffsetSize,
+                    token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
+                ),
+                reference_offsets: &token.reference_offsets[begin_char..begin_char + code_length],
+                mask: Mask::None,
+            });
+            start_byte += code_length;
+            begin_char += code_length;
+            for _ in 0..code_length {
+                char_indices.next();
             }
         }
         for (c_start, c) in char_indices {
