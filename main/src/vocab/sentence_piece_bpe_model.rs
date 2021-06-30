@@ -28,11 +28,25 @@ pub struct BpeMergeVocab {
     pub values: HashMap<String, i64>,
 }
 
+/// # SentencePiece BPE Model
+/// Model for SentencePiece BPE tokenizer.
+/// This model performs SentencePiece BPE decomposition using a priority queue and consecutive merges.
+///
+/// Expects a SentencePiece protobuf file when created from file.
 pub struct SentencePieceBpeModel {
     bpe_ranks: BpeMergeVocab,
 }
 
 impl SentencePieceBpeModel {
+    /// Creates a SentencePiece BPE Model from a protobuf file.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceBpeModel;
+    /// let path = "path/to/spiece.model";
+    ///
+    /// let sentence_piece_model = SentencePieceBpeModel::from_file(path);
+    /// ```
     pub fn from_file(path: &str) -> Result<SentencePieceBpeModel, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {
             TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
@@ -58,6 +72,19 @@ impl SentencePieceBpeModel {
         Ok(SentencePieceBpeModel { bpe_ranks })
     }
 
+    /// Tokenizes an input sequence into an array of Tokens by merging adjacent symbols present
+    /// in the merges list.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use rust_tokenizers::vocab::SentencePieceBpeModel;
+    /// use rust_tokenizers::TokenRef;
+    /// let path = "path/to/spiece.model";
+    ///
+    /// let sentence_piece_bpe_model = SentencePieceBpeModel::from_file(path).unwrap();
+    /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
+    /// let tokenized_output = sentence_piece_bpe_model.tokenize_to_tokens(token);
+    /// ```
     pub fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         let mut sub_tokens = Vec::new();
         if initial_token.mask != Mask::Special && initial_token.mask != Mask::Unknown {
@@ -137,7 +164,7 @@ impl SentencePieceBpeModel {
                 })
             }
         } else {
-            sub_tokens.push(initial_token.to_owned().clone());
+            sub_tokens.push(initial_token.to_owned());
         }
         self.populate_masks(sub_tokens.as_mut_slice(), '\u{2581}');
         sub_tokens
@@ -213,7 +240,7 @@ impl SentencePieceBpeModel {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Symbol {
+struct Symbol {
     start_byte: usize,
     end_byte: usize,
     start_offset: usize,
@@ -221,7 +248,7 @@ pub struct Symbol {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct SymbolPair {
+struct SymbolPair {
     left: Symbol,
     right: Symbol,
     score: i64,
