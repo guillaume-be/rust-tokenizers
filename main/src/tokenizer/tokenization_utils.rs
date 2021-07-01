@@ -826,7 +826,7 @@ pub fn group_common_pairs(tokens: Vec<String>, bpe_ranks: &BpePairVocab) -> (Vec
             .iter()
             .min_by_key(|pair| match bpe_ranks.byte_pair_to_id(pair) {
                 Some(&rank) => rank,
-                None => i64::max_value(),
+                None => i64::MAX,
             })
             .unwrap();
         if bpe_ranks.byte_pair_to_id(bigram).is_none() {
@@ -1069,6 +1069,61 @@ pub fn fix_mask(tokens: &mut Vec<Token>) {
             }
         }
     }
+}
+
+pub(crate) fn split_on_language_code<'a>(
+    token: TokenRef<'a>,
+    code_length: usize,
+    language_codes_bytes: &HashSet<Vec<u8>>,
+) -> Vec<TokenRef<'a>> {
+    if token.text.as_bytes().len() < code_length {
+        return vec![token];
+    }
+    let mut tokens: Vec<TokenRef<'a>> = Vec::new();
+    let mut begin_char: usize = 0usize;
+    let mut start_byte: usize = 0usize;
+    let mut char_indices = token.text.char_indices();
+    while let Some((c_start, c)) = char_indices.next() {
+        if !c.is_whitespace() {
+            break;
+        }
+        start_byte = c_start;
+        begin_char += 1;
+    }
+    let leading_bytes = &token.text.as_bytes()[start_byte..start_byte + code_length];
+    if language_codes_bytes.contains(leading_bytes) {
+        tokens.push(TokenRef {
+            text: &token.text[start_byte..start_byte + code_length],
+            offset: Offset::new(
+                token.offset.begin + begin_char as OffsetSize,
+                token.offset.begin + begin_char as OffsetSize + code_length as OffsetSize,
+            ),
+            reference_offsets: &token.reference_offsets[begin_char..begin_char + code_length],
+            mask: Mask::Special,
+        });
+        start_byte += code_length;
+        begin_char += code_length;
+        for _ in 0..code_length {
+            char_indices.next();
+        }
+    }
+    for (c_start, c) in char_indices {
+        if !c.is_whitespace() {
+            break;
+        }
+        start_byte = c_start;
+        begin_char += 1;
+    }
+    tokens.push(TokenRef {
+        text: &token.text[start_byte..],
+        offset: Offset::new(
+            token.offset.begin + begin_char as OffsetSize,
+            token.text.chars().count() as OffsetSize,
+        ),
+        reference_offsets: &token.reference_offsets[begin_char..],
+        mask: Mask::None,
+    });
+    tokens
 }
 
 //==============================
