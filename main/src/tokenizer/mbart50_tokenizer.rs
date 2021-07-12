@@ -96,7 +96,7 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
     }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
-        let tokens = split_on_language_code(text, 5, &self.vocab.language_codes_bytes);
+        let tokens = split_on_language_code(text, 6, &self.vocab.language_codes_bytes);
         let (code_token, mut token) = match tokens.len() {
             0 => {
                 return vec![];

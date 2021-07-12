@@ -20,12 +20,12 @@ use std::fs::File;
 use std::io::Read;
 
 pub static FAIRSEQ_LANGUAGE_CODES: [&str; 52] = [
-    "ar_AR", "cs_CZ", "de_DE", "en_XX", "es_XX", "et_EE", "fi_FI", "fr_XX", "gu_IN", "hi_IN",
-    "it_IT", "ja_XX", "kk_KZ", "ko_KR", "lt_LT", "lv_LV", "my_MM", "ne_NP", "nl_XX", "ro_RO",
-    "ru_RU", "si_LK", "tr_TR", "vi_VN", "zh_CN", "af_ZA", "az_AZ", "bn_IN", "fa_IR", "he_IL",
-    "hr_HR", "id_ID", "ka_GE", "km_KH", "mk_MK", "ml_IN", "mn_MN", "mr_IN", "pl_PL", "ps_AF",
-    "pt_XX", "sv_SE", "sw_KE", "ta_IN", "te_IN", "th_TH", "tl_XX", "uk_UA", "ur_PK", "xh_ZA",
-    "gl_ES", "sl_SI",
+    ">>ar<<", ">>cs<<", ">>de<<", ">>en<<", ">>es<<", ">>et<<", ">>fi<<", ">>fr<<", ">>gu<<",
+    ">>hi<<", ">>it<<", ">>ja<<", ">>kk<<", ">>ko<<", ">>lt<<", ">>lv<<", ">>my<<", ">>ne<<",
+    ">>nl<<", ">>ro<<", ">>ru<<", ">>si<<", ">>tr<<", ">>vi<<", ">>zh<<", ">>af<<", ">>az<<",
+    ">>bn<<", ">>fa<<", ">>he<<", ">>hr<<", ">>id<<", ">>ka<<", ">>km<<", ">>mk<<", ">>ml<<",
+    ">>mn<<", ">>mr<<", ">>pl<<", ">>ps<<", ">>pt<<", ">>sv<<", ">>sw<<", ">>ta<<", ">>te<<",
+    ">>th<<", ">>tl<<", ">>uk<<", ">>ur<<", ">>xh<<", ">>gl<<", ">>sl<<",
 ];
 
 /// # MBart50 Vocab
@@ -130,6 +130,8 @@ impl Vocab for MBart50Vocab {
             }
         };
         let mut values = HashMap::new();
+        let mut special_values = HashMap::new();
+
         values.insert(MBart50Vocab::cls_value().to_owned(), values.len() as i64);
         values.insert(MBart50Vocab::pad_value().to_owned(), values.len() as i64);
         values.insert(MBart50Vocab::eos_value().to_owned(), values.len() as i64);
@@ -143,11 +145,11 @@ impl Vocab for MBart50Vocab {
 
         for language_code in FAIRSEQ_LANGUAGE_CODES.iter() {
             values.insert(language_code.to_string(), values.len() as i64);
+            MBart50Vocab::_register_as_special_value(language_code, &values, &mut special_values)?;
         }
 
         values.insert(MBart50Vocab::mask_value().to_owned(), values.len() as i64);
 
-        let mut special_values = HashMap::new();
         let unknown_value = MBart50Vocab::unknown_value();
         MBart50Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 

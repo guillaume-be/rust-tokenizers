@@ -117,23 +117,26 @@ impl Vocab for M2M100Vocab {
                 return Err(TokenizerError::VocabularyParsingError(e.to_string()));
             }
         };
+        let mut special_values = HashMap::new();
 
         for language_code in FAIRSEQ_LANGUAGE_CODES.iter() {
-            values.insert(
-                if language_code.len() == 2 {
-                    format!(">>{}.<<", language_code)
-                } else if language_code.len() == 3 {
-                    format!(">>{}<<", language_code)
-                } else {
-                    return Err(TokenizerError::VocabularyParsingError(
-                        "M2M100 Vocab only supports language code of length 2 or 3".to_string(),
-                    ));
-                },
-                values.len() as i64,
-            );
+            let language_code = if language_code.len() == 2 {
+                format!(">>{}.<<", language_code)
+            } else if language_code.len() == 3 {
+                format!(">>{}<<", language_code)
+            } else {
+                return Err(TokenizerError::VocabularyParsingError(
+                    "M2M100 Vocab only supports language code of length 2 or 3".to_string(),
+                ));
+            };
+            values.insert(language_code.clone(), values.len() as i64);
+            M2M100Vocab::_register_as_special_value(
+                language_code.as_str(),
+                &values,
+                &mut special_values,
+            )?;
         }
 
-        let mut special_values = HashMap::new();
         let unknown_value = M2M100Vocab::unknown_value();
         M2M100Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
 
