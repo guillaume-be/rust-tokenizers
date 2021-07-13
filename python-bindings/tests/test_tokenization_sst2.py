@@ -641,7 +641,7 @@ class TestTokenizationSST2:
 
         # When
         # Note: the original sentence piece tokenizer strips trailing spaces
-        output_rust = self.rust_tokenizer.encode_list(["fr_XX " + example.text_a.strip() for example in self.examples],
+        output_rust = self.rust_tokenizer.encode_list([">>fr<< " + example.text_a.strip() for example in self.examples],
                                                       max_len=256,
                                                       truncation_strategy='longest_first',
                                                       stride=0)
