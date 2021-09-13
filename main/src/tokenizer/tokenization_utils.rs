@@ -882,7 +882,7 @@ pub fn ctrl_bpe(token: &str, bpe_ranks: &BpePairVocab) -> (Vec<String>, Vec<usiz
 
     let mut output = (sub_tokens, false);
     loop {
-        output = group_common_pairs(output.0, &bpe_ranks);
+        output = group_common_pairs(output.0, bpe_ranks);
         if output.1 {
             break;
         }
@@ -919,7 +919,7 @@ pub fn openai_gpt_bpe(token: &str, bpe_ranks: &BpePairVocab) -> (Vec<String>, Ve
 
     let mut output = (sub_tokens, false);
     loop {
-        output = group_common_pairs(output.0, &bpe_ranks);
+        output = group_common_pairs(output.0, bpe_ranks);
         if output.1 {
             break;
         }
@@ -941,7 +941,7 @@ pub fn bpe(token: &str, bpe_ranks: &BpePairVocab) -> (Vec<String>, Vec<usize>) {
 
     let mut output = (sub_tokens, false);
     loop {
-        output = group_common_pairs(output.0, &bpe_ranks);
+        output = group_common_pairs(output.0, bpe_ranks);
         if output.1 {
             break;
         }
@@ -982,7 +982,7 @@ where
             .text
             .as_bytes()
             .iter()
-            .map(|v| BYTES_TO_UNICODE.get(&v).unwrap())
+            .map(|v| BYTES_TO_UNICODE.get(v).unwrap())
             .collect();
         (text.as_str(), reference_offsets_placeholder.as_slice())
     } else {
@@ -1083,7 +1083,7 @@ pub(crate) fn split_on_language_code<'a>(
     let mut begin_char: usize = 0usize;
     let mut start_byte: usize = 0usize;
     let mut char_indices = token.text.char_indices();
-    while let Some((c_start, c)) = char_indices.next() {
+    for (c_start, c) in &mut char_indices {
         if !c.is_whitespace() {
             break;
         }
@@ -1539,7 +1539,7 @@ mod tests {
         }
 
         for character in non_punctuation_chars.iter() {
-            assert!(!is_punctuation(&character));
+            assert!(!is_punctuation(character));
         }
     }
 
@@ -2537,7 +2537,7 @@ mod tests {
 
         //        When & Then
         for (input, expected_output) in &test_tuples {
-            assert_eq!(get_pairs(&input), *expected_output);
+            assert_eq!(get_pairs(input), *expected_output);
         }
     }
 

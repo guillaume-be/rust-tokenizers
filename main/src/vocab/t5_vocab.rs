@@ -130,16 +130,11 @@ impl Vocab for T5Vocab {
             token,
             &self.values,
             &self.special_values,
-            &self.unknown_value,
+            self.unknown_value,
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(
-            &id,
-            &self.indices,
-            &self.special_indices,
-            &self.unknown_value,
-        )
+        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
     }
 }

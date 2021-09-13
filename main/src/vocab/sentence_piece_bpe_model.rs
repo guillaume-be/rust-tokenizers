@@ -132,20 +132,18 @@ impl SentencePieceBpeModel {
                     }
                 }
             }
-            for symbol in symbols {
-                if let Some(symbol) = symbol {
-                    sub_tokens.push(Token {
-                        text: initial_token.text[symbol.start_byte..symbol.end_byte].to_string(),
-                        offset: Offset {
-                            begin: symbol.start_offset as OffsetSize + initial_token.offset.begin,
-                            end: symbol.end_offset as OffsetSize + initial_token.offset.begin,
-                        },
-                        reference_offsets: initial_token.reference_offsets
-                            [symbol.start_offset..symbol.end_offset]
-                            .to_vec(),
-                        mask: Default::default(),
-                    })
-                }
+            for symbol in symbols.into_iter().flatten() {
+                sub_tokens.push(Token {
+                    text: initial_token.text[symbol.start_byte..symbol.end_byte].to_string(),
+                    offset: Offset {
+                        begin: symbol.start_offset as OffsetSize + initial_token.offset.begin,
+                        end: symbol.end_offset as OffsetSize + initial_token.offset.begin,
+                    },
+                    reference_offsets: initial_token.reference_offsets
+                        [symbol.start_offset..symbol.end_offset]
+                        .to_vec(),
+                    mask: Default::default(),
+                })
             }
         } else {
             sub_tokens.push(initial_token.to_owned());
