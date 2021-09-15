@@ -22,6 +22,7 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::Read;
+use std::ops::Index;
 
 #[derive(Debug, Clone)]
 pub struct BpeMergeVocab {
@@ -91,66 +92,47 @@ impl SentencePieceBpeModel {
             let mut agenda: BinaryHeap<SymbolPair> = BinaryHeap::new();
 
             // Pre-populate symbols
-            let mut symbols = Vec::with_capacity(initial_token.text.len());
-            for (character_index, (character_start, character)) in
-                initial_token.text.char_indices().enumerate()
-            {
-                symbols.push(Symbol {
-                    start_byte: character_start,
-                    end_byte: character_start + character.len_utf8(),
-                    start_offset: character_index,
-                    end_offset: character_index + 1,
-                });
-            }
+            let mut symbols = SymbolList::from(initial_token);
 
             // Pre-populate priority queue with bi-grams
-            for symbol_pair in symbols.windows(2) {
-                agenda = self.maybe_add_new_symbol_pair(
-                    symbol_pair[0],
-                    symbol_pair[1],
+            for symbol_index in 1..symbols.len() {
+                self.maybe_add_pair(
+                    symbol_index as isize - 1,
+                    symbol_index as isize,
                     initial_token.text,
-                    agenda,
+                    &symbols,
+                    &mut agenda,
                 );
             }
 
             while let Some(symbol_pair) = agenda.pop() {
-                let left_index = symbols.iter().position(|x| x == &symbol_pair.left);
-                let right_index = symbols.iter().position(|x| x == &symbol_pair.right);
-
-                if left_index.is_none() | right_index.is_none() {
-                    continue;
-                }
-                let left_index = left_index.unwrap();
-                let right_index = right_index.unwrap();
-                symbols.remove(right_index);
-                symbols.remove(left_index);
-                symbols.insert(
-                    left_index,
-                    Symbol {
-                        start_byte: symbol_pair.left.start_byte,
-                        end_byte: symbol_pair.right.end_byte,
-                        start_offset: symbol_pair.left.start_offset,
-                        end_offset: symbol_pair.right.end_offset,
-                    },
-                );
-                if left_index > 0 {
-                    agenda = self.maybe_add_new_symbol_pair(
-                        symbols[left_index - 1],
-                        symbols[left_index],
-                        initial_token.text,
-                        agenda,
+                let left_symbol_index = symbol_pair.left;
+                let right_symbol_index = symbol_pair.right;
+                if left_symbol_index != -1 && right_symbol_index != -1 {
+                    let new_symbol = symbols.merge_symbols(
+                        left_symbol_index as usize,
+                        right_symbol_index as usize,
+                        symbol_pair.pair_size,
                     );
-                }
-                if right_index < symbols.len() {
-                    agenda = self.maybe_add_new_symbol_pair(
-                        symbols[left_index],
-                        symbols[left_index + 1],
-                        initial_token.text,
-                        agenda,
-                    );
+                    if let Some(new_symbol) = new_symbol {
+                        self.maybe_add_pair(
+                            new_symbol.prev,
+                            left_symbol_index,
+                            initial_token.text,
+                            &symbols,
+                            &mut agenda,
+                        );
+                        self.maybe_add_pair(
+                            left_symbol_index,
+                            new_symbol.next,
+                            initial_token.text,
+                            &symbols,
+                            &mut agenda,
+                        );
+                    }
                 }
             }
-            for symbol in symbols {
+            for symbol in symbols.into_iter().flatten() {
                 sub_tokens.push(Token {
                     text: initial_token.text[symbol.start_byte..symbol.end_byte].to_string(),
                     offset: Offset {
@@ -170,18 +152,30 @@ impl SentencePieceBpeModel {
         sub_tokens
     }
 
-    fn maybe_add_new_symbol_pair(
+    fn maybe_add_pair(
         &self,
-        left: Symbol,
-        right: Symbol,
-        text_reference: &str,
-        mut agenda: BinaryHeap<SymbolPair>,
-    ) -> BinaryHeap<SymbolPair> {
-        let merged_str = &text_reference[left.start_byte..right.end_byte];
-        if let Some(&score) = self.bpe_ranks.values.get(merged_str) {
-            agenda.push(SymbolPair { left, right, score })
+        left_symbol_index: isize,
+        right_symbol_index: isize,
+        input_text: &str,
+        symbols: &SymbolList,
+        agenda: &mut BinaryHeap<SymbolPair>,
+    ) {
+        if left_symbol_index != -1 && right_symbol_index != -1 {
+            if let (Some(left_symbol), Some(right_symbol)) = (
+                symbols[left_symbol_index as usize],
+                symbols[right_symbol_index as usize],
+            ) {
+                let merged_text = &input_text[left_symbol.start_byte..right_symbol.end_byte];
+                if let Some(&score) = self.bpe_ranks.values.get(merged_text) {
+                    agenda.push(SymbolPair {
+                        left: left_symbol_index,
+                        right: right_symbol_index,
+                        score,
+                        pair_size: left_symbol.size + right_symbol.size,
+                    })
+                }
+            }
         }
-        agenda
     }
 
     /// Populates the `mask` field for a sequence of sub-tokens generated by a SentencePiece model.
@@ -245,13 +239,17 @@ struct Symbol {
     end_byte: usize,
     start_offset: usize,
     end_offset: usize,
+    prev: isize,
+    next: isize,
+    size: usize,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 struct SymbolPair {
-    left: Symbol,
-    right: Symbol,
+    left: isize,
+    right: isize,
     score: i64,
+    pair_size: usize,
 }
 
 impl Ord for SymbolPair {
@@ -259,12 +257,97 @@ impl Ord for SymbolPair {
         other
             .score
             .cmp(&self.score)
-            .then_with(|| other.left.start_byte.cmp(&self.left.start_byte))
+            .then_with(|| other.left.cmp(&self.left))
     }
 }
 
 impl PartialOrd for SymbolPair {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+struct SymbolList {
+    symbols: Vec<Option<Symbol>>,
+}
+
+impl Index<usize> for SymbolList {
+    type Output = Option<Symbol>;
+
+    fn index(&self, index: usize) -> &Option<Symbol> {
+        self.symbols.index(index)
+    }
+}
+
+impl IntoIterator for SymbolList {
+    type Item = Option<Symbol>;
+    type IntoIter = <Vec<Option<Symbol>> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.symbols.into_iter()
+    }
+}
+
+impl From<TokenRef<'_>> for SymbolList {
+    fn from(token: TokenRef) -> Self {
+        let mut symbols = Vec::with_capacity(token.text.len());
+
+        for (index, (character_start, character)) in token.text.char_indices().enumerate() {
+            let next = if index == token.text.char_indices().count() - 1 {
+                -1
+            } else {
+                (index + 1) as isize
+            };
+            symbols.push(Some(Symbol {
+                start_byte: character_start,
+                end_byte: character_start + character.len_utf8(),
+                start_offset: index,
+                end_offset: index + 1,
+                prev: index as isize - 1,
+                next,
+                size: 1,
+            }));
+        }
+        Self { symbols }
+    }
+}
+
+impl SymbolList {
+    pub fn len(&self) -> usize {
+        self.symbols.len()
+    }
+
+    pub fn merge_symbols(
+        &mut self,
+        symbol_1_index: usize,
+        symbol_2_index: usize,
+        size_validation: usize,
+    ) -> Option<Symbol> {
+        if let (Some(left_symbol), Some(right_symbol)) =
+            (self[symbol_1_index], self[symbol_2_index])
+        {
+            if left_symbol.size + right_symbol.size != size_validation {
+                return None;
+            }
+            if right_symbol.next != -1 {
+                if let Some(next_next) = self.symbols.get_mut(right_symbol.next as usize).unwrap() {
+                    next_next.prev = symbol_1_index as isize;
+                }
+            }
+            let new_symbol = Symbol {
+                start_byte: left_symbol.start_byte,
+                end_byte: right_symbol.end_byte,
+                start_offset: left_symbol.start_offset,
+                end_offset: right_symbol.end_offset,
+                prev: left_symbol.prev,
+                next: right_symbol.next,
+                size: left_symbol.size + right_symbol.size,
+            };
+            self.symbols[symbol_2_index] = None;
+            self.symbols[symbol_1_index] = Some(new_symbol);
+            Some(new_symbol)
+        } else {
+            None
+        }
     }
 }

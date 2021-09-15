@@ -78,7 +78,7 @@ impl PegasusVocab {
         offset: i64,
     ) -> Result<i64, TokenizerError> {
         values.insert(value.to_string(), offset as i64);
-        PegasusVocab::_register_as_special_value(value, &values, special_values)?;
+        PegasusVocab::_register_as_special_value(value, values, special_values)?;
         Ok(offset + 1)
     }
 }
@@ -211,16 +211,11 @@ impl Vocab for PegasusVocab {
             token,
             &self.values,
             &self.special_values,
-            &self.unknown_value,
+            self.unknown_value,
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(
-            &id,
-            &self.indices,
-            &self.special_indices,
-            &self.unknown_value,
-        )
+        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
     }
 }
