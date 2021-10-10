@@ -18,6 +18,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
     let t5_tokenizer = T5Tokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -26,6 +27,20 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![3, 233, 1],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+                None,
+            ],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![100, 19, 3, 9, 3106, 7142, 12, 36, 12, 157, 154, 29, 1601, 1],
             segment_ids: vec![],

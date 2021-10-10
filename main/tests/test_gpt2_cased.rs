@@ -25,6 +25,7 @@ fn test_gpt2_tokenization() -> anyhow::Result<()> {
     let gpt2_tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, false);
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -34,6 +35,16 @@ fn test_gpt2_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![1399],
+            segment_ids: vec![0],
+            special_tokens_mask: vec![0],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![Some(Offset { begin: 0, end: 1 })],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 1212, 318, 257, 6291, 6827, 284, 307, 284, 365, 136, 223, 77, 1143,

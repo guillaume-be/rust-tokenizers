@@ -7,7 +7,7 @@ use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
-fn test_m2m100_tokenization() -> anyhow::Result<()> {
+fn test_sentence_piece_bpe_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/facebook/m2m100_418M/resolve/main/sentencepiece.bpe.model",
         "m2m100_419M_spiece.model",
@@ -18,6 +18,7 @@ fn test_m2m100_tokenization() -> anyhow::Result<()> {
         SentencePieceBpeTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -26,6 +27,16 @@ fn test_m2m100_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![107],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![Some(Offset { begin: 0, end: 1 })],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 7343, 248, 9, 6799, 95, 9742, 5127, 192, 405, 5003, 937, 27161,

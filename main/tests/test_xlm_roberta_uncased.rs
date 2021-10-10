@@ -14,6 +14,7 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
         XLMRobertaTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -22,6 +23,16 @@ fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![0, 153, 2],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![None, Some(Offset { begin: 0, end: 1 }), None],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 0, 3293, 83, 10, 121413, 149357, 47, 186, 25636, 2746, 29367, 2,

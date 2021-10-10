@@ -27,6 +27,7 @@ fn test_m2m100_tokenization() -> anyhow::Result<()> {
     )?;
 
     let original_strings = [
+        ">>nl.<< …",
         ">>en.<< This is a sample sentence to be tokénized",
         ">>en.<< Wondering how this will get tokenized 🤔 ?",
         ">>fr.<< İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -35,6 +36,16 @@ fn test_m2m100_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![128067, 10, 2],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![None, Some(Offset { begin: 7, end: 9 }), None],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 128022, 36606, 117, 8, 19580, 271, 8931, 6226, 128, 667, 6565, 1268, 68753, 2,

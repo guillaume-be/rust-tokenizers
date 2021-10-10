@@ -23,6 +23,7 @@ fn test_ctrl_tokenization() -> anyhow::Result<()> {
     )?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -32,6 +33,16 @@ fn test_ctrl_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![15347],
+            segment_ids: vec![0],
+            special_tokens_mask: vec![0],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![Some(Offset { begin: 0, end: 1 })],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![93, 8, 5, 10165, 3870, 3, 22, 2169, 3479, 88010, 2388, 16431],
             segment_ids: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

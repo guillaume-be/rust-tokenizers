@@ -4,7 +4,7 @@ use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
-fn test_bert_tokenization() -> anyhow::Result<()> {
+fn test_reformer_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://cdn.huggingface.co/google/reformer-crime-and-punishment/spiece.model",
         "reformer.spiece",
@@ -15,6 +15,7 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
         ReformerTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -24,6 +25,19 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![258, 132],
+            segment_ids: vec![0, 0],
+            special_tokens_mask: vec![0, 0],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+            ],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 108, 265, 24, 111, 4, 7, 128, 279, 58, 7, 76, 25, 69, 26, 49, 26, 282, 0, 263, 264,
