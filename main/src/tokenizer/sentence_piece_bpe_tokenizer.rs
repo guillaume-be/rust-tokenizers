@@ -69,13 +69,14 @@ impl SentencePieceBpeTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, SentencePieceBpeTokenizer};
-    /// use rust_tokenizers::vocab::{SentencePieceVocab, Vocab, SentencePieceBpeModel};
+    /// use rust_tokenizers::tokenizer::{SentencePieceBpeTokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{SentencePieceBpeModel, SentencePieceVocab, Vocab};
     /// let lower_case = false;
     /// let vocab = SentencePieceVocab::from_file("path/to/vocab/file").unwrap();
     /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
-    /// let tokenizer = SentencePieceBpeTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
+    /// let tokenizer =
+    ///     SentencePieceBpeTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
     /// ```
     pub fn from_existing_vocab_and_model(
         vocab: SentencePieceVocab,

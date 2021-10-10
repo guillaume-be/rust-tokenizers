@@ -16,6 +16,7 @@ fn test_mbart50_tokenization() -> anyhow::Result<()> {
     let mbart_tokenizer = MBart50Tokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
     let original_strings = [
+        ">>en<< …",
         ">>en<< This is a sample sentence to be tokénized",
         ">>en<< Wondering how this will get tokenized 🤔 ?",
         ">>fr<< İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -24,6 +25,16 @@ fn test_mbart50_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![250004, 153, 2],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![None, Some(Offset { begin: 6, end: 8 }), None],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 250004, 3293, 83, 10, 121413, 149357, 47, 186, 25636, 2746, 29367, 2,

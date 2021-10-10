@@ -18,6 +18,7 @@ fn test_sentence_piece_tokenization() -> anyhow::Result<()> {
         SentencePieceTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -26,6 +27,21 @@ fn test_sentence_piece_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![17, 9, 9, 9],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+            ],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![122, 27, 24, 4561, 3833, 22, 39, 22, 267, 0, 180, 1227],
             segment_ids: vec![],

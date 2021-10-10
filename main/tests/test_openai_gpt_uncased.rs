@@ -25,6 +25,7 @@ fn test_openai_gpt_tokenization() -> anyhow::Result<()> {
     )?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -34,6 +35,16 @@ fn test_openai_gpt_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![0],
+            segment_ids: vec![0],
+            special_tokens_mask: vec![0],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![Some(Offset { begin: 0, end: 1 })],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![616, 544, 246, 12273, 5958, 485, 580, 571, 2987, 4780],
             segment_ids: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

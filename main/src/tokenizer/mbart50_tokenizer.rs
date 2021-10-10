@@ -45,7 +45,7 @@ impl MBart50Tokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, MBart50Tokenizer};
+    /// use rust_tokenizers::tokenizer::{MBart50Tokenizer, Tokenizer};
     /// let lower_case = false;
     /// let tokenizer = MBart50Tokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
@@ -69,8 +69,8 @@ impl MBart50Tokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, MBart50Tokenizer};
-    /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, MBart50Vocab};
+    /// use rust_tokenizers::tokenizer::{MBart50Tokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{MBart50Vocab, SentencePieceModel, Vocab};
     /// let lower_case = false;
     /// let vocab = MBart50Vocab::from_file("path/to/vocab/file").unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();

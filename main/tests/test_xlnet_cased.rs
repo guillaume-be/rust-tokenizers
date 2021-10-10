@@ -15,6 +15,7 @@ fn test_xlnet_tokenization() -> anyhow::Result<()> {
     let xlnet_tokenizer = XLNetTokenizer::from_file(vocab_path.to_str().unwrap(), false, true)?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -23,6 +24,23 @@ fn test_xlnet_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![17, 9, 9, 9, 4, 3],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+                Some(Offset { begin: 0, end: 1 }),
+                None,
+                None,
+            ],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![122, 27, 24, 4561, 3833, 22, 39, 17366, 1227, 4, 3],
             segment_ids: vec![],
