@@ -1648,6 +1648,15 @@ mod tests {
             BaseTokenizer::from_existing_vocab(vocab, true, true);
         let test_tuples = [
             (
+                "…",
+                (
+                    vec!["…"],
+                    vec![Some(Offset::new(0, 1))],
+                    vec![vec![0]],
+                    vec![Mask::Punctuation],
+                ),
+            ),
+            (
                 "Sentence with [MASK] token.",
                 (
                     vec!["sentence", "with", "[MASK]", "token", "."],

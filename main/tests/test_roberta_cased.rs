@@ -26,6 +26,7 @@ fn test_roberta_tokenization() -> anyhow::Result<()> {
     )?;
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -35,6 +36,16 @@ fn test_roberta_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![0, 1555, 2],
+            segment_ids: vec![],
+            special_tokens_mask: vec![],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![None, Some(Offset { begin: 0, end: 1 }), None],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 0, 152, 16, 10, 7728, 3645, 7, 28, 7, 1071, 44025, 10172, 282, 1538, 2,

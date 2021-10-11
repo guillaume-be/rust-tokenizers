@@ -46,9 +46,14 @@ impl M2M100Tokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, M2M100Tokenizer};
+    /// use rust_tokenizers::tokenizer::{M2M100Tokenizer, Tokenizer};
     /// let lower_case = false;
-    /// let tokenizer = M2M100Tokenizer::from_files("path/to/vocab/file", "path/to/spiece/model/file", lower_case).unwrap();
+    /// let tokenizer = M2M100Tokenizer::from_files(
+    ///     "path/to/vocab/file",
+    ///     "path/to/spiece/model/file",
+    ///     lower_case,
+    /// )
+    /// .unwrap();
     /// ```
     pub fn from_files(
         vocab_path: &str,
@@ -75,8 +80,8 @@ impl M2M100Tokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, M2M100Tokenizer};
-    /// use rust_tokenizers::vocab::{SentencePieceBpeModel, Vocab, M2M100Vocab};
+    /// use rust_tokenizers::tokenizer::{M2M100Tokenizer, Tokenizer};
+    /// use rust_tokenizers::vocab::{M2M100Vocab, SentencePieceBpeModel, Vocab};
     /// let lower_case = false;
     /// let vocab = M2M100Vocab::from_file("path/to/vocab/file").unwrap();
     /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();

@@ -214,8 +214,14 @@ pub fn decompose_nfkc(token: &mut Token) {
     let mut cur_position: isize = 0;
     for (character, extra_char) in token.text.nfkc() {
         decomposed_string.push(character);
+        if extra_char > 0 {
+            cur_position -= extra_char;
+        }
         character_mapping.push(token.reference_offsets[cur_position as usize]);
-        cur_position = cur_position + 1 - extra_char;
+        if extra_char < 0 {
+            cur_position -= extra_char;
+        }
+        cur_position += 1;
     }
     token.text = decomposed_string;
     token.reference_offsets = character_mapping;

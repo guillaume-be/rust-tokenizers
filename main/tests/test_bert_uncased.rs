@@ -16,6 +16,7 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
     let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
 
     let original_strings = [
+        "…",
         "This is a sample sentence to be tokénized",
         "Wondering how this will get tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
@@ -25,6 +26,16 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
     ];
 
     let expected_results = [
+        TokenizedInput {
+            token_ids: vec![101, 1529, 102],
+            segment_ids: vec![0, 0, 0],
+            special_tokens_mask: vec![1, 0, 1],
+            overflowing_tokens: vec![],
+            num_truncated_tokens: 0,
+            token_offsets: vec![None, Some(Offset { begin: 0, end: 1 }), None],
+            reference_offsets: vec![],
+            mask: vec![],
+        },
         TokenizedInput {
             token_ids: vec![
                 101, 2023, 2003, 1037, 7099, 6251, 2000, 2022, 19204, 3550, 102,
