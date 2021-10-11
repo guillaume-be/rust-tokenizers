@@ -218,7 +218,7 @@ pub fn decompose_nfkc(token: &mut Token) {
             cur_position -= extra_char;
         }
         character_mapping.push(token.reference_offsets[cur_position as usize]);
-        if extra_char < 1 {
+        if extra_char < 0 {
             cur_position -= extra_char;
         }
         cur_position += 1;
