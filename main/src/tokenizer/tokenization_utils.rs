@@ -54,8 +54,8 @@ pub fn clean_text(token: &mut Token, strict: bool) {
     }
     token.text = cleaned_string;
     token.reference_offsets = character_mapping;
-    token.offset.begin = *token.reference_offsets.first().unwrap_or(&(0));
-    token.offset.end = *token.reference_offsets.last().unwrap_or(&(0)) + 1;
+    token.offset.begin = *token.reference_offsets.first().unwrap_or(&0);
+    token.offset.end = *token.reference_offsets.last().unwrap_or(&0) + 1;
 }
 
 /// Replaces a pattern &str by a replacement &str keeping track of the offsets
