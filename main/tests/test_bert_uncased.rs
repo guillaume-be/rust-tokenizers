@@ -235,7 +235,7 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
                         "{:<2?} | {:<10} | {:<10} | {:<10?}",
                         offset,
                         text,
-                        bert_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false),
+                        bert_tokenizer.decode(&[predicted.token_ids[idx]], false, false),
                         predicted.mask[idx]
                     )
                 }

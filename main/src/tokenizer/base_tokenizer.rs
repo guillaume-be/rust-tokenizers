@@ -939,9 +939,9 @@ pub trait Tokenizer<T: Vocab> {
     ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     ///
     /// let tokens_ids = vec![0, 1, 2, 42];
-    /// let tokens = tokenizer.decode_to_vec(tokens_ids, false);
+    /// let tokens = tokenizer.decode_to_vec(&tokens_ids, false);
     /// ```
-    fn decode_to_vec(&self, token_ids: Vec<i64>, skip_special_tokens: bool) -> Vec<String> {
+    fn decode_to_vec(&self, token_ids: &[i64], skip_special_tokens: bool) -> Vec<String> {
         let tokens: Vec<String> = if skip_special_tokens {
             token_ids
                 .iter()
@@ -981,11 +981,11 @@ pub trait Tokenizer<T: Vocab> {
     /// let skip_special_tokens = true;
     /// let clean_up_tokenization_spaces = true;
     /// let tokens = vec![0, 1, 2, 42];
-    /// let decoded = tokenizer.decode(tokens, skip_special_tokens, clean_up_tokenization_spaces);
+    /// let decoded = tokenizer.decode(&tokens, skip_special_tokens, clean_up_tokenization_spaces);
     /// ```
     fn decode(
         &self,
-        token_ids: Vec<i64>,
+        token_ids: &[i64],
         skip_special_tokens: bool,
         clean_up_tokenization_spaces: bool,
     ) -> String {
@@ -1095,21 +1095,25 @@ pub trait Tokenizer<T: Vocab> {
     /// let clean_up_tokenization_spaces = true;
     /// let token_ids_list = vec![vec![0, 1, 2, 42], vec![99, 3]];
     /// let decoded_list = tokenizer.decode_list(
-    ///     token_ids_list,
+    ///     &token_ids_list,
     ///     skip_special_tokens,
     ///     clean_up_tokenization_spaces,
     /// );
     /// ```
     fn decode_list(
         &self,
-        token_ids_list: Vec<Vec<i64>>,
+        token_ids_list: &[Vec<i64>],
         skip_special_tokens: bool,
         clean_up_tokenization_spaces: bool,
     ) -> Vec<String> {
         token_ids_list
             .into_iter()
             .map(|token_ids| {
-                self.decode(token_ids, skip_special_tokens, clean_up_tokenization_spaces)
+                self.decode(
+                    &token_ids,
+                    skip_special_tokens,
+                    clean_up_tokenization_spaces,
+                )
             })
             .collect()
     }
@@ -1418,14 +1422,14 @@ where
     /// let clean_up_tokenization_spaces = true;
     /// let token_ids_list = vec![vec![0, 1, 2, 42], vec![99, 3]];
     /// let decoded_list = tokenizer.decode_list(
-    ///     token_ids_list,
+    ///     &token_ids_list,
     ///     skip_special_tokens,
     ///     clean_up_tokenization_spaces,
     /// );
     /// ```
     fn decode_list(
         &self,
-        token_ids_list: Vec<Vec<i64>>,
+        token_ids_list: &[Vec<i64>],
         skip_special_tokens: bool,
         clean_up_tokenization_spaces: bool,
     ) -> Vec<String> {
@@ -1433,7 +1437,7 @@ where
             .par_iter()
             .map(|token_ids| {
                 self.decode(
-                    token_ids.to_vec(),
+                    &token_ids,
                     skip_special_tokens,
                     clean_up_tokenization_spaces,
                 )
@@ -2421,7 +2425,7 @@ mod tests {
         for (source_ids, expected_result) in test_tuples.iter() {
             assert_eq!(
                 base_tokenizer.decode(
-                    source_ids.clone(),
+                    source_ids,
                     skip_special_tokens,
                     clean_up_tokenization_spaces,
                 ),
@@ -2431,7 +2435,7 @@ mod tests {
         assert_eq!(
             Tokenizer::decode_list(
                 &base_tokenizer,
-                source_ids.clone(),
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -2440,7 +2444,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &base_tokenizer,
-                source_ids,
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -2468,7 +2472,7 @@ mod tests {
         for (source_ids, expected_result) in test_tuples.iter() {
             assert_eq!(
                 base_tokenizer.decode(
-                    source_ids.clone(),
+                    source_ids,
                     skip_special_tokens,
                     clean_up_tokenization_spaces,
                 ),
@@ -2478,7 +2482,7 @@ mod tests {
         assert_eq!(
             Tokenizer::decode_list(
                 &base_tokenizer,
-                source_ids.clone(),
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -2487,7 +2491,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &base_tokenizer,
-                source_ids,
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -2515,7 +2519,7 @@ mod tests {
         for (source_ids, expected_result) in test_tuples.iter() {
             assert_eq!(
                 base_tokenizer.decode(
-                    source_ids.clone(),
+                    source_ids,
                     skip_special_tokens,
                     clean_up_tokenization_spaces,
                 ),
@@ -2525,7 +2529,7 @@ mod tests {
         assert_eq!(
             Tokenizer::decode_list(
                 &base_tokenizer,
-                source_ids.clone(),
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -2534,7 +2538,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &base_tokenizer,
-                source_ids,
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
