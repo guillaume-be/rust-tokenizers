@@ -105,6 +105,49 @@ impl FNetTokenizer {
             strip_accents,
         }
     }
+
+    fn post_process_pieces<'a>(&self, tokens: &'a mut Vec<Token>) -> &'a Vec<Token> {
+        let mut positions_to_update: Vec<(usize, Vec<Token>)> = vec![];
+        for (token_idx, token) in tokens.iter().enumerate() {
+            let mut token_chars = token.text.chars().rev();
+            if token.text.chars().count() > 1
+                && (token_chars.next().unwrap() == ',')
+                    & token_chars.next().unwrap().is_ascii_digit()
+            {
+                let mut new_token = token.clone();
+                let last_char = new_token.text.pop().unwrap();
+                let mut updated_tokens = self.model.tokenize_to_tokens(new_token.as_ref());
+
+                if !token.text.starts_with('\u{2581}')
+                    & updated_tokens[0].text.starts_with('\u{2581}')
+                {
+                    if updated_tokens[0].text.chars().count() == 1 {
+                        updated_tokens.remove(0);
+                    } else {
+                        let first_char_length =
+                            updated_tokens[0].text.chars().next().unwrap().len_utf8();
+                        updated_tokens[0].text = (&updated_tokens[0].text[first_char_length..])
+                            .parse()
+                            .unwrap();
+                    }
+                }
+                updated_tokens.push(Token {
+                    text: last_char.to_string(),
+                    offset: Offset {
+                        begin: token.offset.end,
+                        end: token.offset.end,
+                    },
+                    reference_offsets: vec![*token.reference_offsets.last().unwrap()],
+                    mask: token.mask,
+                });
+                positions_to_update.push((token_idx, updated_tokens.clone()));
+            }
+        }
+        for (pos, new_tokens) in positions_to_update {
+            tokens.splice(pos..pos, new_tokens);
+        }
+        tokens
+    }
 }
 
 impl Tokenizer<FNetVocab> for FNetTokenizer {
@@ -136,7 +179,8 @@ impl Tokenizer<FNetVocab> for FNetTokenizer {
                     token.text.insert(0, '\u{2581}');
                     token.reference_offsets.insert(0, 0);
                 };
-                let output = self.model.tokenize_to_tokens(token.as_ref());
+                let mut output = self.model.tokenize_to_tokens(token.as_ref());
+                self.post_process_pieces(&mut output);
                 sub_tokens.extend(output)
             } else {
                 sub_tokens.push(token.clone());
