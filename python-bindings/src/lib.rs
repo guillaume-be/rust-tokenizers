@@ -210,7 +210,7 @@ where
             Ok(truncation_strategy) => {
                 let tokenized_inputs = MultiThreadedTokenizer::encode_list(
                     self.tokenizer(),
-                    text_list,
+                    &text_list,
                     max_len,
                     &truncation_strategy,
                     stride,
@@ -248,7 +248,7 @@ where
             Ok(truncation_strategy) => {
                 let tokenized_inputs = MultiThreadedTokenizer::encode_pair_list(
                     self.tokenizer(),
-                    text_list,
+                    &text_list,
                     max_len,
                     &truncation_strategy,
                     stride,

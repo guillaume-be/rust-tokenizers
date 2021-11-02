@@ -1107,13 +1107,9 @@ pub trait Tokenizer<T: Vocab> {
         clean_up_tokenization_spaces: bool,
     ) -> Vec<String> {
         token_ids_list
-            .into_iter()
+            .iter()
             .map(|token_ids| {
-                self.decode(
-                    &token_ids,
-                    skip_special_tokens,
-                    clean_up_tokenization_spaces,
-                )
+                self.decode(token_ids, skip_special_tokens, clean_up_tokenization_spaces)
             })
             .collect()
     }
@@ -1436,11 +1432,7 @@ where
         token_ids_list
             .par_iter()
             .map(|token_ids| {
-                self.decode(
-                    &token_ids,
-                    skip_special_tokens,
-                    clean_up_tokenization_spaces,
-                )
+                self.decode(token_ids, skip_special_tokens, clean_up_tokenization_spaces)
             })
             .collect()
     }
@@ -1462,7 +1454,7 @@ pub struct BaseTokenizer<T: Vocab> {
     strip_accents: bool,
 }
 
-impl<T: Vocab + Sync + Send> BaseTokenizer<T> {
+impl<T: Vocab + Sync> BaseTokenizer<T> {
     /// Create a new instance of a `BaseTokenizer`
     /// Expects a vocabulary flat-file as an input.
     ///
