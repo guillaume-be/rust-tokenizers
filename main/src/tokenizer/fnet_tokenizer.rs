@@ -144,7 +144,7 @@ impl FNetTokenizer {
             }
         }
         for (pos, new_tokens) in positions_to_update {
-            tokens.splice(pos..pos, new_tokens);
+            tokens.splice(pos..pos + 1, new_tokens);
         }
         tokens
     }
