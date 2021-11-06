@@ -587,7 +587,7 @@ mod tests {
         for (source_ids, expected_result) in test_tuples.iter() {
             assert_eq!(
                 bert_tokenizer.decode(
-                    source_ids.clone(),
+                    source_ids,
                     skip_special_tokens,
                     clean_up_tokenization_spaces,
                 ),
@@ -597,7 +597,7 @@ mod tests {
         assert_eq!(
             Tokenizer::decode_list(
                 &bert_tokenizer,
-                source_ids.clone(),
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -606,7 +606,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &bert_tokenizer,
-                source_ids,
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -633,7 +633,7 @@ mod tests {
         for (source_ids, expected_result) in test_tuples.iter() {
             assert_eq!(
                 bert_tokenizer.decode(
-                    source_ids.clone(),
+                    source_ids,
                     skip_special_tokens,
                     clean_up_tokenization_spaces,
                 ),
@@ -643,7 +643,7 @@ mod tests {
         assert_eq!(
             Tokenizer::decode_list(
                 &bert_tokenizer,
-                source_ids.clone(),
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),
@@ -652,7 +652,7 @@ mod tests {
         assert_eq!(
             MultiThreadedTokenizer::decode_list(
                 &bert_tokenizer,
-                source_ids,
+                &source_ids,
                 skip_special_tokens,
                 clean_up_tokenization_spaces,
             ),

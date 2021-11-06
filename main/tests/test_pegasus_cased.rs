@@ -254,7 +254,7 @@ fn test_pegasus_tokenization() -> anyhow::Result<()> {
                         "{:<2?} | {:<10} | {:<10} | {:<10?}",
                         offset,
                         text,
-                        pegasus_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false),
+                        pegasus_tokenizer.decode(&[predicted.token_ids[idx]], false, false),
                         predicted.mask[idx]
                     )
                 }
