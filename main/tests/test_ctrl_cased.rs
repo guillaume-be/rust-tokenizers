@@ -243,7 +243,7 @@ fn test_ctrl_tokenization() -> anyhow::Result<()> {
                         "{:<2?} | {:<10} | {:<10} | {:<10?}",
                         offset,
                         text,
-                        ctrl_tokenizer.decode(vec!(predicted.token_ids[idx]), false, false),
+                        ctrl_tokenizer.decode(&[predicted.token_ids[idx]], false, false),
                         predicted.mask[idx]
                     )
                 }
