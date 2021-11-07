@@ -55,7 +55,7 @@ class TestTokenizationQNLI:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
                                                                    text_pair=example.text_b,
                                                                    add_special_tokens=True,
-                                                                   return_overflowing_tokens=True,
+                                                                   return_overflowing_tokens=False,
                                                                    return_special_tokens_mask=True,
                                                                    max_length=128))
 
@@ -92,7 +92,7 @@ class TestTokenizationQNLI:
             output_baseline.append(self.base_tokenizer.encode_plus(example.text_a,
                                                                    text_pair=example.text_b,
                                                                    add_special_tokens=True,
-                                                                   return_overflowing_tokens=True,
+                                                                   return_overflowing_tokens=False,
                                                                    return_special_tokens_mask=True,
                                                                    max_length=128))
 

@@ -15,7 +15,7 @@ use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
     strip_accents,
 };
-use crate::vocab::{AlbertVocab, SentencePieceModel};
+use crate::vocab::{AlbertVocab, FNetVocab, SentencePieceBpeModel};
 
 use crate::tokenizer::base_tokenizer::{TokenIdsWithOffsets, TokenIdsWithSpecialTokens};
 use crate::tokenizer::MultiThreadedTokenizer;
@@ -23,24 +23,24 @@ use crate::tokenizer::Tokenizer;
 use crate::vocab::Vocab;
 use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 
-/// # ALBERT tokenizer
-/// ALBERT tokenizer performing:
+/// # FNet tokenizer
+/// FNet tokenizer performing:
 /// - splitting on special characters
 /// - text cleaning
 /// - NFKC decomposition
 /// - (optional) lower casing
 /// - (optional) accent stripping
-/// - SentencePiece decomposition
-pub struct AlbertTokenizer {
-    model: SentencePieceModel,
-    vocab: AlbertVocab,
+/// - SentencePiece BPE decomposition
+pub struct FNetTokenizer {
+    model: SentencePieceBpeModel,
+    vocab: FNetVocab,
     lower_case: bool,
     strip_accents: bool,
 }
 
-impl AlbertTokenizer {
-    /// Create a new instance of a `AlbertTokenizer`
-    /// Expects a SentencePiece protobuf file as an input.
+impl FNetTokenizer {
+    /// Create a new instance of a `FNetTokenizer`
+    /// Expects a SentencePiece BPE protobuf file as an input.
     ///
     /// # Parameters
     /// - path (`&str`): path to the SentencePiece model file
@@ -50,20 +50,20 @@ impl AlbertTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
+    /// use rust_tokenizers::tokenizer::{FNetTokenizer, Tokenizer};
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let tokenizer =
-    ///     AlbertTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     FNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
         path: &str,
         lower_case: bool,
         strip_accents: bool,
-    ) -> Result<AlbertTokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
-        let vocab = AlbertVocab::from_file(path)?;
-        Ok(AlbertTokenizer {
+    ) -> Result<FNetTokenizer, TokenizerError> {
+        let model = SentencePieceBpeModel::from_file(path)?;
+        let vocab = FNetVocab::from_file(path)?;
+        Ok(FNetTokenizer {
             model,
             vocab,
             lower_case,
@@ -71,34 +71,34 @@ impl AlbertTokenizer {
         })
     }
 
-    /// Create a new instance of a `AlbertTokenizer` from an existing vocabulary and model
+    /// Create a new instance of a `FNetTokenizer` from an existing vocabulary and model
     ///
     /// # Parameters
-    /// - vocab (`AlbertVocab`): vocabulary
-    /// - model (`SentencePieceModel`): SentencePiece model
+    /// - vocab (`FNetVocab`): vocabulary
+    /// - model (`SentencePieceBPEModel`): SentencePiece BPE model
     /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
     /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
-    /// use rust_tokenizers::vocab::{AlbertVocab, SentencePieceModel, Vocab};
+    /// use rust_tokenizers::tokenizer::FNetTokenizer;
+    /// use rust_tokenizers::vocab::{FNetVocab, SentencePieceBpeModel, Vocab};
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let vocab = AlbertVocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    /// let vocab = FNetVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =
-    ///     AlbertTokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents);
+    ///     FNetTokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents);
     /// ```
     pub fn from_existing_vocab_and_model(
-        vocab: AlbertVocab,
-        model: SentencePieceModel,
+        vocab: FNetVocab,
+        model: SentencePieceBpeModel,
         lower_case: bool,
         strip_accents: bool,
-    ) -> AlbertTokenizer {
-        AlbertTokenizer {
+    ) -> FNetTokenizer {
+        FNetTokenizer {
             model,
             vocab,
             lower_case,
@@ -116,9 +116,7 @@ impl AlbertTokenizer {
             {
                 let mut new_token = token.clone();
                 let last_char = new_token.text.pop().unwrap();
-                let updated_tokens = self.model.decode_forward_token_ref(new_token.as_ref());
-                let updated_tokens = self.model.decode_backward(&updated_tokens);
-                let mut updated_tokens = self.model.parse_nodes_to_tokens(updated_tokens);
+                let mut updated_tokens = self.model.tokenize_to_tokens(new_token.as_ref());
 
                 if !token.text.starts_with('\u{2581}')
                     & updated_tokens[0].text.starts_with('\u{2581}')
@@ -152,8 +150,8 @@ impl AlbertTokenizer {
     }
 }
 
-impl Tokenizer<AlbertVocab> for AlbertTokenizer {
-    fn vocab(&self) -> &AlbertVocab {
+impl Tokenizer<FNetVocab> for FNetTokenizer {
+    fn vocab(&self) -> &FNetVocab {
         &self.vocab
     }
 
@@ -181,10 +179,7 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
                     token.text.insert(0, '\u{2581}');
                     token.reference_offsets.insert(0, 0);
                 };
-                let output = self.model.decode_forward_token_ref(token.as_ref());
-                let decoded = self.model.decode_backward(&output);
-
-                let mut output: Vec<Token> = self.model.parse_nodes_to_tokens(decoded);
+                let mut output = self.model.tokenize_to_tokens(token.as_ref());
                 self.post_process_pieces(&mut output);
                 sub_tokens.extend(output)
             } else {
@@ -254,4 +249,4 @@ impl Tokenizer<AlbertVocab> for AlbertTokenizer {
     }
 }
 
-impl MultiThreadedTokenizer<AlbertVocab> for AlbertTokenizer {}
+impl MultiThreadedTokenizer<FNetVocab> for FNetTokenizer {}

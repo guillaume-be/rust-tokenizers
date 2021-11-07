@@ -21,6 +21,7 @@
 //! - BERT
 //! - DistilBERT
 //! - RoBERTa
+//! - FNet
 //! - GPT
 //! - GPT2
 //! - CTRL

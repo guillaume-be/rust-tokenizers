@@ -1,15 +1,15 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use rust_tokenizers::tokenizer::{
-    AlbertTokenizer, BertTokenizer, CtrlTokenizer, Gpt2Tokenizer, M2M100Tokenizer,
+    AlbertTokenizer, BertTokenizer, CtrlTokenizer, FNetTokenizer, Gpt2Tokenizer, M2M100Tokenizer,
     MBart50Tokenizer, MultiThreadedTokenizer, OpenAiGptTokenizer, PegasusTokenizer,
     ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer, SentencePieceBpeTokenizer,
     SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy, XLMRobertaTokenizer,
     XLNetTokenizer,
 };
 use rust_tokenizers::vocab::{
-    AlbertVocab, BertVocab, Gpt2Vocab, M2M100Vocab, MBart50Vocab, OpenAiGptVocab, PegasusVocab,
-    ProphetNetVocab, ReformerVocab, RobertaVocab, SentencePieceVocab, T5Vocab, Vocab,
+    AlbertVocab, BertVocab, FNetVocab, Gpt2Vocab, M2M100Vocab, MBart50Vocab, OpenAiGptVocab,
+    PegasusVocab, ProphetNetVocab, ReformerVocab, RobertaVocab, SentencePieceVocab, T5Vocab, Vocab,
     XLMRobertaVocab, XLNetVocab,
 };
 
@@ -1882,6 +1882,104 @@ impl PyM2M100Tokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyFNetTokenizer {
+    tokenizer: FNetTokenizer,
+}
+
+impl PyTokenizer<FNetTokenizer, FNetVocab> for PyFNetTokenizer {
+    fn tokenizer(&self) -> &FNetTokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<FNetTokenizer, FNetVocab> for PyFNetTokenizer {}
+
+#[pymethods]
+impl PyFNetTokenizer {
+    #[new]
+    fn new(vocab_path: String, do_lower_case: bool, strip_accents: bool) -> Self {
+        PyFNetTokenizer {
+            tokenizer: FNetTokenizer::from_file(vocab_path.as_str(), do_lower_case, strip_accents)
+                .unwrap(),
+        }
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<FNetTokenizer, FNetVocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<FNetTokenizer, FNetVocab>>::tokenize_list(&self, text_list)
+    }
+
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<FNetTokenizer, FNetVocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<FNetTokenizer, FNetVocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<FNetTokenizer, FNetVocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<FNetTokenizer, FNetVocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+}
+
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
@@ -1900,5 +1998,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyPegasusTokenizer>()?;
     m.add_class::<PyMBart50Tokenizer>()?;
     m.add_class::<PyM2M100Tokenizer>()?;
+    m.add_class::<PyFNetTokenizer>()?;
     Ok(())
 }
