@@ -543,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "rust_tokenizers_python"
-version = "7.0.0"
+version = "7.0.1"
 dependencies = [
  "pyo3",
  "rust_tokenizers",
