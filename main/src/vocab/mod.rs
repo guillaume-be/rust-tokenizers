@@ -60,6 +60,7 @@ pub use albert_vocab::AlbertVocab;
 pub use base_vocab::{BaseVocab, Vocab};
 pub use bert_vocab::BertVocab;
 pub use bpe_vocab::{BpePairRef, BpePairVocab};
+pub use deberta_v2_vocab::DeBERTaV2Vocab;
 pub use deberta_vocab::DeBERTaVocab;
 pub use fnet_vocab::FNetVocab;
 pub use gpt2_vocab::Gpt2Vocab;

@@ -22,6 +22,7 @@
 //!     - GPT2
 //!     - RoBERTa
 //!     - CTRL
+//!     - DeBERTa
 //! - SentencePiece (Unigram) tokenizers:
 //!     - SentencePiece
 //!     - ALBERT
@@ -30,6 +31,7 @@
 //!     - T5
 //!     - Marian
 //!     - Reformer
+//!     - DeBERTa (v2)
 //!
 //! All tokenizers are `Send`, `Sync` and support multi-threaded tokenization and encoding.
 
@@ -39,6 +41,7 @@ mod bert_tokenizer;
 mod constants;
 mod ctrl_tokenizer;
 mod deberta_tokenizer;
+mod deberta_v2_tokenizer;
 mod fnet_tokenizer;
 mod gpt2_tokenizer;
 mod m2m100_tokenizer;
@@ -61,6 +64,7 @@ pub use base_tokenizer::{BaseTokenizer, MultiThreadedTokenizer, Tokenizer, Trunc
 pub use bert_tokenizer::BertTokenizer;
 pub use ctrl_tokenizer::CtrlTokenizer;
 pub use deberta_tokenizer::DeBERTaTokenizer;
+pub use deberta_v2_tokenizer::DeBERTaV2Tokenizer;
 pub use fnet_tokenizer::FNetTokenizer;
 pub use gpt2_tokenizer::Gpt2Tokenizer;
 pub use m2m100_tokenizer::M2M100Tokenizer;
