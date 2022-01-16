@@ -36,6 +36,7 @@ mod albert_vocab;
 pub(crate) mod base_vocab;
 mod bert_vocab;
 pub(crate) mod bpe_vocab;
+mod deberta_v2_vocab;
 mod deberta_vocab;
 mod fnet_vocab;
 mod gpt2_vocab;
