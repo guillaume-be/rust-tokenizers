@@ -128,6 +128,7 @@ impl Vocab for DeBERTaV2Vocab {
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             values.insert(piece.get_piece().to_owned(), idx as i64);
         }
+        values.insert(DeBERTaV2Vocab::mask_value().to_owned(), values.len() as i64);
 
         let mut special_values = HashMap::new();
         let unknown_value = DeBERTaV2Vocab::unknown_value();
