@@ -148,7 +148,26 @@ impl DeBERTaV2Tokenizer {
                     reference_offsets: vec![*token.reference_offsets.last().unwrap()],
                     mask: token.mask,
                 });
-                positions_to_update.push((token_idx, updated_tokens.clone()));
+                positions_to_update.push((token_idx, updated_tokens));
+            } else if !Tokenizer::vocab(self).values.contains_key(&token.text) {
+                let mut updated_tokens = Vec::new();
+                for byte in token
+                    .text
+                    .bytes()
+                    .map(|byte| format!("<{:#04X?}>", byte))
+                    .collect::<Vec<String>>()
+                {
+                    updated_tokens.push(Token {
+                        text: byte,
+                        offset: Offset {
+                            begin: token.offset.end,
+                            end: token.offset.end,
+                        },
+                        reference_offsets: vec![*token.reference_offsets.last().unwrap()],
+                        mask: token.mask,
+                    });
+                }
+                positions_to_update.push((token_idx, updated_tokens));
             }
         }
         for (pos, new_tokens) in positions_to_update {

@@ -170,7 +170,7 @@ pub fn whitespace_tokenize(token: TokenRef) -> Vec<TokenRef> {
     split_on_char(token, is_whitespace, false, Mask::Whitespace)
 }
 
-///Remove diacritics
+///Lowercase
 pub fn lowercase(token: &mut Token) {
     let capacity = token.text.capacity();
     let mut lower_cased_string: String = String::with_capacity(capacity);
