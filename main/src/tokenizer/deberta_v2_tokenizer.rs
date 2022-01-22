@@ -170,7 +170,7 @@ impl DeBERTaV2Tokenizer {
                 positions_to_update.push((token_idx, updated_tokens));
             }
         }
-        for (pos, new_tokens) in positions_to_update {
+        for (pos, new_tokens) in positions_to_update.into_iter().rev() {
             tokens.splice(pos..pos + 1, new_tokens);
         }
         tokens
