@@ -55,8 +55,13 @@ impl DeBERTaV2Tokenizer {
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let add_prefix_space = false;
-    /// let tokenizer =
-    ///     DeBERTaV2Tokenizer::from_file("path/to/vocab/file", lower_case, strip_accents, add_prefix_space).unwrap();
+    /// let tokenizer = DeBERTaV2Tokenizer::from_file(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     strip_accents,
+    ///     add_prefix_space,
+    /// )
+    /// .unwrap();
     /// ```
     pub fn from_file(
         path: &str,
@@ -95,8 +100,13 @@ impl DeBERTaV2Tokenizer {
     /// let vocab = DeBERTaV2Vocab::from_file("path/to/vocab/file").unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
-    /// let tokenizer =
-    ///     DeBERTaV2Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents, add_prefix_space);
+    /// let tokenizer = DeBERTaV2Tokenizer::from_existing_vocab_and_model(
+    ///     vocab,
+    ///     model,
+    ///     lower_case,
+    ///     strip_accents,
+    ///     add_prefix_space,
+    /// );
     /// ```
     pub fn from_existing_vocab_and_model(
         vocab: DeBERTaV2Vocab,
