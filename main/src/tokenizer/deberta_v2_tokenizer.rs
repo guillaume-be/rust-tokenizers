@@ -54,8 +54,9 @@ impl DeBERTaV2Tokenizer {
     /// use rust_tokenizers::tokenizer::{DeBERTaV2Tokenizer, Tokenizer};
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let add_prefix_space = false;
     /// let tokenizer =
-    ///     DeBERTaV2Tokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     DeBERTaV2Tokenizer::from_file("path/to/vocab/file", lower_case, strip_accents, add_prefix_space).unwrap();
     /// ```
     pub fn from_file(
         path: &str,
@@ -87,14 +88,15 @@ impl DeBERTaV2Tokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::DeBERTaV2Tokenizer;
-    /// use rust_tokenizers::vocab::{DeBERTaV2Vocab, SentencePieceBpeModel, Vocab};
+    /// use rust_tokenizers::vocab::{DeBERTaV2Vocab, SentencePieceModel, Vocab};
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let add_prefix_space = false;
     /// let vocab = DeBERTaV2Vocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
+    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =
-    ///     DeBERTaV2Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents);
+    ///     DeBERTaV2Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents, add_prefix_space);
     /// ```
     pub fn from_existing_vocab_and_model(
         vocab: DeBERTaV2Vocab,

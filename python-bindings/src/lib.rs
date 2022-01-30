@@ -1,16 +1,16 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use rust_tokenizers::tokenizer::{
-    AlbertTokenizer, BertTokenizer, CtrlTokenizer, DeBERTaTokenizer, FNetTokenizer, Gpt2Tokenizer,
-    M2M100Tokenizer, MBart50Tokenizer, MultiThreadedTokenizer, OpenAiGptTokenizer,
-    PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
+    AlbertTokenizer, BertTokenizer, CtrlTokenizer, DeBERTaTokenizer, DeBERTaV2Tokenizer,
+    FNetTokenizer, Gpt2Tokenizer, M2M100Tokenizer, MBart50Tokenizer, MultiThreadedTokenizer,
+    OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
     SentencePieceBpeTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy,
     XLMRobertaTokenizer, XLNetTokenizer,
 };
 use rust_tokenizers::vocab::{
-    AlbertVocab, BertVocab, DeBERTaVocab, FNetVocab, Gpt2Vocab, M2M100Vocab, MBart50Vocab,
-    OpenAiGptVocab, PegasusVocab, ProphetNetVocab, ReformerVocab, RobertaVocab, SentencePieceVocab,
-    T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
+    AlbertVocab, BertVocab, DeBERTaV2Vocab, DeBERTaVocab, FNetVocab, Gpt2Vocab, M2M100Vocab,
+    MBart50Vocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab, ReformerVocab, RobertaVocab,
+    SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
 };
 
 #[pyclass]
@@ -2084,6 +2084,116 @@ impl PyDeBertaTokenizer {
     }
 }
 
+#[pyclass(module = "rust_tokenizers")]
+struct PyDeBertaV2Tokenizer {
+    tokenizer: DeBERTaV2Tokenizer,
+}
+
+impl PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab> for PyDeBertaV2Tokenizer {
+    fn tokenizer(&self) -> &DeBERTaV2Tokenizer {
+        &self.tokenizer
+    }
+}
+
+impl PyMultiThreadTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab> for PyDeBertaV2Tokenizer {}
+
+#[pymethods]
+impl PyDeBertaV2Tokenizer {
+    #[new]
+    fn new(
+        vocab_path: String,
+        do_lower_case: bool,
+        strip_accents: bool,
+        add_prefix_space: bool,
+    ) -> Self {
+        PyDeBertaV2Tokenizer {
+            tokenizer: DeBERTaV2Tokenizer::from_file(
+                vocab_path.as_str(),
+                do_lower_case,
+                strip_accents,
+                add_prefix_space,
+            )
+            .unwrap(),
+        }
+    }
+
+    fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
+        <Self as PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::tokenize(&self, text)
+    }
+
+    fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
+        <Self as PyMultiThreadTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::tokenize_list(
+            &self, text_list,
+        )
+    }
+
+    fn encode(
+        &self,
+        text: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode(
+            &self,
+            text,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair(
+        &self,
+        text_a: &str,
+        text_b: &str,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<PyTokenizedInput> {
+        <Self as PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode_pair(
+            &self,
+            text_a,
+            text_b,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_list(
+        &self,
+        text_list: Vec<&str>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+
+    fn encode_pair_list(
+        &self,
+        text_list: Vec<(&str, &str)>,
+        max_len: usize,
+        truncation_strategy: &str,
+        stride: usize,
+    ) -> PyResult<Vec<PyTokenizedInput>> {
+        <Self as PyMultiThreadTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode_pair_list(
+            &self,
+            text_list,
+            max_len,
+            truncation_strategy,
+            stride,
+        )
+    }
+}
+
 #[pymodule]
 fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyBertTokenizer>()?;
@@ -2104,5 +2214,6 @@ fn rust_tokenizers(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyM2M100Tokenizer>()?;
     m.add_class::<PyFNetTokenizer>()?;
     m.add_class::<PyDeBertaTokenizer>()?;
+    m.add_class::<PyDeBertaV2Tokenizer>()?;
     Ok(())
 }
