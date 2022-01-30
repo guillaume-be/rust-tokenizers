@@ -14,7 +14,8 @@ import tempfile
 from pathlib import Path
 import pytest
 from transformers import AlbertTokenizer, T5Tokenizer, XLMRobertaTokenizer, XLNetTokenizer, ReformerTokenizer, \
-    ProphetNetTokenizer, PegasusTokenizer, MBart50Tokenizer, M2M100Tokenizer, FNetTokenizer, DebertaTokenizer
+    ProphetNetTokenizer, PegasusTokenizer, MBart50Tokenizer, M2M100Tokenizer, FNetTokenizer, DebertaTokenizer, \
+    DebertaV2Tokenizer
 from transformers.data.processors.glue import Sst2Processor
 from transformers.file_utils import get_from_cache
 from transformers import BertTokenizer
@@ -27,7 +28,7 @@ from rust_tokenizers import PyBertTokenizer, PyCtrlTokenizer, PyGpt2Tokenizer, P
     PyOpenAiGptTokenizer, PyAlbertTokenizer, PyT5Tokenizer, PyXLNetTokenizer, PyReformerTokenizer, \
     PyProphetNetTokenizer, PyPegasusTokenizer, PySentencePieceTokenizer, PyXLMRobertaTokenizer, \
     PyMBart50Tokenizer, PySentencePieceBpeTokenizer, PyM2M100Tokenizer, PyFNetTokenizer, \
-    PyDeBertaTokenizer
+    PyDeBertaTokenizer, PyDeBertaV2Tokenizer
 from zipfile import ZipFile
 import requests
 import sentencepiece
@@ -784,6 +785,42 @@ class TestTokenizationSST2:
 
         # When
         output_rust = self.rust_tokenizer.encode_list([example.text_a for example in self.examples],
+                                                      max_len=128,
+                                                      truncation_strategy='longest_first',
+                                                      stride=0)
+
+        # Then
+        for idx, (rust, baseline) in enumerate(zip(output_rust, output_baseline)):
+            assert rust.token_ids == baseline[
+                'input_ids'], f'Difference in tokenization for {self.rust_tokenizer.__class__}: \n ' \
+                              f'Sentence a: {self.examples[idx].text_a} \n' \
+                              f'Sentence b: {self.examples[idx].text_b} \n' \
+                              f'Token mismatch: {self.get_token_diff(rust.token_ids, baseline["input_ids"])} \n' \
+                              f'Rust: {rust.token_ids} \n' \
+                              f'Python {baseline["input_ids"]}'
+            assert (rust.special_tokens_mask == baseline['special_tokens_mask'])
+
+    def test_tokenization_deberta_v2(self):
+        # Given
+        self.base_tokenizer = DebertaV2Tokenizer.from_pretrained('microsoft/deberta-v3-base',
+                                                                 do_lower_case=False,
+                                                                 cache_dir=self.test_dir)
+        self.rust_tokenizer = PyDeBertaV2Tokenizer(
+            get_from_cache('https://huggingface.co/microsoft/deberta-v3-base/resolve/main/spm.model'),
+            do_lower_case=False,
+            strip_accents=False,
+            add_prefix_space=False
+        )
+        output_baseline = []
+        for example in self.examples:
+            output_baseline.append(self.base_tokenizer.encode_plus(example.text_a.strip(),
+                                                                   add_special_tokens=True,
+                                                                   return_overflowing_tokens=True,
+                                                                   return_special_tokens_mask=True,
+                                                                   max_length=128))
+
+        # When
+        output_rust = self.rust_tokenizer.encode_list([example.text_a.strip() for example in self.examples],
                                                       max_len=128,
                                                       truncation_strategy='longest_first',
                                                       stride=0)
