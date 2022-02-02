@@ -59,7 +59,8 @@ impl DeBERTaTokenizer {
     /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
     /// let lower_case = false;
     /// let tokenizer =
-    ///     DeBERTaTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case).unwrap();
+    ///     DeBERTaTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case)
+    ///         .unwrap();
     /// ```
     pub fn from_file(
         vocab_path: &str,
