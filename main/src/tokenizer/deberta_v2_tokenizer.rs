@@ -12,10 +12,10 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::tokenizer::tokenization_utils::lowercase;
 use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, split_on_special_tokens, strip_accents,
 };
+use crate::tokenizer::tokenization_utils::{lowercase, unknown_byte_fallback};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{DeBERTaV2Vocab, SentencePieceModel, Vocab};
 use crate::{
@@ -161,25 +161,10 @@ impl DeBERTaV2Tokenizer {
                     mask: token.mask,
                 });
                 positions_to_update.push((token_idx, updated_tokens));
-            } else if !Tokenizer::vocab(self).values.contains_key(&token.text) {
-                let mut updated_tokens = Vec::new();
-                for byte in token
-                    .text
-                    .bytes()
-                    .map(|byte| format!("<{:#04X?}>", byte))
-                    .collect::<Vec<String>>()
-                {
-                    updated_tokens.push(Token {
-                        text: byte,
-                        offset: Offset {
-                            begin: token.offset.end,
-                            end: token.offset.end,
-                        },
-                        reference_offsets: vec![*token.reference_offsets.last().unwrap()],
-                        mask: token.mask,
-                    });
-                }
-                positions_to_update.push((token_idx, updated_tokens));
+            }
+            if let Some(byte_tokens) = unknown_byte_fallback(token.as_ref(), Tokenizer::vocab(self))
+            {
+                positions_to_update.push((token_idx, byte_tokens));
             }
         }
         for (pos, new_tokens) in positions_to_update.into_iter().rev() {

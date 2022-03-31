@@ -1132,6 +1132,31 @@ pub(crate) fn split_on_language_code<'a>(
     tokens
 }
 
+pub(crate) fn unknown_byte_fallback<T: Vocab>(token: TokenRef, vocab: &T) -> Option<Vec<Token>> {
+    if !vocab.values().contains_key(token.text) {
+        let mut updated_tokens = Vec::new();
+        for byte in token
+            .text
+            .bytes()
+            .map(|byte| format!("<{:#04X?}>", byte))
+            .collect::<Vec<String>>()
+        {
+            updated_tokens.push(Token {
+                text: byte,
+                offset: Offset {
+                    begin: token.offset.end,
+                    end: token.offset.end,
+                },
+                reference_offsets: vec![*token.reference_offsets.last().unwrap()],
+                mask: token.mask,
+            });
+        }
+        Some(updated_tokens)
+    } else {
+        None
+    }
+}
+
 //==============================
 // Unit tests
 //==============================
