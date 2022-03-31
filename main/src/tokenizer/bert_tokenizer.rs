@@ -103,8 +103,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         self.base_tokenizer
             .tokenize_to_tokens(initial_token)
             .into_iter()
-            .map(|token| tokenize_wordpiece(token.as_ref(), &self.vocab, 100))
-            .flatten()
+            .flat_map(|token| tokenize_wordpiece(token.as_ref(), &self.vocab, 100))
             .collect()
     }
 

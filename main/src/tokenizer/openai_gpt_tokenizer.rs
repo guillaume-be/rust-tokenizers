@@ -111,7 +111,7 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
             .base_tokenizer
             .tokenize_to_tokens(initial_token)
             .into_iter()
-            .map(|token| {
+            .flat_map(|token| {
                 if token.mask != Mask::Special && token.mask != Mask::Unknown {
                     split_on_bpe_pairs(
                         token.as_ref(),
@@ -124,7 +124,6 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
                     vec![token]
                 }
             })
-            .flatten()
             .collect();
 
         tokens
