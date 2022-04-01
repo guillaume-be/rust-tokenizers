@@ -1526,21 +1526,18 @@ impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
         //split on whitespace
         let tokens: Vec<Token> = whitespace_tokenize(initial_token)
             .into_iter()
-            .map(|token| {
+            .flat_map(|token| {
                 //split on special tokens
                 split_on_special_tokens(token, &self.vocab)
             })
-            .flatten()
-            .map(|token| {
+            .flat_map(|token| {
                 //split on punctuation (with care for maintaining special values)
                 split_on_punct(token)
             })
-            .flatten()
-            .map(|token| {
+            .flat_map(|token| {
                 //tokenize CJK characters so each character is one token
                 tokenize_cjk_chars(token)
             })
-            .flatten()
             .map(|token| {
                 // v-- this is where the token gets owned, all steps above handle TokenRefs (dealing with &str)
                 let mut token = Token {

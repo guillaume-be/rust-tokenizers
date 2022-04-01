@@ -68,8 +68,7 @@ impl Tokenizer<ReformerVocab> for ReformerTokenizer {
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut tokens = split_on_special_tokens(text, &self.vocab)
             .into_iter()
-            .map(whitespace_tokenize)
-            .flatten()
+            .flat_map(whitespace_tokenize)
             .map(|token| token.to_owned())
             .collect::<Vec<Token>>();
 
