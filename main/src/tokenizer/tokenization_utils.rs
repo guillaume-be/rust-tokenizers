@@ -1067,7 +1067,7 @@ where
     tokens
 }
 
-pub fn fix_mask(tokens: &mut Vec<Token>) {
+pub fn fix_mask(tokens: &mut [Token]) {
     for i in 1..tokens.len() {
         if tokens[i].mask == Mask::Continuation && tokens[i - 1].mask == Mask::None {
             if let Some(token) = tokens.get_mut(i - 1) {
