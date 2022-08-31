@@ -38,9 +38,6 @@ pub struct DeBERTaV2Vocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
-
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
     /// markers and padding markers
@@ -48,37 +45,118 @@ pub struct DeBERTaV2Vocab {
 
     /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
+
+    /// A mapping of special value tokens
+    pub special_tokens_map: DeBERTaV2SpecialTokensMap,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct DeBERTaV2SpecialTokensMap {
+    pub bos_token: String,
+    pub eos_token: String,
+    pub unk_token: String,
+    pub sep_token: String,
+    pub pad_token: String,
+    pub cls_token: String,
+    pub mask_token: String,
+}
+
+impl Default for DeBERTaV2SpecialTokensMap {
+    fn default() -> Self {
+        Self {
+            bos_token: "[CLS]".into(),
+            eos_token: "[SEP]".into(),
+            unk_token: "[UNK]".into(),
+            sep_token: "[SEP]".into(),
+            pad_token: "[PAD]".into(),
+            cls_token: "[CLS]".into(),
+            mask_token: "[MASK]".into(),
+        }
+    }
 }
 
 impl DeBERTaV2Vocab {
-    /// Returns the BOS token for DeBERTaV2 (`[CLS]`)
-    pub fn bos_value() -> &'static str {
-        "[CLS]"
-    }
+    pub fn from_file_with_secial_tokens_map(
+        path: &str,
+        special_tokens_map: DeBERTaV2SpecialTokensMap,
+    ) -> Result<DeBERTaV2Vocab, TokenizerError> {
+        let mut f = File::open(path).map_err(|e| {
+            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        })?;
+        let mut contents = Vec::new();
+        let proto = match f.read_to_end(&mut contents) {
+            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
+                Ok(proto_value) => proto_value,
+                Err(e) => {
+                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+                }
+            },
+            Err(e) => {
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+            }
+        };
 
-    /// Returns the EOS token for DeBERTaV2 (`[SEP]`)
-    pub fn eos_value() -> &'static str {
-        "[SEP]"
-    }
+        let mut values = HashMap::new();
+        for (idx, piece) in proto.get_pieces().iter().enumerate() {
+            values.insert(piece.get_piece().to_owned(), idx as i64);
+        }
+        if !values.contains_key(&special_tokens_map.mask_token) {
+            values.insert(special_tokens_map.mask_token.clone(), values.len() as i64);
+        }
 
-    /// Returns the SEP token for DeBERTaV2 (`[SEP]`)
-    pub fn sep_value() -> &'static str {
-        "[SEP]"
-    }
+        let mut special_values = HashMap::new();
+        DeBERTaV2Vocab::_register_as_special_value(
+            &special_tokens_map.unk_token,
+            &values,
+            &mut special_values,
+        )?;
 
-    /// Returns the CLS token for DeBERTaV2 (`[CLS]`)
-    pub fn cls_value() -> &'static str {
-        "[CLS]"
-    }
+        DeBERTaV2Vocab::_register_as_special_value(
+            &special_tokens_map.bos_token,
+            &values,
+            &mut special_values,
+        )?;
 
-    /// Returns the MASK token for DeBERTaV2 (`[MASK]`)
-    pub fn mask_value() -> &'static str {
-        "[MASK]"
-    }
+        DeBERTaV2Vocab::_register_as_special_value(
+            &special_tokens_map.eos_token,
+            &values,
+            &mut special_values,
+        )?;
 
-    /// Returns the PAD token for DeBERTaV2 (`[PAD]`)
-    pub fn pad_value() -> &'static str {
-        "[PAD]"
+        DeBERTaV2Vocab::_register_as_special_value(
+            &special_tokens_map.cls_token,
+            &values,
+            &mut special_values,
+        )?;
+
+        DeBERTaV2Vocab::_register_as_special_value(
+            &special_tokens_map.mask_token,
+            &values,
+            &mut special_values,
+        )?;
+
+        DeBERTaV2Vocab::_register_as_special_value(
+            &special_tokens_map.pad_token,
+            &values,
+            &mut special_values,
+        )?;
+
+        DeBERTaV2Vocab::_register_as_special_value(
+            &special_tokens_map.sep_token,
+            &values,
+            &mut special_values,
+        )?;
+
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        Ok(DeBERTaV2Vocab {
+            values,
+            indices,
+            special_values,
+            special_indices,
+            special_tokens_map,
+        })
     }
 }
 
@@ -108,62 +186,7 @@ impl Vocab for DeBERTaV2Vocab {
     }
 
     fn from_file(path: &str) -> Result<DeBERTaV2Vocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
-
-        let mut values = HashMap::new();
-        for (idx, piece) in proto.get_pieces().iter().enumerate() {
-            values.insert(piece.get_piece().to_owned(), idx as i64);
-        }
-        if !values.contains_key(DeBERTaV2Vocab::mask_value()) {
-            values.insert(DeBERTaV2Vocab::mask_value().to_owned(), values.len() as i64);
-        }
-
-        let mut special_values = HashMap::new();
-        let unknown_value = DeBERTaV2Vocab::unknown_value();
-        DeBERTaV2Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let bos_value = DeBERTaV2Vocab::bos_value();
-        DeBERTaV2Vocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
-
-        let eos_value = DeBERTaV2Vocab::eos_value();
-        DeBERTaV2Vocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
-
-        let cls_value = DeBERTaV2Vocab::cls_value();
-        DeBERTaV2Vocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let mask_value = DeBERTaV2Vocab::mask_value();
-        DeBERTaV2Vocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
-
-        let pad_value = DeBERTaV2Vocab::pad_value();
-        DeBERTaV2Vocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let sep_value = DeBERTaV2Vocab::sep_value();
-        DeBERTaV2Vocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
-
-        let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
-
-        Ok(DeBERTaV2Vocab {
-            values,
-            indices,
-            unknown_value,
-            special_values,
-            special_indices,
-        })
+        Self::from_file_with_secial_tokens_map(path, Default::default())
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
@@ -171,11 +194,16 @@ impl Vocab for DeBERTaV2Vocab {
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            &self.special_tokens_map.unk_token,
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            &self.special_tokens_map.unk_token,
+        )
     }
 }
