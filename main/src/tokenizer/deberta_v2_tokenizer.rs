@@ -17,7 +17,7 @@ use crate::tokenizer::tokenization_utils::{
 };
 use crate::tokenizer::tokenization_utils::{lowercase, unknown_byte_fallback};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
-use crate::vocab::{DeBERTaV2Vocab, SentencePieceModel, Vocab};
+use crate::vocab::{DeBERTaV2SpecialTokensMap, DeBERTaV2Vocab, SentencePieceModel, Vocab};
 use crate::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
@@ -65,12 +65,20 @@ impl DeBERTaV2Tokenizer {
     /// ```
     pub fn from_file(
         path: &str,
+        secial_tokens_map_path: Option<&str>,
         lower_case: bool,
         strip_accents: bool,
         add_prefix_space: bool,
     ) -> Result<DeBERTaV2Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
-        let vocab = DeBERTaV2Vocab::from_file(path)?;
+        let vocab = DeBERTaV2Vocab::from_file_with_secial_tokens_map(
+            path,
+            secial_tokens_map_path
+                .map(DeBERTaV2SpecialTokensMap::from_file)
+                .transpose()?
+                .unwrap_or_default(),
+        )?;
+
         Ok(DeBERTaV2Tokenizer {
             model,
             vocab,

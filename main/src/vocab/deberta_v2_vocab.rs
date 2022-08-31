@@ -61,6 +61,20 @@ pub struct DeBERTaV2SpecialTokensMap {
     pub mask_token: String,
 }
 
+impl DeBERTaV2SpecialTokensMap {
+    pub fn from_file(path: &str) -> Result<Self, TokenizerError> {
+        let f = File::open(path).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} special token map file not found :{}",
+                path, e
+            ))
+        })?;
+
+        serde_json::from_reader(f)
+            .map_err(|e| TokenizerError::VocabularyParsingError(e.to_string()))
+    }
+}
+
 impl Default for DeBERTaV2SpecialTokensMap {
     fn default() -> Self {
         Self {
