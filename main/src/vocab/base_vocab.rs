@@ -10,6 +10,9 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
+use snafu::{OptionExt, ResultExt};
+
+use crate::error::*;
 use std::collections::HashMap;
 use std::fs::File;
 use std::hash::Hash;
@@ -62,19 +65,13 @@ pub trait Vocab {
     /// Read a Bert-style vocab.txt file (single column, one token per line)
     /// The `from_file` method should be preferred, and needs to be implemented by the specific vocabularies
     fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
+        let f = File::open(&path)
+            .context(IOSnafu { path })
+            .map(BufReader::new)?;
         let mut data = HashMap::new();
 
-        for (index, line) in br.lines().enumerate() {
-            let line = match line {
-                Ok(value) => value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            };
+        for (index, line) in f.lines().enumerate() {
+            let line = line.context(IOSnafu { path })?;
             data.insert(line.trim().to_owned(), index as i64);
         }
         Ok(data)
@@ -149,16 +146,8 @@ pub trait Vocab {
         values: &HashMap<String, i64>,
         special_values: &mut HashMap<String, i64>,
     ) -> Result<(), TokenizerError> {
-        let token_id = match values.get(token) {
-            Some(index) => *index,
-            None => {
-                return Err(TokenizerError::TokenNotFound(format!(
-                    "The special value {} could not be found in the vocabulary",
-                    token
-                )));
-            }
-        };
-        special_values.insert(String::from(token), token_id);
+        let token_id = values.get(token).context(TokenNotFoundSnafu { token })?;
+        special_values.insert(String::from(token), *token_id);
         Ok(())
     }
 

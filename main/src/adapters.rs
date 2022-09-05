@@ -13,8 +13,8 @@
 //! While this crate does not aim at providing built-in support for loading dataset, it exposes
 //! a few adapters for testing and benchmarking purposes (e.g. for SST2 sentence classification)
 
-use crate::error::TokenizerError;
-use crate::error::TokenizerError::ValueError;
+use crate::error::*;
+use snafu::ResultExt;
 use std::fs::File;
 
 /// # Sentiment analysis label
@@ -45,7 +45,10 @@ impl Example {
             label: match label {
                 "0" => Ok(Label::Negative),
                 "1" => Ok(Label::Positive),
-                _ => Err(ValueError("invalid label class (must be 0 or 1)".into())),
+                _ => ValueSnafu {
+                    message: "invalid label class (must be 0 or 1)",
+                }
+                .fail(),
             }?,
         })
     }
@@ -101,7 +104,7 @@ pub fn read_sst2(path: &str, sep: u8) -> Result<Vec<Example>, TokenizerError> {
         .from_reader(f);
 
     for result in rdr.records() {
-        let record = result?;
+        let record = result.context(CSVDeserializeSnafu)?;
         let example = Example::new(&record[0], "", &record[1])?;
         examples.push(example);
     }
