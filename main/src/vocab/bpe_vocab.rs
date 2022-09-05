@@ -10,9 +10,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use crate::error::*;
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use protobuf::Message;
+use snafu::ResultExt;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
@@ -51,23 +52,16 @@ impl BpePairVocab {
     /// let bpe_vocab = BpePairVocab::from_file(path);
     /// ```
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<BpePairVocab, TokenizerError> {
-        let f = File::open(&path).map_err(|e| {
-            TokenizerError::FileNotFound(format!(
-                "{} vocabulary file not found :{}",
-                path.as_ref().display(),
-                e
-            ))
+        let f = File::open(&path).context(IOSnafu {
+            path: path.as_ref(),
         })?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
         let mut index = 0;
         for line in br.lines().skip(1) {
-            let line = match line {
-                Ok(value) => value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            };
+            let line = line.context(IOSnafu {
+                path: path.as_ref(),
+            })?;
             let tuple: Vec<String> = line.trim().split(' ').map(|v| v.to_owned()).collect();
             if tuple.len() > 1 {
                 data.insert((tuple[0].clone(), tuple[1].clone()), index);
@@ -91,25 +85,15 @@ impl BpePairVocab {
     pub fn from_sentencepiece_file<P: AsRef<Path>>(
         path: P,
     ) -> Result<BpePairVocab, TokenizerError> {
-        let mut f = File::open(&path).map_err(|e| {
-            TokenizerError::FileNotFound(format!(
-                "{} vocabulary file not found :{}",
-                path.as_ref().display(),
-                e
-            ))
+        let mut f = File::open(&path).context(IOSnafu {
+            path: path.as_ref(),
         })?;
         let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        f.read_to_end(&mut contents).context(IOSnafu {
+            path: path.as_ref(),
+        })?;
+        let proto = ModelProto::parse_from_bytes(&contents).context(ProtobufDeserializeSnafu)?;
+
         let mut values = HashMap::new();
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             values.insert(piece.get_piece().to_owned(), idx as i64);

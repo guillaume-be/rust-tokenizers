@@ -11,7 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use snafu::ResultExt;
+
+use crate::error::*;
 use crate::vocab::base_vocab::{swap_key_values, Vocab};
 use std::collections::HashMap;
 use std::fs::File;
@@ -85,20 +87,12 @@ impl Vocab for Gpt2Vocab {
         vocab: V,
         _special: Option<S>,
     ) -> Result<Gpt2Vocab, TokenizerError> {
-        let f = File::open(&vocab).map_err(|e| {
-            TokenizerError::FileNotFound(format!(
-                "{} vocabulary file not found :{}",
-                vocab.as_ref().display(),
-                e
-            ))
+        let f = File::open(&vocab).context(IOSnafu {
+            path: vocab.as_ref(),
         })?;
         let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        let values: HashMap<String, i64> =
+            serde_json::from_reader(br).context(JsonDeserializeSnafu)?;
         let mut special_values = HashMap::new();
         let unknown_value = Gpt2Vocab::unknown_value();
         Gpt2Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;

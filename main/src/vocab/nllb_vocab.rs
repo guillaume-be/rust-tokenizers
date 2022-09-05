@@ -1,31 +1,47 @@
 use std::{
     collections::{HashMap, HashSet},
+    fs::File,
+    io::BufReader,
     path::Path,
 };
 
 use serde::Deserialize;
+use snafu::ResultExt;
 
-use crate::error::TokenizerError;
+use crate::error::*;
 
-use super::{base_vocab::swap_key_values, Vocab};
+use super::{
+    base_vocab::{swap_key_values, SpecialTokens},
+    Vocab,
+};
 
 pub const FAIRSEQ_LANGUAGE_CODES: [&str; 202] = [
-    "ace", "ace", "acm", "acq", "aeb", "afr", "ajp", "aka", "amh", "apc", "arb", "ars", "ary",
-    "arz", "asm", "ast", "awa", "ayr", "azb", "azj", "bak", "bam", "ban", "bel", "bem", "ben",
-    "bho", "bjn", "bjn", "bod", "bos", "bug", "bul", "cat", "ceb", "ces", "cjk", "ckb", "crh",
-    "cym", "dan", "deu", "dik", "dyu", "dzo", "ell", "eng", "epo", "est", "eus", "ewe", "fao",
-    "pes", "fij", "fin", "fon", "fra", "fur", "fuv", "gla", "gle", "glg", "grn", "guj", "hat",
-    "hau", "heb", "hin", "hne", "hrv", "hun", "hye", "ibo", "ilo", "ind", "isl", "ita", "jav",
-    "jpn", "kab", "kac", "kam", "kan", "kas", "kas", "kat", "knc", "knc", "kaz", "kbp", "kea",
-    "khm", "kik", "kin", "kir", "kmb", "kon", "kor", "kmr", "lao", "lvs", "lij", "lim", "lin",
-    "lit", "lmo", "ltg", "ltz", "lua", "lug", "luo", "lus", "mag", "mai", "mal", "mar", "min",
-    "mkd", "plt", "mlt", "mni", "khk", "mos", "mri", "zsm", "mya", "nld", "nno", "nob", "npi",
-    "nso", "nus", "nya", "oci", "gaz", "ory", "pag", "pan", "pap", "pol", "por", "prs", "pbt",
-    "quy", "ron", "run", "rus", "sag", "san", "sat", "scn", "shn", "sin", "slk", "slv", "smo",
-    "sna", "snd", "som", "sot", "spa", "als", "srd", "srp", "ssw", "sun", "swe", "swh", "szl",
-    "tam", "tat", "tel", "tgk", "tgl", "tha", "tir", "taq", "taq", "tpi", "tsn", "tso", "tuk",
-    "tum", "tur", "twi", "tzm", "uig", "ukr", "umb", "urd", "uzn", "vec", "vie", "war", "wol",
-    "xho", "ydd", "yor", "yue", "zho", "zho", "zul",
+    "ace_Arab", "ace_Latn", "acm_Arab", "acq_Arab", "aeb_Arab", "afr_Latn", "ajp_Arab", "aka_Latn",
+    "amh_Ethi", "apc_Arab", "arb_Arab", "ars_Arab", "ary_Arab", "arz_Arab", "asm_Beng", "ast_Latn",
+    "awa_Deva", "ayr_Latn", "azb_Arab", "azj_Latn", "bak_Cyrl", "bam_Latn", "ban_Latn", "bel_Cyrl",
+    "bem_Latn", "ben_Beng", "bho_Deva", "bjn_Arab", "bjn_Latn", "bod_Tibt", "bos_Latn", "bug_Latn",
+    "bul_Cyrl", "cat_Latn", "ceb_Latn", "ces_Latn", "cjk_Latn", "ckb_Arab", "crh_Latn", "cym_Latn",
+    "dan_Latn", "deu_Latn", "dik_Latn", "dyu_Latn", "dzo_Tibt", "ell_Grek", "eng_Latn", "epo_Latn",
+    "est_Latn", "eus_Latn", "ewe_Latn", "fao_Latn", "pes_Arab", "fij_Latn", "fin_Latn", "fon_Latn",
+    "fra_Latn", "fur_Latn", "fuv_Latn", "gla_Latn", "gle_Latn", "glg_Latn", "grn_Latn", "guj_Gujr",
+    "hat_Latn", "hau_Latn", "heb_Hebr", "hin_Deva", "hne_Deva", "hrv_Latn", "hun_Latn", "hye_Armn",
+    "ibo_Latn", "ilo_Latn", "ind_Latn", "isl_Latn", "ita_Latn", "jav_Latn", "jpn_Jpan", "kab_Latn",
+    "kac_Latn", "kam_Latn", "kan_Knda", "kas_Arab", "kas_Deva", "kat_Geor", "knc_Arab", "knc_Latn",
+    "kaz_Cyrl", "kbp_Latn", "kea_Latn", "khm_Khmr", "kik_Latn", "kin_Latn", "kir_Cyrl", "kmb_Latn",
+    "kon_Latn", "kor_Hang", "kmr_Latn", "lao_Laoo", "lvs_Latn", "lij_Latn", "lim_Latn", "lin_Latn",
+    "lit_Latn", "lmo_Latn", "ltg_Latn", "ltz_Latn", "lua_Latn", "lug_Latn", "luo_Latn", "lus_Latn",
+    "mag_Deva", "mai_Deva", "mal_Mlym", "mar_Deva", "min_Latn", "mkd_Cyrl", "plt_Latn", "mlt_Latn",
+    "mni_Beng", "khk_Cyrl", "mos_Latn", "mri_Latn", "zsm_Latn", "mya_Mymr", "nld_Latn", "nno_Latn",
+    "nob_Latn", "npi_Deva", "nso_Latn", "nus_Latn", "nya_Latn", "oci_Latn", "gaz_Latn", "ory_Orya",
+    "pag_Latn", "pan_Guru", "pap_Latn", "pol_Latn", "por_Latn", "prs_Arab", "pbt_Arab", "quy_Latn",
+    "ron_Latn", "run_Latn", "rus_Cyrl", "sag_Latn", "san_Deva", "sat_Beng", "scn_Latn", "shn_Mymr",
+    "sin_Sinh", "slk_Latn", "slv_Latn", "smo_Latn", "sna_Latn", "snd_Arab", "som_Latn", "sot_Latn",
+    "spa_Latn", "als_Latn", "srd_Latn", "srp_Cyrl", "ssw_Latn", "sun_Latn", "swe_Latn", "swh_Latn",
+    "szl_Latn", "tam_Taml", "tat_Cyrl", "tel_Telu", "tgk_Cyrl", "tgl_Latn", "tha_Thai", "tir_Ethi",
+    "taq_Latn", "taq_Tfng", "tpi_Latn", "tsn_Latn", "tso_Latn", "tuk_Latn", "tum_Latn", "tur_Latn",
+    "twi_Latn", "tzm_Tfng", "uig_Arab", "ukr_Cyrl", "umb_Latn", "urd_Arab", "uzn_Latn", "vec_Latn",
+    "vie_Latn", "war_Latn", "wol_Latn", "xho_Latn", "ydd_Hebr", "yor_Latn", "yue_Hant", "zho_Hans",
+    "zho_Hant", "zul_Latn",
 ];
 
 pub struct NLLBVocab {
@@ -45,28 +61,42 @@ pub struct NLLBVocab {
 
     /// Language code stored as bytes for extraction of the prefix in input sequences
     pub language_codes_bytes: HashSet<Vec<u8>>,
+
+    pub special_token_storage: Option<SpecialTokens>,
 }
 
 impl NLLBVocab {
     /// The beginning of sequence token that was used during pretraining.
     /// Can be used a sequence classifier token.
-    pub fn bos_value() -> &'static str {
-        "<s>"
+    pub fn bos_value(&self) -> &str {
+        self.special_token_storage
+            .as_ref()
+            .map(|s| s.begin_of_sequence_token.as_str())
+            .unwrap_or("<s>")
     }
 
     /// End of sequence token.
-    pub fn eos_value() -> &'static str {
-        "</s>"
+    pub fn eos_value(&self) -> &str {
+        self.special_token_storage
+            .as_ref()
+            .map(|s| s.end_of_sequence_token.as_str())
+            .unwrap_or("</s>")
     }
 
     /// Returns the SEP token for M2M100 (`</s>`)
-    pub fn sep_value() -> &'static str {
-        "</s>"
+    pub fn sep_value(&self) -> &str {
+        self.special_token_storage
+            .as_ref()
+            .map(|s| s.end_of_sequence_token.as_str())
+            .unwrap_or("</s>")
     }
 
     /// Returns the PAD token for M2M100 (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
+    pub fn pad_value(&self) -> &str {
+        self.special_token_storage
+            .as_ref()
+            .map(|s| s.padding_token.as_str())
+            .unwrap_or("<pad>")
     }
 }
 
@@ -75,8 +105,11 @@ impl Vocab for NLLBVocab {
         "<unk>"
     }
 
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+    fn get_unknown_value(&self) -> &str {
+        self.special_token_storage
+            .as_ref()
+            .map(|s| s.unknown_token.as_str())
+            .unwrap_or("<unk>")
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -97,19 +130,22 @@ impl Vocab for NLLBVocab {
 
     fn from_file<V: AsRef<Path>, S: AsRef<Path>>(
         vocab: V,
-        _special: Option<S>,
+        special: Option<S>,
     ) -> Result<Self, TokenizerError> {
-        let reader = std::fs::File::open(&vocab).map_err(|e| {
-            TokenizerError::FileNotFound(format!(
-                "{} vocabulary file not found :{}",
-                vocab.as_ref().display(),
-                e
-            ))
-        })?;
+        let special_token_storage: Option<SpecialTokens> = special
+            .map(|p| {
+                File::open(&p)
+                    .context(IOSnafu { path: p.as_ref() })
+                    .and_then(|r| serde_json::from_reader(r).context(JsonDeserializeSnafu))
+            })
+            .transpose()?;
 
-        let reader = std::io::BufReader::new(reader);
-        let mut tokenizer: Tokenizer = serde_json::from_reader(reader)
-            .map_err(|e| TokenizerError::VocabularyParsingError(e.to_string()))?;
+        let mut tokenizer: Tokenizer = File::open(&vocab)
+            .context(IOSnafu {
+                path: vocab.as_ref(),
+            })
+            .map(BufReader::new)
+            .and_then(|r| serde_json::from_reader(r).context(JsonDeserializeSnafu))?;
 
         let mut special_values = HashMap::with_capacity(FAIRSEQ_LANGUAGE_CODES.len() + 10);
 
@@ -118,9 +154,10 @@ impl Vocab for NLLBVocab {
             let language_code = if language_code.len() == 3 {
                 format!(">>{language_code}<<")
             } else {
-                return Err(TokenizerError::VocabularyParsingError(
-                    "NLLB Vocab only supports language code of length 8".to_string(),
-                ));
+                return VocabularyValidationSnafu {
+                    message: "NLLB Vocab only supports language code of length 8",
+                }
+                .fail();
             };
             values.insert(language_code.clone(), values.len() as i64);
             NLLBVocab::_register_as_special_value(
@@ -132,11 +169,6 @@ impl Vocab for NLLBVocab {
 
         // TODO: remove it (it's already contained in `added_tokens`):
         let vocab = &tokenizer.model.vocab;
-        Self::_register_as_special_value(Self::unknown_value(), vocab, &mut special_values)?;
-        Self::_register_as_special_value(Self::sep_value(), vocab, &mut special_values)?;
-        Self::_register_as_special_value(Self::bos_value(), vocab, &mut special_values)?;
-        Self::_register_as_special_value(Self::eos_value(), vocab, &mut special_values)?;
-        Self::_register_as_special_value(Self::pad_value(), vocab, &mut special_values)?;
 
         let indices = swap_key_values(vocab);
         let special_indices = swap_key_values(&special_values);
@@ -150,7 +182,8 @@ impl Vocab for NLLBVocab {
             language_codes_bytes,
             special_indices,
             special_values,
-            values: vocab.clone(),
+            values: tokenizer.model.vocab,
+            special_token_storage,
         })
     }
 

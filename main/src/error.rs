@@ -1,33 +1,54 @@
 //! # Tokenizer error variants
-use thiserror::Error;
 
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Error, Debug)]
+#[derive(Debug, snafu::Snafu)]
+#[snafu(visibility(pub(crate)))]
 pub enum TokenizerError {
-    #[error("File not found error: {0}")]
-    FileNotFound(String),
+    #[snafu(display("{location}: failed to perform IO operation with {}: {source}", path.display()))]
+    IO {
+        source: std::io::Error,
+        path: std::path::PathBuf,
+        location: snafu::Location,
+    },
 
-    #[error("Error when loading vocabulary file, the file may be corrupted or does not match the expected format: {0}")]
-    VocabularyParsingError(String),
+    #[snafu(display("{location}: failed to deserialize JSON: {source}"))]
+    JsonDeserialize {
+        source: serde_json::Error,
+        location: snafu::Location,
+    },
 
-    #[error("Token index not found in vocabulary: {0}")]
-    IndexNotFound(String),
+    #[snafu(display("{location}: failed to deserialize protobuf: {source}"))]
+    ProtobufDeserialize {
+        source: protobuf::ProtobufError,
+        location: snafu::Location,
+    },
 
-    #[error("Token not found in vocabulary: {0}")]
-    TokenNotFound(String),
+    #[snafu(display("{location}: {message}"))]
+    VocabularyValidation {
+        message: String,
+        location: snafu::Location,
+    },
 
-    #[error("Tokenization error: {0}")]
-    TokenizationError(String),
+    #[snafu(display("{location}: index not found: {index}"))]
+    IndexNotFound {
+        index: usize,
+        location: snafu::Location,
+    },
 
-    #[error("Value error: {0}")]
-    ValueError(String),
+    #[snafu(display("{location}: token not found: {token}"))]
+    TokenNotFound {
+        token: String,
+        location: snafu::Location,
+    },
 
-    #[error("IO error: {0}")]
-    IOError(String),
-}
+    #[snafu(display("{location}: value error: {message}"))]
+    Value {
+        message: String,
+        location: snafu::Location,
+    },
 
-impl From<csv::Error> for TokenizerError {
-    fn from(error: csv::Error) -> Self {
-        TokenizerError::IOError(error.to_string())
-    }
+    #[snafu(display("{location}: CSV deserialization error: {source}"))]
+    CSVDeserialize {
+        source: csv::Error,
+        location: snafu::Location,
+    },
 }

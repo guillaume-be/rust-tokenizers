@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use crate::error::*;
 use crate::tokenizer::base_tokenizer::{TokenIdsWithOffsets, TruncationStrategy};
 use crate::tokenizer::constants::{
     ACCENT_MARKERS, ADDITIONAL_WHITESPACE_CHARS, BYTES_TO_UNICODE, CONTROL_CHARS,
@@ -689,9 +689,11 @@ pub fn truncate_sequences(
                         overflow_offsets,
                     ))
                 } else {
-                    Err(TokenizerError::ValueError(
-                        "Combined sequence length too short for requested truncation amount".into(),
-                    ))
+                    ValueSnafu {
+                        message:
+                            "Combined sequence length too short for requested truncation amount",
+                    }
+                    .fail()
                 }
             }
             TruncationStrategy::OnlyFirst => {
@@ -711,9 +713,10 @@ pub fn truncate_sequences(
                         overflow_offsets,
                     ))
                 } else {
-                    Err(TokenizerError::ValueError(
-                        "First sequence too short for first only truncation".into(),
-                    ))
+                    ValueSnafu {
+                        message: "First sequence too short for first only truncation",
+                    }
+                    .fail()
                 }
             }
             TruncationStrategy::OnlySecond => {
@@ -733,14 +736,16 @@ pub fn truncate_sequences(
                         overflow_offsets,
                     ))
                 } else {
-                    Err(TokenizerError::ValueError(
-                        "Second sequence too short for second only truncation".into(),
-                    ))
+                    ValueSnafu {
+                        message: "Second sequence too short for second only truncation",
+                    }
+                    .fail()
                 }
             }
-            TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
-                "Truncation needed but no truncation requested".into(),
-            )),
+            TruncationStrategy::DoNotTruncate => ValueSnafu {
+                message: "Truncation needed but no truncation requested",
+            }
+            .fail(),
         }
     } else if token_ids_with_offsets_1.ids.len() >= num_tokens_to_remove {
         match truncation_strategy {
@@ -760,17 +765,20 @@ pub fn truncate_sequences(
                     overflow_offsets,
                 ))
             }
-            TruncationStrategy::OnlySecond => Err(TokenizerError::ValueError(
-                "Invalid truncation strategy for single sentence truncation".into(),
-            )),
-            TruncationStrategy::DoNotTruncate => Err(TokenizerError::ValueError(
-                "Truncation needed but no truncation requested".into(),
-            )),
+            TruncationStrategy::OnlySecond => ValueSnafu {
+                message: "Invalid truncation strategy for single sentence truncation",
+            }
+            .fail(),
+            TruncationStrategy::DoNotTruncate => ValueSnafu {
+                message: "Truncation needed but no truncation requested",
+            }
+            .fail(),
         }
     } else {
-        Err(TokenizerError::ValueError(
-            "First sequence too short for first only truncation".into(),
-        ))
+        ValueSnafu {
+            message: "First sequence too short for first only truncation",
+        }
+        .fail()
     }
 }
 
@@ -1163,6 +1171,8 @@ pub(crate) fn unknown_byte_fallback<T: Vocab>(token: TokenRef, vocab: &T) -> Opt
 #[cfg(test)]
 #[allow(clippy::type_complexity)]
 mod tests {
+    use snafu::Location;
+
     use super::*;
     use crate::error::TokenizerError;
     use crate::vocab::base_vocab::swap_key_values;
@@ -1832,9 +1842,10 @@ mod tests {
             //            Truncate amount larger than sequence length
             (
                 (20, &TruncationStrategy::LongestFirst, 0),
-                Err(TokenizerError::ValueError(
-                    "First sequence too short for first only truncation".into(),
-                )),
+                ValueSnafu {
+                    message: "First sequence too short for first only truncation",
+                }
+                .fail(),
             ),
             //            Truncate entire sequence with stride = 2
             (
@@ -1929,16 +1940,18 @@ mod tests {
             //            No truncation requested, but needed
             (
                 (1, &TruncationStrategy::DoNotTruncate, 0),
-                Err(TokenizerError::ValueError(
-                    "Truncation needed but no truncation requested".into(),
-                )),
+                ValueSnafu {
+                    message: "Truncation needed but no truncation requested",
+                }
+                .fail(),
             ),
             //            Invalid truncation requested
             (
                 (1, &TruncationStrategy::OnlySecond, 0),
-                Err(TokenizerError::ValueError(
-                    "Invalid truncation strategy for single sentence truncation".into(),
-                )),
+                ValueSnafu {
+                    message: "Invalid truncation strategy for single sentence truncation",
+                }
+                .fail(),
             ),
         ];
 
@@ -2111,9 +2124,11 @@ mod tests {
             //            Request truncation amount greater than combined length
             (
                 (15 + 9 + 1, &TruncationStrategy::LongestFirst, 2),
-                Err(TokenizerError::ValueError(
-                    "Combined sequence length too short for requested truncation amount".into(),
-                )),
+                Err(TokenizerError::Value {
+                    message: "Combined sequence length too short for requested truncation amount"
+                        .into(),
+                    location: Location::new("", 0, 0),
+                }),
             ),
             //            No truncation
             (
@@ -2158,9 +2173,10 @@ mod tests {
             //            No truncation requested, but needed
             (
                 (1, &TruncationStrategy::DoNotTruncate, 0),
-                Err(TokenizerError::ValueError(
-                    "Truncation needed but no truncation requested".into(),
-                )),
+                Err(TokenizerError::Value {
+                    message: "Truncation needed but no truncation requested".into(),
+                    location: Location::new("", 0, 0),
+                }),
             ),
         ];
 
@@ -2274,9 +2290,10 @@ mod tests {
             //            Request truncation amount greater than sentence 1
             (
                 (16, &TruncationStrategy::OnlyFirst, 2),
-                Err(TokenizerError::ValueError(
-                    "First sequence too short for first only truncation".into(),
-                )),
+                Err(TokenizerError::Value {
+                    message: "First sequence too short for first only truncation".into(),
+                    location: Location::new("", 0, 0),
+                }),
             ),
             //            No truncation
             (
@@ -2408,9 +2425,10 @@ mod tests {
             //            Request truncation amount greater than sentence 1
             (
                 (10, &TruncationStrategy::OnlySecond, 2),
-                Err(TokenizerError::ValueError(
-                    "Second sequence too short for second only truncation".into(),
-                )),
+                Err(TokenizerError::Value {
+                    message: "Second sequence too short for second only truncation".into(),
+                    location: Location::new("", 0, 0),
+                }),
             ),
             //            No truncation
             (

@@ -108,7 +108,7 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
             token_segment_ids.push(0);
         }
         special_tokens_mask.push(1);
-        output.push(self.vocab.token_to_id(NLLBVocab::eos_value()));
+        output.push(self.vocab.token_to_id(self.vocab.eos_value()));
         offsets.push(None);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);

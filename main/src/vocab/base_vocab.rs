@@ -10,9 +10,11 @@
 // limitations under the License.
 
 use serde::Deserialize;
+use snafu::{OptionExt, ResultExt};
 
-use crate::error::TokenizerError;
-use std::collections::{HashMap, HashSet};
+use crate::error::*;
+use hashbrown::HashSet;
+use std::collections::HashMap;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufRead, BufReader};
@@ -32,17 +34,17 @@ pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
 pub struct SpecialTokens {
     additional_special_tokens: HashSet<String>,
     #[serde(rename = "bos_token")]
-    begin_of_sequence_token: String,
+    pub begin_of_sequence_token: String,
     #[serde(rename = "cls_token")]
-    classification_token: String,
+    pub classification_token: String,
     #[serde(rename = "eos_token")]
-    end_of_sequence_token: String,
+    pub end_of_sequence_token: String,
     #[serde(rename = "pad_token")]
-    padding_token: String,
+    pub padding_token: String,
     #[serde(rename = "sep_token")]
-    separation_token: String,
+    pub separation_token: String,
     #[serde(rename = "unk_token")]
-    unknown_token: String,
+    pub unknown_token: String,
 }
 
 /// # Base Vocab trait
@@ -70,11 +72,11 @@ pub trait Vocab {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```no_run
     /// use rust_tokenizers::vocab::{BertVocab, Vocab};
     /// let path = "path/to/file";
     ///
-    /// let base_vocab = BertVocab::from_file(path, Option::<&str>::None);
+    /// let base_vocab = BertVocab::from_file(path);
     /// ```
     fn from_file<V, S>(path: V, special_tokens: Option<S>) -> Result<Self, TokenizerError>
     where
@@ -85,33 +87,27 @@ pub trait Vocab {
     /// Read a Bert-style vocab.txt file (single column, one token per line)
     /// The `from_file` method should be preferred, and needs to be implemented by the specific vocabularies
     fn read_vocab_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
-        let f = File::open(&path).map_err(|e| {
-            TokenizerError::FileNotFound(format!(
-                "{} vocabulary file not found :{}",
-                path.as_ref().to_str().unwrap(),
-                e
-            ))
+        let f = File::open(&path).context(IOSnafu {
+            path: path.as_ref(),
         })?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
 
         for (index, line) in br.lines().enumerate() {
-            let line = match line {
-                Ok(value) => value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            };
+            let line = line.context(IOSnafu {
+                path: path.as_ref(),
+            })?;
             data.insert(line.trim().to_owned(), index as i64);
         }
         Ok(data)
     }
 
     fn read_special_tokens_file<P: AsRef<Path>>(path: P) -> Result<SpecialTokens, TokenizerError> {
-        let source = File::open(path).map_err(|e| TokenizerError::FileNotFound(e.to_string()))?;
+        let source = File::open(&path).context(IOSnafu {
+            path: path.as_ref(),
+        })?;
         let source = BufReader::new(source);
-        serde_json::from_reader(source)
-            .map_err(|e| TokenizerError::VocabularyParsingError(e.to_string()))
+        serde_json::from_reader(source).context(JsonDeserializeSnafu)
     }
 
     /// Converts a token to an id, provided a `HashMap` of values, a `HashMap` of special values and
@@ -183,16 +179,8 @@ pub trait Vocab {
         values: &HashMap<String, i64>,
         special_values: &mut HashMap<String, i64>,
     ) -> Result<(), TokenizerError> {
-        let token_id = match values.get(token) {
-            Some(index) => *index,
-            None => {
-                return Err(TokenizerError::TokenNotFound(format!(
-                    "The special value {} could not be found in the vocabulary",
-                    token
-                )));
-            }
-        };
-        special_values.insert(String::from(token), token_id);
+        let token_id = values.get(token).context(TokenNotFoundSnafu { token })?;
+        special_values.insert(String::from(token), *token_id);
         Ok(())
     }
 

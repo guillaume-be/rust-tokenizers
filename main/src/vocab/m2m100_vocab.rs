@@ -10,7 +10,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use snafu::ResultExt;
+
+use crate::error::*;
 use crate::vocab::base_vocab::swap_key_values;
 use crate::vocab::Vocab;
 use std::collections::{HashMap, HashSet};
@@ -111,20 +113,12 @@ impl Vocab for M2M100Vocab {
         vocab: V,
         _special: Option<S>,
     ) -> Result<M2M100Vocab, TokenizerError> {
-        let f = File::open(&vocab).map_err(|e| {
-            TokenizerError::FileNotFound(format!(
-                "{} vocabulary file not found :{}",
-                vocab.as_ref().display(),
-                e
-            ))
+        let f = File::open(&vocab).context(IOSnafu {
+            path: vocab.as_ref(),
         })?;
         let br = BufReader::new(f);
-        let mut values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        let mut values: HashMap<String, i64> =
+            serde_json::from_reader(br).context(JsonDeserializeSnafu)?;
         let mut special_values = HashMap::new();
 
         for language_code in FAIRSEQ_LANGUAGE_CODES.iter() {
@@ -133,9 +127,10 @@ impl Vocab for M2M100Vocab {
             } else if language_code.len() == 3 {
                 format!(">>{}<<", language_code)
             } else {
-                return Err(TokenizerError::VocabularyParsingError(
-                    "M2M100 Vocab only supports language code of length 2 or 3".to_string(),
-                ));
+                return VocabularyValidationSnafu {
+                    message: "M2M100 Vocab only supports language code of length 2 or 3",
+                }
+                .fail();
             };
             values.insert(language_code.clone(), values.len() as i64);
             M2M100Vocab::_register_as_special_value(

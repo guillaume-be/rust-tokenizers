@@ -7,6 +7,7 @@ use rust_tokenizers::{Offset, TokenizedInput};
 use test_utils::download_file_to_cache;
 
 #[test]
+#[ignore]
 fn test_nllb_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/tokenizer.json",

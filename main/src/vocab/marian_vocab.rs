@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use snafu::ResultExt;
+
+use crate::error::*;
 use crate::vocab::base_vocab::swap_key_values;
 use crate::vocab::Vocab;
 use std::collections::HashMap;
@@ -87,20 +89,12 @@ impl Vocab for MarianVocab {
         vocab: V,
         _special: Option<S>,
     ) -> Result<MarianVocab, TokenizerError> {
-        let f = File::open(&vocab).map_err(|e| {
-            TokenizerError::FileNotFound(format!(
-                "{} vocabulary file not found :{}",
-                vocab.as_ref().display(),
-                e
-            ))
+        let f = File::open(&vocab).context(IOSnafu {
+            path: vocab.as_ref(),
         })?;
         let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        let values: HashMap<String, i64> =
+            serde_json::from_reader(br).context(JsonDeserializeSnafu)?;
 
         let mut special_values = HashMap::new();
         let unknown_value = MarianVocab::unknown_value();

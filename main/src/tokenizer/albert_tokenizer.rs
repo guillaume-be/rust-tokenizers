@@ -88,7 +88,7 @@ impl AlbertTokenizer {
     /// use rust_tokenizers::vocab::{AlbertVocab, SentencePieceModel, Vocab};
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let vocab = AlbertVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
+    /// let vocab = AlbertVocab::from_file("path/to/vocab/file").unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =
