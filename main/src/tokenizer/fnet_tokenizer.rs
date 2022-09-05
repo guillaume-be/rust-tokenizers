@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
@@ -56,13 +58,13 @@ impl FNetTokenizer {
     /// let tokenizer =
     ///     FNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
-    pub fn from_file(
-        path: &str,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<FNetTokenizer, TokenizerError> {
-        let model = SentencePieceBpeModel::from_file(path)?;
-        let vocab = FNetVocab::from_file(path)?;
+        let model = SentencePieceBpeModel::from_file(&path)?;
+        let vocab = FNetVocab::from_file(path, Option::<&str>::None)?;
         Ok(FNetTokenizer {
             model,
             vocab,
@@ -86,7 +88,7 @@ impl FNetTokenizer {
     /// use rust_tokenizers::vocab::{FNetVocab, SentencePieceBpeModel, Vocab};
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let vocab = FNetVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = FNetVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =

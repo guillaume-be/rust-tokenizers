@@ -19,6 +19,7 @@ use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::RwLock;
 
 /// # GPT tokenizer
@@ -50,12 +51,12 @@ impl OpenAiGptTokenizer {
     ///     OpenAiGptTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case)
     ///         .unwrap();
     /// ```
-    pub fn from_file(
-        vocab_path: &str,
-        merges_path: &str,
+    pub fn from_file<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        merges_path: M,
         lower_case: bool,
     ) -> Result<OpenAiGptTokenizer, TokenizerError> {
-        let vocab = OpenAiGptVocab::from_file(vocab_path)?;
+        let vocab = OpenAiGptVocab::from_file(vocab_path, Option::<&str>::None)?;
         let base_tokenizer = BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, true);
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RwLock::new(HashMap::new());
@@ -80,7 +81,7 @@ impl OpenAiGptTokenizer {
     /// use rust_tokenizers::tokenizer::{OpenAiGptTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BpePairVocab, OpenAiGptVocab, Vocab};
     /// let lower_case = false;
-    /// let vocab = OpenAiGptVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = OpenAiGptVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
     ///
     /// let tokenizer = OpenAiGptTokenizer::from_existing_vocab_and_merges(vocab, merges, lower_case);

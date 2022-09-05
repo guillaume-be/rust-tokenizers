@@ -18,6 +18,7 @@ use protobuf::Message;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
 /// # SentencePieceVocab
 /// Vocabulary for SentencePiece model/tokenizer. Contains the following special values:
@@ -106,13 +107,16 @@ impl Vocab for SentencePieceVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<SentencePieceVocab, TokenizerError> {
-        let mut f = match File::open(path) {
+    fn from_file<V: AsRef<Path>, S: AsRef<Path>>(
+        vocab: V,
+        _special: Option<S>,
+    ) -> Result<SentencePieceVocab, TokenizerError> {
+        let mut f = match File::open(&vocab) {
             Ok(file) => file,
             Err(_) => {
                 return Err(TokenizerError::FileNotFound(format!(
                     "{} vocabulary file not found",
-                    path
+                    vocab.as_ref().display()
                 )));
             }
         };

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::{
     error::TokenizerError,
     vocab::{NLLBVocab, SentencePieceBpeModel, Vocab},
@@ -15,9 +17,13 @@ pub struct NLLBTokenizer {
 }
 
 impl NLLBTokenizer {
-    pub fn from_files(model_path: &str, vocab_path: &str) -> Result<Self, TokenizerError> {
+    pub fn from_files<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
+        special_tokens: S,
+    ) -> Result<Self, TokenizerError> {
         let model = SentencePieceBpeModel::from_file(model_path)?;
-        let vocab = NLLBVocab::from_file(vocab_path)?;
+        let vocab = NLLBVocab::from_file(vocab_path, Some(special_tokens))?;
         Ok(Self { model, vocab })
     }
 }

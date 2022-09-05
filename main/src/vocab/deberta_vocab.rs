@@ -16,6 +16,7 @@ use crate::vocab::base_vocab::{swap_key_values, Vocab};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
+use std::path::Path;
 
 /// # DeBERTa Vocab
 /// Vocabulary for DeBERTa tokenizer. Contains the following special values:
@@ -105,9 +106,16 @@ impl Vocab for DeBERTaVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<DeBERTaVocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    fn from_file<V: AsRef<Path>, S: AsRef<Path>>(
+        vocab: V,
+        _special: Option<S>,
+    ) -> Result<DeBERTaVocab, TokenizerError> {
+        let f = File::open(&vocab).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                vocab.as_ref().display(),
+                e
+            ))
         })?;
         let br = BufReader::new(f);
         let values: HashMap<String, i64> = match serde_json::from_reader(br) {

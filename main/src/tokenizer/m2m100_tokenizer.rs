@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
@@ -55,12 +57,12 @@ impl M2M100Tokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_files(
-        vocab_path: &str,
-        model_path: &str,
+    pub fn from_files<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
         lower_case: bool,
     ) -> Result<M2M100Tokenizer, TokenizerError> {
-        let vocab = M2M100Vocab::from_file(vocab_path)?;
+        let vocab = M2M100Vocab::from_file(vocab_path, Option::<&str>::None)?;
         let model = SentencePieceBpeModel::from_file(model_path)?;
 
         Ok(M2M100Tokenizer {
@@ -83,7 +85,7 @@ impl M2M100Tokenizer {
     /// use rust_tokenizers::tokenizer::{M2M100Tokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{M2M100Vocab, SentencePieceBpeModel, Vocab};
     /// let lower_case = false;
-    /// let vocab = M2M100Vocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = M2M100Vocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = M2M100Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case);

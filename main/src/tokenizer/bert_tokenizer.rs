@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenIdsWithOffsets,
@@ -47,12 +49,12 @@ impl BertTokenizer {
     /// let tokenizer =
     ///     BertTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
-    pub fn from_file(
-        path: &str,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<BertTokenizer, TokenizerError> {
-        let vocab = BertVocab::from_file(path)?;
+        let vocab = BertVocab::from_file(path, Option::<&str>::None)?;
         let base_tokenizer =
             BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
         Ok(BertTokenizer {
@@ -75,7 +77,7 @@ impl BertTokenizer {
     /// use rust_tokenizers::vocab::{BertVocab, Vocab};
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let vocab = BertVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = BertVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     ///
     /// let tokenizer = BertTokenizer::from_existing_vocab(vocab, lower_case, strip_accents);
     /// ```

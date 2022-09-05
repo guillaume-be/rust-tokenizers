@@ -20,6 +20,7 @@ use protobuf::Message;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
 /// # FNetVocab
 /// Vocabulary for FNet tokenizer. Contains the following special values:
@@ -96,9 +97,16 @@ impl Vocab for FNetVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<FNetVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    fn from_file<V: AsRef<Path>, S: AsRef<Path>>(
+        vocab: V,
+        _special: Option<S>,
+    ) -> Result<FNetVocab, TokenizerError> {
+        let mut f = File::open(&vocab).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                vocab.as_ref().display(),
+                e
+            ))
         })?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {

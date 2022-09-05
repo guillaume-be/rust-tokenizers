@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
+};
 
 use serde::Deserialize;
 
@@ -92,9 +95,16 @@ impl Vocab for NLLBVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<Self, TokenizerError> {
-        let reader = std::fs::File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    fn from_file<V: AsRef<Path>, S: AsRef<Path>>(
+        vocab: V,
+        _special: Option<S>,
+    ) -> Result<Self, TokenizerError> {
+        let reader = std::fs::File::open(&vocab).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                vocab.as_ref().display(),
+                e
+            ))
         })?;
 
         let reader = std::io::BufReader::new(reader);

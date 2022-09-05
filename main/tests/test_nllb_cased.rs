@@ -20,8 +20,7 @@ fn test_nllb_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let nllb_tokenizer =
-        NLLBTokenizer::from_files(merges_path.to_str().unwrap(), vocab_path.to_str().unwrap())?;
+    let nllb_tokenizer = NLLBTokenizer::from_files(vocab_path, merges_path, "")?;
 
     let original_strings = [
         ">>nld<< …",

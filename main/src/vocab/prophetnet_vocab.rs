@@ -13,6 +13,7 @@
 use crate::error::TokenizerError;
 use crate::vocab::base_vocab::{swap_key_values, Vocab};
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # ProphetNet Vocab
 /// Vocabulary for ProphetNet tokenizer. Contains the following special values:
@@ -95,7 +96,10 @@ impl Vocab for ProphetNetVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<ProphetNetVocab, TokenizerError> {
+    fn from_file<V: AsRef<Path>, S: AsRef<Path>>(
+        path: V,
+        _special: Option<S>,
+    ) -> Result<ProphetNetVocab, TokenizerError> {
         let values = ProphetNetVocab::read_vocab_file(path)?;
         let mut special_values = HashMap::new();
 
@@ -214,7 +218,7 @@ mod tests {
         .collect();
 
         //        When
-        let base_vocab = ProphetNetVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = ProphetNetVocab::from_file(&path, Option::<&str>::None)?;
 
         //        Then
         assert_eq!(base_vocab.unknown_value, "[UNK]");
@@ -233,7 +237,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
         //        When & Then
-        let _base_vocab = ProphetNetVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
+        let _base_vocab = ProphetNetVocab::from_file(path, Option::<&str>::None).unwrap();
     }
 
     #[test]
@@ -245,7 +249,7 @@ mod tests {
             "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD] \n [CLS]"
         )?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = ProphetNetVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = ProphetNetVocab::from_file(&path, Option::<&str>::None)?;
 
         //        When & Then
         assert_eq!(base_vocab.token_to_id("hello"), 0);
@@ -272,7 +276,7 @@ mod tests {
             "hello \n world \n [UNK] \n ! \n [X_SEP] \n [SEP] \n [MASK] \n [PAD] \n [CLS]"
         )?;
         let path = vocab_file.into_temp_path();
-        let bert_vocab = ProphetNetVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let bert_vocab = ProphetNetVocab::from_file(&path, Option::<&str>::None)?;
 
         //        When & Then
         assert_eq!(bert_vocab.id_to_token(&(0_i64)), "hello");

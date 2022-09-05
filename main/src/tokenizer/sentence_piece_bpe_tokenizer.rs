@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{clean_text, decompose_nfkc, is_whitespace, lowercase};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
@@ -45,12 +47,12 @@ impl SentencePieceBpeTokenizer {
     /// let lower_case = false;
     /// let tokenizer = SentencePieceTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file(
-        path: &str,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
     ) -> Result<SentencePieceBpeTokenizer, TokenizerError> {
-        let model = SentencePieceBpeModel::from_file(path)?;
-        let vocab = SentencePieceVocab::from_file(path)?;
+        let model = SentencePieceBpeModel::from_file(&path)?;
+        let vocab = SentencePieceVocab::from_file(path, Option::<&str>::None)?;
         Ok(SentencePieceBpeTokenizer {
             model,
             vocab,
@@ -72,7 +74,7 @@ impl SentencePieceBpeTokenizer {
     /// use rust_tokenizers::tokenizer::{SentencePieceBpeTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{SentencePieceBpeModel, SentencePieceVocab, Vocab};
     /// let lower_case = false;
-    /// let vocab = SentencePieceVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = SentencePieceVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =

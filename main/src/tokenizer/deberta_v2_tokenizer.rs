@@ -22,6 +22,7 @@ use crate::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
 use std::iter::Iterator;
+use std::path::Path;
 
 /// # DeBERTaV2 tokenizer
 /// DeBERTa (v2) tokenizer (based on SentencePiece) performing:
@@ -63,14 +64,14 @@ impl DeBERTaV2Tokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file(
-        path: &str,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
         add_prefix_space: bool,
     ) -> Result<DeBERTaV2Tokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
-        let vocab = DeBERTaV2Vocab::from_file(path)?;
+        let model = SentencePieceModel::from_file(&path)?;
+        let vocab = DeBERTaV2Vocab::from_file(path, Option::<&str>::None)?;
         Ok(DeBERTaV2Tokenizer {
             model,
             vocab,
@@ -97,7 +98,7 @@ impl DeBERTaV2Tokenizer {
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let add_prefix_space = false;
-    /// let vocab = DeBERTaV2Vocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = DeBERTaV2Vocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = DeBERTaV2Tokenizer::from_existing_vocab_and_model(

@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{TokenIdsWithOffsets, TokenIdsWithSpecialTokens};
 use crate::tokenizer::tokenization_utils::strip_accents;
@@ -54,13 +56,13 @@ impl XLNetTokenizer {
     /// let tokenizer =
     ///     XLNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
-    pub fn from_file(
-        path: &str,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<XLNetTokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
-        let vocab = XLNetVocab::from_file(path)?;
+        let model = SentencePieceModel::from_file(&path)?;
+        let vocab = XLNetVocab::from_file(path, Option::<&str>::None)?;
         Ok(XLNetTokenizer {
             model,
             vocab,
@@ -84,7 +86,7 @@ impl XLNetTokenizer {
     /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, XLNetVocab};
     /// let lower_case = false;
     /// let strip_accents = false;
-    /// let vocab = XLNetVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = XLNetVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =

@@ -30,6 +30,7 @@ use itertools::Itertools;
 use regex::Regex;
 use std::collections::HashMap;
 use std::iter::Iterator;
+use std::path::Path;
 use std::sync::RwLock;
 
 /// # RoBERTa tokenizer
@@ -71,13 +72,13 @@ impl RobertaTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file(
-        vocab_path: &str,
-        merges_path: &str,
+    pub fn from_file<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        merges_path: M,
         lower_case: bool,
         add_prefix_space: bool,
     ) -> Result<RobertaTokenizer, TokenizerError> {
-        let vocab = RobertaVocab::from_file(vocab_path)?;
+        let vocab = RobertaVocab::from_file(vocab_path, Option::<&str>::None)?;
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RwLock::new(HashMap::new());
         let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
@@ -109,7 +110,7 @@ impl RobertaTokenizer {
     /// use rust_tokenizers::vocab::{BpePairVocab, RobertaVocab, Vocab};
     /// let lower_case = false;
     /// let add_prefix_space = true;
-    /// let vocab = RobertaVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = RobertaVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
     ///
     /// let tokenizer = RobertaTokenizer::from_existing_vocab_and_merges(

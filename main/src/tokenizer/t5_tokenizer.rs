@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
@@ -47,9 +49,12 @@ impl T5Tokenizer {
     /// let lower_case = false;
     /// let tokenizer = T5Tokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
-        let vocab = T5Vocab::from_file(path)?;
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
+        lower_case: bool,
+    ) -> Result<T5Tokenizer, TokenizerError> {
+        let model = SentencePieceModel::from_file(&path)?;
+        let vocab = T5Vocab::from_file(path, Option::<&str>::None)?;
         let eos_token_id = vocab.token_to_id(T5Vocab::eos_value());
         Ok(T5Tokenizer {
             model,
@@ -72,7 +77,7 @@ impl T5Tokenizer {
     /// use rust_tokenizers::tokenizer::{T5Tokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{SentencePieceModel, T5Vocab, Vocab};
     /// let lower_case = false;
-    /// let vocab = T5Vocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = T5Vocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = T5Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case);

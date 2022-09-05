@@ -16,6 +16,7 @@ use crate::vocab::Vocab;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
+use std::path::Path;
 
 pub static FAIRSEQ_LANGUAGE_CODES: [&str; 100] = [
     "af", "am", "ar", "ast", "az", "ba", "be", "bg", "bn", "br", "bs", "ca", "ceb", "cs", "cy",
@@ -106,9 +107,16 @@ impl Vocab for M2M100Vocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<M2M100Vocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    fn from_file<V: AsRef<Path>, S: AsRef<Path>>(
+        vocab: V,
+        _special: Option<S>,
+    ) -> Result<M2M100Vocab, TokenizerError> {
+        let f = File::open(&vocab).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                vocab.as_ref().display(),
+                e
+            ))
         })?;
         let br = BufReader::new(f);
         let mut values: HashMap<String, i64> = match serde_json::from_reader(br) {

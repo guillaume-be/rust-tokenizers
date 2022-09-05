@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
@@ -54,12 +56,12 @@ impl MarianTokenizer {
     ///     MarianTokenizer::from_files("path/to/vocab/file", "path/to/model/file", lower_case)
     ///         .unwrap();
     /// ```
-    pub fn from_files(
-        vocab_path: &str,
-        model_path: &str,
+    pub fn from_files<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
         lower_case: bool,
     ) -> Result<MarianTokenizer, TokenizerError> {
-        let vocab = MarianVocab::from_file(vocab_path)?;
+        let vocab = MarianVocab::from_file(vocab_path, Option::<&str>::None)?;
         let model = SentencePieceModel::from_file(model_path)?;
         let pattern_language_code = Regex::new(r">>.+<<").unwrap();
         Ok(MarianTokenizer {
@@ -83,7 +85,7 @@ impl MarianTokenizer {
     /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{MarianVocab, SentencePieceModel, Vocab};
     /// let lower_case = false;
-    /// let vocab = MarianVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = MarianVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = MarianTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);

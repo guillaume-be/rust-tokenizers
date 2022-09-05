@@ -9,11 +9,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use serde::Deserialize;
+
 use crate::error::TokenizerError;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 
 pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
     input_hashmap: &HashMap<T, U>,
@@ -24,6 +27,24 @@ pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
         .collect()
 }
 
+#[allow(dead_code)]
+#[derive(Deserialize)]
+pub struct SpecialTokens {
+    additional_special_tokens: HashSet<String>,
+    #[serde(rename = "bos_token")]
+    begin_of_sequence_token: String,
+    #[serde(rename = "cls_token")]
+    classification_token: String,
+    #[serde(rename = "eos_token")]
+    end_of_sequence_token: String,
+    #[serde(rename = "pad_token")]
+    padding_token: String,
+    #[serde(rename = "sep_token")]
+    separation_token: String,
+    #[serde(rename = "unk_token")]
+    unknown_token: String,
+}
+
 /// # Base Vocab trait
 /// Defines a common interface to the vocabularies for use in the tokenizers.
 pub trait Vocab {
@@ -31,7 +52,7 @@ pub trait Vocab {
     fn unknown_value() -> &'static str;
 
     /// Returns the unknown value on an instance
-    fn get_unknown_value(&self) -> &'static str;
+    fn get_unknown_value(&self) -> &str;
 
     /// Return the map of token strings to IDs
     fn values(&self) -> &HashMap<String, i64>;
@@ -49,21 +70,27 @@ pub trait Vocab {
     ///
     /// # Example
     ///
-    /// ```no_run
+    /// ```rust
     /// use rust_tokenizers::vocab::{BertVocab, Vocab};
     /// let path = "path/to/file";
     ///
-    /// let base_vocab = BertVocab::from_file(path);
+    /// let base_vocab = BertVocab::from_file(path, Option::<&str>::None);
     /// ```
-    fn from_file(path: &str) -> Result<Self, TokenizerError>
+    fn from_file<V, S>(path: V, special_tokens: Option<S>) -> Result<Self, TokenizerError>
     where
+        V: AsRef<Path>,
+        S: AsRef<Path>,
         Self: std::marker::Sized;
 
     /// Read a Bert-style vocab.txt file (single column, one token per line)
     /// The `from_file` method should be preferred, and needs to be implemented by the specific vocabularies
-    fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    fn read_vocab_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
+        let f = File::open(&path).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                path.as_ref().to_str().unwrap(),
+                e
+            ))
         })?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
@@ -78,6 +105,13 @@ pub trait Vocab {
             data.insert(line.trim().to_owned(), index as i64);
         }
         Ok(data)
+    }
+
+    fn read_special_tokens_file<P: AsRef<Path>>(path: P) -> Result<SpecialTokens, TokenizerError> {
+        let source = File::open(path).map_err(|e| TokenizerError::FileNotFound(e.to_string()))?;
+        let source = BufReader::new(source);
+        serde_json::from_reader(source)
+            .map_err(|e| TokenizerError::VocabularyParsingError(e.to_string()))
     }
 
     /// Converts a token to an id, provided a `HashMap` of values, a `HashMap` of special values and
@@ -240,8 +274,12 @@ impl Vocab for BaseVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<BaseVocab, TokenizerError> {
-        let values = BaseVocab::read_vocab_file(path)?;
+    fn from_file<V, S>(vocab: V, _special: Option<S>) -> Result<Self, TokenizerError>
+    where
+        V: AsRef<Path>,
+        S: AsRef<Path>,
+    {
+        let values = BaseVocab::read_vocab_file(vocab)?;
         let mut special_values = HashMap::new();
         let unknown_value = BaseVocab::unknown_value();
         BaseVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
@@ -327,7 +365,7 @@ mod tests {
             [("[UNK]".to_owned(), 2)].iter().cloned().collect();
 
         //        When
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = BaseVocab::from_file(&path, Option::<&str>::None)?;
 
         //        Then
         assert_eq!(base_vocab.unknown_value, "[UNK]");
@@ -346,7 +384,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
         //        When & Then
-        let _base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
+        let _base_vocab = BaseVocab::from_file(path, Option::<&str>::None).unwrap();
     }
 
     #[test]
@@ -355,7 +393,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n !")?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = BaseVocab::from_file(&path, Option::<&str>::None)?;
 
         //        When & Then
         assert_eq!(base_vocab.token_to_id("hello"), 0);
@@ -374,7 +412,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n !")?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = BaseVocab::from_file(&path, Option::<&str>::None)?;
 
         //        When & Then
         assert_eq!(base_vocab.id_to_token(&(0_i64)), "hello");

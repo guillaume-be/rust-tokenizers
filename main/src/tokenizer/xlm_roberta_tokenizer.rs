@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
@@ -49,9 +51,12 @@ impl XLMRobertaTokenizer {
     /// let lower_case = false;
     /// let tokenizer = XLMRobertaTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file(path: &str, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
-        let vocab = XLMRobertaVocab::from_file(path)?;
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
+        lower_case: bool,
+    ) -> Result<XLMRobertaTokenizer, TokenizerError> {
+        let model = SentencePieceModel::from_file(&path)?;
+        let vocab = XLMRobertaVocab::from_file(path, Option::<&str>::None)?;
         Ok(XLMRobertaTokenizer {
             model,
             vocab,
@@ -72,7 +77,7 @@ impl XLMRobertaTokenizer {
     /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
     /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
     /// let lower_case = false;
-    /// let vocab = XLMRobertaVocab::from_file("path/to/vocab/file").unwrap();
+    /// let vocab = XLMRobertaVocab::from_file("path/to/vocab/file", Option::<&str>::None).unwrap();
     /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = XLMRobertaTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
