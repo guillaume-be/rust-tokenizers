@@ -34,7 +34,7 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
     }
 
     fn tokenize_to_tokens(&self, text: crate::TokenRef) -> Vec<crate::Token> {
-        let tokens = split_on_language_code(text, 7, &self.vocab.language_codes_bytes);
+        let tokens = split_on_language_code(text, 8, &self.vocab.language_codes_bytes);
         let (code_token, mut token) = match tokens.len() {
             0 => {
                 return vec![];
@@ -62,6 +62,14 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
         output.extend(self.model.tokenize_to_tokens(token.as_ref()));
 
         output
+    }
+
+    fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {
+        tokens
+            .into_iter()
+            .map(|v| v.replace('\u{2581}', " "))
+            .collect::<Vec<String>>()
+            .join("")
     }
 
     fn build_input_with_special_tokens(

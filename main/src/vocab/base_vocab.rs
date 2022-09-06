@@ -32,7 +32,7 @@ pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
 #[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct SpecialTokens {
-    additional_special_tokens: HashSet<String>,
+    pub additional_special_tokens: HashSet<String>,
     #[serde(rename = "bos_token")]
     pub begin_of_sequence_token: String,
     #[serde(rename = "cls_token")]

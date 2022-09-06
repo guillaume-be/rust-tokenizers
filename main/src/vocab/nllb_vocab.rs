@@ -140,51 +140,57 @@ impl Vocab for NLLBVocab {
             })
             .transpose()?;
 
-        let mut tokenizer: Tokenizer = File::open(&vocab)
+        let tokenizer: Tokenizer = File::open(&vocab)
             .context(IOSnafu {
                 path: vocab.as_ref(),
             })
             .map(BufReader::new)
             .and_then(|r| serde_json::from_reader(r).context(JsonDeserializeSnafu))?;
 
-        let mut special_values = HashMap::with_capacity(FAIRSEQ_LANGUAGE_CODES.len() + 10);
+        let mut result = Self {
+            values: tokenizer.model.vocab,
+            indices: HashMap::new(),
+            special_values: HashMap::new(),
+            special_indices: HashMap::new(),
+            language_codes_bytes: HashSet::new(),
+            special_token_storage,
+        };
 
-        let values = &mut tokenizer.model.vocab;
-        for language_code in FAIRSEQ_LANGUAGE_CODES.iter() {
-            let language_code = if language_code.len() == 3 {
-                format!(">>{language_code}<<")
-            } else {
-                return VocabularyValidationSnafu {
-                    message: "NLLB Vocab only supports language code of length 8",
-                }
-                .fail();
-            };
-            values.insert(language_code.clone(), values.len() as i64);
-            NLLBVocab::_register_as_special_value(
-                language_code.as_str(),
-                values,
-                &mut special_values,
-            )?;
+        let mut special_values = HashMap::new();
+        let mut language_code_bytes = HashSet::new();
+
+        let mut reserve_special =
+            |t| Self::_register_as_special_value(t, &result.values, &mut special_values);
+
+        reserve_special(result.bos_value())?;
+        reserve_special(result.eos_value())?;
+        reserve_special(result.sep_value())?;
+        reserve_special(result.pad_value())?;
+        reserve_special(result.get_unknown_value())?;
+
+        if let Some(languages) = result
+            .special_token_storage
+            .as_ref()
+            .map(|s| &s.additional_special_tokens)
+        {
+            for language in languages {
+                reserve_special(language)?;
+                language_code_bytes.insert(language.as_bytes().to_vec());
+            }
+        } else {
+            for language in FAIRSEQ_LANGUAGE_CODES {
+                reserve_special(language)?;
+                language_code_bytes.insert(language.as_bytes().to_vec());
+            }
         }
 
-        // TODO: remove it (it's already contained in `added_tokens`):
-        let vocab = &tokenizer.model.vocab;
-
-        let indices = swap_key_values(vocab);
+        let indices = swap_key_values(&result.values);
         let special_indices = swap_key_values(&special_values);
-        let language_codes_bytes = FAIRSEQ_LANGUAGE_CODES
-            .iter()
-            .map(|f| format!(">>{f}<<").as_bytes().to_vec())
-            .collect::<HashSet<Vec<u8>>>();
-
-        Ok(Self {
-            indices,
-            language_codes_bytes,
-            special_indices,
-            special_values,
-            values: tokenizer.model.vocab,
-            special_token_storage,
-        })
+        result.indices = indices;
+        result.special_indices = special_indices;
+        result.special_values = special_values;
+        result.language_codes_bytes = language_code_bytes;
+        Ok(result)
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
