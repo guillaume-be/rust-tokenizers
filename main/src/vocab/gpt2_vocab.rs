@@ -12,7 +12,10 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::{swap_key_values, Vocab};
+use crate::vocab::base_vocab::{
+    read_json_file, read_special_token_mapping_file, register_as_special_value, swap_key_values,
+    SpecialTokenMap, Vocab,
+};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -32,7 +35,7 @@ pub struct Gpt2Vocab {
     pub indices: HashMap<i64, String>,
 
     /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    unknown_value: String,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -43,25 +46,11 @@ pub struct Gpt2Vocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl Gpt2Vocab {
-    /// Returns the BOS token for GPT2 (`<|endoftext|>`)
-    pub fn bos_value() -> &'static str {
-        "<|endoftext|>"
-    }
-
-    /// Returns the EOS token for GPT2 (`<|endoftext|>`)
-    pub fn eos_value() -> &'static str {
-        "<|endoftext|>"
-    }
-}
+impl Gpt2Vocab {}
 
 impl Vocab for Gpt2Vocab {
-    fn unknown_value() -> &'static str {
-        "<|endoftext|>"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "<|endoftext|>"
+    fn get_unknown_value(&self) -> &str {
+        &self.unknown_value
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -81,36 +70,28 @@ impl Vocab for Gpt2Vocab {
     }
 
     fn from_file(path: &str) -> Result<Gpt2Vocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
+        let values = read_json_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<|endoftext|>".to_string(),
+            pad_token: None,
+            bos_token: Some("<|endoftext|>".to_string()),
+            sep_token: None,
+            cls_token: None,
+            eos_token: Some("<|endoftext|>".to_string()),
+            mask_token: None,
+            additional_special_tokens: None,
         };
-        let mut special_values = HashMap::new();
-        let unknown_value = Gpt2Vocab::unknown_value();
-        Gpt2Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
 
-        let bos_value = Gpt2Vocab::bos_value();
-        Gpt2Vocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
-
-        let eos_value = Gpt2Vocab::eos_value();
-        Gpt2Vocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
-
-        let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
-
-        Ok(Gpt2Vocab {
-            values,
-            indices,
-            unknown_value,
-            special_values,
-            special_indices,
-        })
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_json_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
@@ -118,12 +99,17 @@ impl Vocab for Gpt2Vocab {
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            &self.unknown_value,
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            &self.unknown_value,
+        )
     }
 }
 

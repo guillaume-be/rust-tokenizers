@@ -175,10 +175,6 @@ impl DeBERTaV2Vocab {
 }
 
 impl Vocab for DeBERTaV2Vocab {
-    fn unknown_value() -> &'static str {
-        "[UNK]"
-    }
-
     fn get_unknown_value(&self) -> &'static str {
         "[UNK]"
     }
