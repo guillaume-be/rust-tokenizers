@@ -130,7 +130,7 @@ pub(crate) fn register_as_special_value(
     Ok(())
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub(crate) struct SpecialTokenMap {
     pub unk_token: String,
     pub pad_token: Option<String>,
@@ -149,7 +149,7 @@ impl SpecialTokenMap {
         &self,
         values: &HashMap<String, i64>,
         special_values: &mut HashMap<String, i64>,
-    ) {
+    ) -> Result<(), TokenizerError> {
         register_as_special_value(self.unk_token.as_str(), &values, special_values)?;
         if let Some(pad_token) = &self.pad_token {
             register_as_special_value(pad_token, &values, special_values)?;
@@ -174,6 +174,7 @@ impl SpecialTokenMap {
                 register_as_special_value(token, &values, special_values)?;
             }
         }
+        Ok(())
     }
 }
 
@@ -230,20 +231,9 @@ pub trait Vocab {
     fn from_values_and_special_token_map(
         values: HashMap<String, i64>,
         special_token_map: SpecialTokenMap,
-    ) -> Result<Self, TokenizerError> {
-        let mut special_values = HashMap::new();
-        special_token_map.register_special_values(&values, &mut special_values)?;
-
-        let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
-        Ok(Self {
-            values,
-            indices,
-            special_token_map,
-            special_values,
-            special_indices,
-        })
-    }
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: std::marker::Sized;
 
     /// Converts a token to an id, provided a `HashMap` of values, a `HashMap` of special values and
     /// the unknown value token string representation. This is not meant to be directly used, the method
@@ -401,12 +391,33 @@ impl Vocab for BaseVocab {
         Self::from_values_and_special_token_map(values, special_token_map)
     }
 
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: std::marker::Sized,
+    {
+        let mut special_values = HashMap::new();
+        special_token_map.register_special_values(&values, &mut special_values)?;
+
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+        Ok(Self {
+            values,
+            indices,
+            special_token_map,
+            special_values,
+            special_indices,
+        })
+    }
+
     fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(
             token,
             &self.values,
             &self.special_values,
-            &self.unknown_value,
+            &self.get_unknown_value(),
         )
     }
 
@@ -415,7 +426,7 @@ impl Vocab for BaseVocab {
             id,
             &self.indices,
             &self.special_indices,
-            &self.unknown_value,
+            &self.get_unknown_value(),
         )
     }
 }

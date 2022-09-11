@@ -16,12 +16,8 @@ use crate::error::TokenizerError;
 use crate::vocab::base_vocab::{
     read_protobuf_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
 };
-use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
-use protobuf::Message;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
 
 /// # FNetVocab
 /// Vocabulary for FNet tokenizer. Contains the following special values:
@@ -118,17 +114,41 @@ impl Vocab for FNetVocab {
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
         Self::from_values_and_special_token_map(values, special_token_map)
     }
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: std::marker::Sized,
+    {
+        let mut special_values = HashMap::new();
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+        Ok(Self {
+            values,
+            indices,
+            special_token_map,
+            special_values,
+            special_indices,
+        })
+    }
     fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }

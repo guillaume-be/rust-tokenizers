@@ -16,8 +16,6 @@ use crate::vocab::base_vocab::{
     read_json_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
 };
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 
 /// # RoBERTa Vocab
 /// Vocabulary for RoBERTa tokenizer. Contains the following special values:
@@ -128,17 +126,43 @@ impl Vocab for RobertaVocab {
         Self::from_values_and_special_token_map(values, special_token_map)
     }
 
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: std::marker::Sized,
+    {
+        let mut special_values = HashMap::new();
+        special_token_map.register_special_values(&values, &mut special_values)?;
+
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+        Ok(Self {
+            values,
+            indices,
+            special_token_map,
+            special_values,
+            special_indices,
+        })
+    }
+
     fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }
 
@@ -159,26 +183,28 @@ mod tests {
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
-        let unknown_value = RobertaVocab::unknown_value();
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: Some("<pad>".to_string()),
+            bos_token: Some("<s>".to_string()),
+            sep_token: Some("</s>".to_string()),
+            cls_token: Some("<s>".to_string()),
+            eos_token: Some("</s>".to_string()),
+            mask_token: Some("<mask>".to_string()),
+            additional_special_tokens: None,
+        };
 
         //        When
         let roberta_vocab = RobertaVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         };
 
         //        Then
-        assert_eq!(roberta_vocab.unknown_value, "<unk>");
-        assert_eq!(RobertaVocab::pad_value(), "<pad>");
-        assert_eq!(RobertaVocab::sep_value(), "</s>");
-        assert_eq!(RobertaVocab::bos_value(), "<s>");
-        assert_eq!(RobertaVocab::eos_value(), "</s>");
-        assert_eq!(RobertaVocab::cls_value(), "<s>");
-        assert_eq!(RobertaVocab::mask_value(), "<mask>");
-        assert_eq!(roberta_vocab.unknown_value, RobertaVocab::unknown_value());
+        assert_eq!(roberta_vocab.get_unknown_value(), "<unk>");
         assert_eq!(roberta_vocab.values, *roberta_vocab.values());
         assert_eq!(
             roberta_vocab.special_values,

@@ -14,12 +14,8 @@ use crate::error::TokenizerError;
 use crate::vocab::base_vocab::{
     read_protobuf_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
 };
-use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
-use protobuf::Message;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
 
 /// # DeBERTaV2Vocab
 /// Vocabulary for DeBERTa (v2) tokenizer. Contains the following special values:
@@ -50,20 +46,6 @@ pub struct DeBERTaV2Vocab {
 
     /// A mapping of special value tokens as IDs to strings (i.e. the decoder base for special values)
     pub special_indices: HashMap<i64, String>,
-}
-
-impl Default for DeBERTaV2SpecialTokensMap {
-    fn default() -> Self {
-        Self {
-            bos_token: "[CLS]".into(),
-            eos_token: "[SEP]".into(),
-            unk_token: "[UNK]".into(),
-            sep_token: "[SEP]".into(),
-            pad_token: "[PAD]".into(),
-            cls_token: "[CLS]".into(),
-            mask_token: "[MASK]".into(),
-        }
-    }
 }
 
 impl Vocab for DeBERTaV2Vocab {
@@ -124,13 +106,32 @@ impl Vocab for DeBERTaV2Vocab {
 
         Self::from_values_and_special_token_map(values, special_token_map)
     }
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: std::marker::Sized,
+    {
+        let mut special_values = HashMap::new();
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+        Ok(Self {
+            values,
+            indices,
+            special_token_map,
+            special_values,
+            special_indices,
+        })
+    }
     fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(
             token,
             &self.values,
             &self.special_values,
-            &self.special_tokens_map.unk_token,
+            &self.get_unknown_value(),
         )
     }
 
@@ -139,7 +140,7 @@ impl Vocab for DeBERTaV2Vocab {
             id,
             &self.indices,
             &self.special_indices,
-            &self.special_tokens_map.unk_token,
+            &self.get_unknown_value(),
         )
     }
 }

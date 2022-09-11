@@ -17,7 +17,7 @@ use crate::tokenizer::tokenization_utils::{
 };
 use crate::tokenizer::tokenization_utils::{lowercase, unknown_byte_fallback};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
-use crate::vocab::{DeBERTaV2SpecialTokensMap, DeBERTaV2Vocab, SentencePieceModel, Vocab};
+use crate::vocab::{DeBERTaV2Vocab, SentencePieceModel, Vocab};
 use crate::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
 };
@@ -65,7 +65,7 @@ impl DeBERTaV2Tokenizer {
     /// ```
     pub fn from_file(
         path: &str,
-        secial_tokens_map_path: Option<&str>,
+        special_tokens_map_path: Option<&str>,
         lower_case: bool,
         strip_accents: bool,
         add_prefix_space: bool,
@@ -252,13 +252,25 @@ impl Tokenizer<DeBERTaV2Vocab> for DeBERTaV2Tokenizer {
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
         output.push(
-            self.vocab
-                .token_to_id(&self.vocab.special_tokens_map.cls_token),
+            self.vocab.token_to_id(
+                &self
+                    .vocab
+                    .special_token_map
+                    .cls_token
+                    .as_ref()
+                    .expect("DeBERTa requires a CLS token for encoding"),
+            ),
         );
         output.extend(tokens_ids_with_offsets_1.ids);
         output.push(
-            self.vocab
-                .token_to_id(&self.vocab.special_tokens_map.sep_token),
+            self.vocab.token_to_id(
+                &self
+                    .vocab
+                    .special_token_map
+                    .cls_token
+                    .as_ref()
+                    .expect("DeBERTa requires a SEP token for encoding"),
+            ),
         );
         offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
