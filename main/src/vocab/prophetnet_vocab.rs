@@ -77,7 +77,7 @@ impl Vocab for ProphetNetVocab {
             cls_token: Some("[CLS]".to_string()),
             eos_token: None,
             mask_token: Some("[MASK]".to_string()),
-            additional_special_tokens: Some(HashSet::from(["[X_SEP".into()])),
+            additional_special_tokens: Some(HashSet::from(["[X_SEP]".into()])),
         };
 
         Self::from_values_and_special_token_map(values, special_token_map)
@@ -200,6 +200,7 @@ mod tests {
 
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
+            ("[X_SEP]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
             ("[PAD]".to_owned(), 7),

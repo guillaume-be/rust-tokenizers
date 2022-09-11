@@ -1575,7 +1575,7 @@ mod tests {
     extern crate anyhow;
 
     use super::*;
-    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::base_vocab::{swap_key_values, SpecialTokenMap};
     use crate::vocab::BertVocab;
     use std::collections::HashMap;
 
@@ -1600,6 +1600,17 @@ mod tests {
         .cloned()
         .collect();
 
+        let special_token_map = SpecialTokenMap {
+            unk_token: "[UNK]".to_string(),
+            pad_token: Some("[PAD]".to_string()),
+            bos_token: None,
+            sep_token: Some("[SEP]".to_string()),
+            cls_token: Some("[CLS]".to_string()),
+            eos_token: None,
+            mask_token: Some("[MASK]".to_string()),
+            additional_special_tokens: None,
+        };
+
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
             ("[CLS]".to_owned(), 4),
@@ -1617,7 +1628,7 @@ mod tests {
         BertVocab {
             values,
             indices,
-            unknown_value: "[UNK]",
+            special_token_map,
             special_values,
             special_indices,
         }

@@ -154,7 +154,7 @@ impl MultiThreadedTokenizer<OpenAiGptVocab> for CtrlTokenizer {}
 mod tests {
     use super::*;
     use crate::tokenizer::base_tokenizer::{Offset, TokenizedInput, TruncationStrategy};
-    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::base_vocab::{swap_key_values, SpecialTokenMap};
     use crate::vocab::OpenAiGptVocab;
     use crate::Mask;
     use itertools::Itertools;
@@ -175,6 +175,16 @@ mod tests {
         .cloned()
         .collect();
 
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: None,
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: None,
+            mask_token: None,
+            additional_special_tokens: None,
+        };
         let special_values: HashMap<String, i64> =
             [("<unk>".to_owned(), 6)].iter().cloned().collect();
 
@@ -184,7 +194,7 @@ mod tests {
         OpenAiGptVocab {
             values,
             indices,
-            unknown_value: "<unk>",
+            special_token_map,
             special_values,
             special_indices,
         }

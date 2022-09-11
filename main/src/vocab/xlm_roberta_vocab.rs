@@ -83,7 +83,7 @@ impl XLMRobertaVocab {
 }
 
 impl Vocab for XLMRobertaVocab {
-    fn get_unknown_value(&self) -> &'static str {
+    fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
     }
 

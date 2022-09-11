@@ -179,7 +179,15 @@ impl Tokenizer<PegasusVocab> for PegasusTokenizer {
         }
         special_tokens_mask.push(1);
         token_segment_ids.push(1);
-        output.push(self.vocab.token_to_id(PegasusVocab::eos_value()));
+        output.push(
+            self.vocab.token_to_id(
+                self.vocab
+                    .special_token_map
+                    .eos_token
+                    .as_ref()
+                    .expect("EOS token expected for encoding"),
+            ),
+        );
         offsets.push(None);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);

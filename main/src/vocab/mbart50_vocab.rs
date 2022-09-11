@@ -125,7 +125,7 @@ impl Vocab for MBart50Vocab {
             values.len() as i64,
         );
 
-        special_token_map.register_special_values(&values, &mut special_values);
+        let _ = special_token_map.register_special_values(&values, &mut special_values);
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
@@ -182,7 +182,7 @@ impl Vocab for MBart50Vocab {
             values.len() as i64,
         );
 
-        special_token_map.register_special_values(&values, &mut special_values);
+        let _ = special_token_map.register_special_values(&values, &mut special_values);
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);

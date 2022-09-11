@@ -247,7 +247,7 @@ mod tests {
         let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(roberta_vocab.unknown_value, "<unk>");
+        assert_eq!(roberta_vocab.get_unknown_value(), "<unk>");
         assert_eq!(roberta_vocab.values, target_values);
         assert_eq!(roberta_vocab.special_values, special_values);
         drop(path);

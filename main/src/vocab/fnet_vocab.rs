@@ -91,7 +91,7 @@ impl Vocab for FNetVocab {
     }
 
     fn from_file(path: &str) -> Result<FNetVocab, TokenizerError> {
-        let mut values = read_protobuf_file(path)?;
+        let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: "<unk>".to_string(),

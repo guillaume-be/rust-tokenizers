@@ -71,7 +71,7 @@ impl Vocab for AlbertVocab {
     }
 
     fn from_file(path: &str) -> Result<AlbertVocab, TokenizerError> {
-        let mut values = read_protobuf_file(path)?;
+        let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: "<unk>".to_string(),

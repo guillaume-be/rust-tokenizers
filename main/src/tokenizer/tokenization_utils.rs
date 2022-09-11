@@ -19,7 +19,7 @@ use crate::tokenizer::constants::{
     PUNCTUATION_CHARS, WHITESPACE_CHARS,
 };
 use crate::vocab::bpe_vocab::{BpePairRef, BpePairVocab};
-use crate::vocab::{BertVocab, Vocab};
+use crate::vocab::Vocab;
 use crate::{Mask, Offset, OffsetSize, Token, TokenRef};
 use regex::Regex;
 use std::borrow::BorrowMut;
@@ -523,7 +523,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
     let mut tokens: Vec<Token> = Vec::new();
     if token.text.chars().count() > max_word_len {
         tokens.push(Token {
-            text: BertVocab::unknown_value().to_owned(),
+            text: vocab.get_unknown_value().to_owned(),
             offset: token.offset,
             reference_offsets: token.reference_offsets.to_vec(),
             mask: Mask::Unknown,
@@ -572,7 +572,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
             }
             if is_unk {
                 return vec![Token {
-                    text: BertVocab::unknown_value().to_owned(),
+                    text: vocab.get_unknown_value().to_owned(),
                     offset: token.offset,
                     reference_offsets: token.reference_offsets.to_vec(),
                     mask: Mask::Unknown,
@@ -1165,7 +1165,8 @@ pub(crate) fn unknown_byte_fallback<T: Vocab>(token: TokenRef, vocab: &T) -> Opt
 mod tests {
     use super::*;
     use crate::error::TokenizerError;
-    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::base_vocab::{swap_key_values, SpecialTokenMap};
+    use crate::vocab::BertVocab;
     use std::collections::HashMap;
 
     fn generate_test_vocab() -> BertVocab {
@@ -1189,6 +1190,17 @@ mod tests {
         .cloned()
         .collect();
 
+        let special_token_map = SpecialTokenMap {
+            unk_token: "[UNK]".to_string(),
+            pad_token: Some("[PAD]".to_string()),
+            bos_token: None,
+            sep_token: Some("[SEP]".to_string()),
+            cls_token: Some("[CLS]".to_string()),
+            eos_token: None,
+            mask_token: Some("[MASK]".to_string()),
+            additional_special_tokens: None,
+        };
+
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
             ("[CLS]".to_owned(), 4),
@@ -1206,7 +1218,7 @@ mod tests {
         BertVocab {
             values,
             indices,
-            unknown_value: "[UNK]",
+            special_token_map,
             special_values,
             special_indices,
         }

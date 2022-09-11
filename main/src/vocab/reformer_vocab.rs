@@ -65,7 +65,7 @@ impl Vocab for ReformerVocab {
     }
 
     fn from_file(path: &str) -> Result<ReformerVocab, TokenizerError> {
-        let mut values = read_protobuf_file(path)?;
+        let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: "<unk>".to_string(),
@@ -73,7 +73,7 @@ impl Vocab for ReformerVocab {
             bos_token: None,
             sep_token: None,
             cls_token: None,
-            eos_token: Some("</s".to_string()),
+            eos_token: Some("</s>".to_string()),
             mask_token: None,
             additional_special_tokens: None,
         };

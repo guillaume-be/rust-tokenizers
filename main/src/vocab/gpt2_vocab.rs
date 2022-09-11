@@ -142,6 +142,7 @@ mod tests {
         let values: HashMap<String, i64> = HashMap::new();
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
+        let special_indices: HashMap<i64, String> = HashMap::new();
         let special_token_map = SpecialTokenMap {
             unk_token: "<|endoftext|>".to_string(),
             pad_token: None,
@@ -164,8 +165,14 @@ mod tests {
 
         // Then
         assert_eq!(gpt2_vocab.get_unknown_value(), "<|endoftext|>");
-        assert_eq!(gpt2_vocab.special_token_map.bos_token, "<|endoftext|>");
-        assert_eq!(gpt2_vocab.special_token_map.eos_token, "<|endoftext|>");
+        assert_eq!(
+            gpt2_vocab.special_token_map.bos_token.as_ref().unwrap(),
+            "<|endoftext|>"
+        );
+        assert_eq!(
+            gpt2_vocab.special_token_map.eos_token.as_ref().unwrap(),
+            "<|endoftext|>"
+        );
         assert_eq!(gpt2_vocab.values, *gpt2_vocab.values());
         assert_eq!(gpt2_vocab.special_values, *gpt2_vocab.special_values());
     }

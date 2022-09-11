@@ -198,7 +198,7 @@ mod tests {
         let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(openai_gpt_vocab.unknown_value, "<unk>");
+        assert_eq!(openai_gpt_vocab.get_unknown_value(), "<unk>");
         assert_eq!(openai_gpt_vocab.values, target_values);
         assert_eq!(openai_gpt_vocab.special_values, special_values);
         drop(path);

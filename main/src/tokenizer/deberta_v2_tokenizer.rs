@@ -65,20 +65,12 @@ impl DeBERTaV2Tokenizer {
     /// ```
     pub fn from_file(
         path: &str,
-        special_tokens_map_path: Option<&str>,
         lower_case: bool,
         strip_accents: bool,
         add_prefix_space: bool,
     ) -> Result<DeBERTaV2Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
-        let vocab = DeBERTaV2Vocab::from_file_with_secial_tokens_map(
-            path,
-            secial_tokens_map_path
-                .map(DeBERTaV2SpecialTokensMap::from_file)
-                .transpose()?
-                .unwrap_or_default(),
-        )?;
-
+        let vocab = DeBERTaV2Vocab::from_file(path)?;
         Ok(DeBERTaV2Tokenizer {
             model,
             vocab,
@@ -253,23 +245,21 @@ impl Tokenizer<DeBERTaV2Vocab> for DeBERTaV2Tokenizer {
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
         output.push(
             self.vocab.token_to_id(
-                &self
-                    .vocab
+                self.vocab
                     .special_token_map
                     .cls_token
                     .as_ref()
-                    .expect("DeBERTa requires a CLS token for encoding"),
+                    .expect("CLS token expected for encoding"),
             ),
         );
         output.extend(tokens_ids_with_offsets_1.ids);
         output.push(
             self.vocab.token_to_id(
-                &self
-                    .vocab
+                self.vocab
                     .special_token_map
-                    .cls_token
+                    .sep_token
                     .as_ref()
-                    .expect("DeBERTa requires a SEP token for encoding"),
+                    .expect("SEP token expected for encoding"),
             ),
         );
         offsets.push(None);
@@ -288,8 +278,13 @@ impl Tokenizer<DeBERTaV2Vocab> for DeBERTaV2Tokenizer {
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
             output.push(
-                self.vocab
-                    .token_to_id(&self.vocab.special_tokens_map.sep_token),
+                self.vocab.token_to_id(
+                    self.vocab
+                        .special_token_map
+                        .sep_token
+                        .as_ref()
+                        .expect("SEP token expected for encoding"),
+                ),
             );
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);

@@ -82,7 +82,7 @@ impl Vocab for M2M100Vocab {
     }
 
     fn from_file(path: &str) -> Result<M2M100Vocab, TokenizerError> {
-        let mut values = read_json_file(path)?;
+        let values = read_json_file(path)?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: "<unk>".to_string(),

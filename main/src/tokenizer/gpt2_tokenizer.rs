@@ -179,7 +179,7 @@ impl MultiThreadedTokenizer<Gpt2Vocab> for Gpt2Tokenizer {}
 mod tests {
     use super::*;
     use crate::tokenizer::base_tokenizer::TruncationStrategy;
-    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::base_vocab::{swap_key_values, SpecialTokenMap};
     use crate::vocab::Gpt2Vocab;
     use crate::{Offset, TokenizedInput};
     use std::collections::HashMap;
@@ -201,6 +201,17 @@ mod tests {
         .cloned()
         .collect();
 
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<|endoftext|>".to_string(),
+            pad_token: None,
+            bos_token: Some("<|endoftext|>".to_string()),
+            sep_token: None,
+            cls_token: None,
+            eos_token: Some("<|endoftext|>".to_string()),
+            mask_token: None,
+            additional_special_tokens: None,
+        };
+
         let special_values: HashMap<String, i64> =
             [("<|endoftext|>".to_owned(), 6)].iter().cloned().collect();
 
@@ -210,7 +221,7 @@ mod tests {
         Gpt2Vocab {
             values,
             indices,
-            unknown_value: "<|endoftext|>",
+            special_token_map,
             special_values,
             special_indices,
         }

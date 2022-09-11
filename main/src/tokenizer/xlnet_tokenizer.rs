@@ -216,7 +216,15 @@ impl Tokenizer<XLNetVocab> for XLNetTokenizer {
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 1]);
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(XLNetVocab::sep_value()));
+        output.push(
+            self.vocab.token_to_id(
+                self.vocab
+                    .special_token_map
+                    .sep_token
+                    .as_ref()
+                    .expect("SEP token expected for encoding"),
+            ),
+        );
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
         original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
@@ -230,7 +238,15 @@ impl Tokenizer<XLNetVocab> for XLNetTokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(XLNetVocab::sep_value()));
+            output.push(
+                self.vocab.token_to_id(
+                    self.vocab
+                        .special_token_map
+                        .sep_token
+                        .as_ref()
+                        .expect("SEP token expected for encoding"),
+                ),
+            );
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);
@@ -239,7 +255,15 @@ impl Tokenizer<XLNetVocab> for XLNetTokenizer {
             mask.push(Mask::Special);
         }
         // Push the CLS token at the end of the sequence
-        output.push(self.vocab.token_to_id(XLNetVocab::cls_value()));
+        output.push(
+            self.vocab.token_to_id(
+                self.vocab
+                    .special_token_map
+                    .cls_token
+                    .as_ref()
+                    .expect("CLS token expected for encoding"),
+            ),
+        );
         special_tokens_mask.push(1);
         offsets.push(None);
         original_offsets.push(vec![]);

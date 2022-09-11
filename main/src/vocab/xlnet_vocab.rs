@@ -63,7 +63,7 @@ impl XLNetVocab {
 }
 
 impl Vocab for XLNetVocab {
-    fn get_unknown_value(&self) -> &'static str {
+    fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
     }
 
@@ -84,7 +84,7 @@ impl Vocab for XLNetVocab {
     }
 
     fn from_file(path: &str) -> Result<XLNetVocab, TokenizerError> {
-        let mut values = read_protobuf_file(path)?;
+        let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: "<unk>".to_string(),

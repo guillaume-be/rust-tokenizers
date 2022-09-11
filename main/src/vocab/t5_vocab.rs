@@ -77,7 +77,7 @@ impl Vocab for T5Vocab {
     }
 
     fn from_file(path: &str) -> Result<T5Vocab, TokenizerError> {
-        let mut values = read_protobuf_file(path)?;
+        let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: "<unk>".to_string(),

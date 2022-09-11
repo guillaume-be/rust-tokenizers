@@ -102,8 +102,12 @@ pub(crate) fn read_special_token_mapping_file(
         TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
     })?;
     let br = BufReader::new(f);
-    serde_json::from_reader(br)
-        .map_err(|e| TokenizerError::FileNotFound("Invalid special token mapping file".into()))
+    serde_json::from_reader(br).map_err(|e| {
+        TokenizerError::FileNotFound(format!(
+            "Invalid special token mapping file {}",
+            e.to_string()
+        ))
+    })
 }
 
 /// Register a token as a special value
@@ -131,7 +135,7 @@ pub(crate) fn register_as_special_value(
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct SpecialTokenMap {
+pub struct SpecialTokenMap {
     pub unk_token: String,
     pub pad_token: Option<String>,
     pub bos_token: Option<String>,
@@ -470,7 +474,6 @@ mod tests {
 
         //        Then
         assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
-        assert_eq!(base_vocab.get_unknown_value(), special_token_map.unk_token);
         assert_eq!(base_vocab.values, *base_vocab.values());
         assert_eq!(base_vocab.special_values, *base_vocab.special_values());
     }
@@ -498,7 +501,7 @@ mod tests {
         let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
+        assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
         assert_eq!(base_vocab.values, target_values);
         assert_eq!(base_vocab.special_values, special_values);
         drop(path);
