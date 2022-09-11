@@ -103,10 +103,7 @@ pub(crate) fn read_special_token_mapping_file(
     })?;
     let br = BufReader::new(f);
     serde_json::from_reader(br).map_err(|e| {
-        TokenizerError::FileNotFound(format!(
-            "Invalid special token mapping file {}",
-            e.to_string()
-        ))
+        TokenizerError::FileNotFound(format!("Invalid special token mapping file {}", e))
     })
 }
 
@@ -154,28 +151,28 @@ impl SpecialTokenMap {
         values: &HashMap<String, i64>,
         special_values: &mut HashMap<String, i64>,
     ) -> Result<(), TokenizerError> {
-        register_as_special_value(self.unk_token.as_str(), &values, special_values)?;
+        register_as_special_value(self.unk_token.as_str(), values, special_values)?;
         if let Some(pad_token) = &self.pad_token {
-            register_as_special_value(pad_token, &values, special_values)?;
+            register_as_special_value(pad_token, values, special_values)?;
         }
         if let Some(bos_token) = &self.bos_token {
-            register_as_special_value(bos_token, &values, special_values)?;
+            register_as_special_value(bos_token, values, special_values)?;
         }
         if let Some(sep_token) = &self.sep_token {
-            register_as_special_value(sep_token, &values, special_values)?;
+            register_as_special_value(sep_token, values, special_values)?;
         }
         if let Some(cls_token) = &self.cls_token {
-            register_as_special_value(cls_token, &values, special_values)?;
+            register_as_special_value(cls_token, values, special_values)?;
         }
         if let Some(eos_token) = &self.eos_token {
-            register_as_special_value(eos_token, &values, special_values)?;
+            register_as_special_value(eos_token, values, special_values)?;
         }
         if let Some(mask_token) = &self.mask_token {
-            register_as_special_value(mask_token, &values, special_values)?;
+            register_as_special_value(mask_token, values, special_values)?;
         }
         if let Some(additional_special_tokens) = &self.additional_special_tokens {
             for token in additional_special_tokens {
-                register_as_special_value(token, &values, special_values)?;
+                register_as_special_value(token, values, special_values)?;
             }
         }
         Ok(())
@@ -421,7 +418,7 @@ impl Vocab for BaseVocab {
             token,
             &self.values,
             &self.special_values,
-            &self.get_unknown_value(),
+            self.get_unknown_value(),
         )
     }
 
@@ -430,7 +427,7 @@ impl Vocab for BaseVocab {
             id,
             &self.indices,
             &self.special_indices,
-            &self.get_unknown_value(),
+            self.get_unknown_value(),
         )
     }
 }

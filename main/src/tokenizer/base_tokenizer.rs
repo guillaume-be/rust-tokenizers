@@ -312,7 +312,7 @@ impl<'a> ConsolidatableTokens<TokenRef<'a>> for Vec<TokenRef<'a>> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 /// Owned token that references the original text but stores its own string representation.
 pub struct Token {
     /// String representation
@@ -369,7 +369,7 @@ impl Token {
 
 /// # Tokenized Input, ready for processing in language models
 /// This represents the final output of the encoding process (tokenized sentence with encoded values)
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
 pub struct TokenizedInput {
     /// Vector of token IDs
     pub token_ids: Vec<i64>,
@@ -446,7 +446,7 @@ pub struct TokensWithOffsets {
 
 /// # Encoded sequence
 /// Intermediate tokenization steps before addition of special tokens, after encoding
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenIdsWithOffsets {
     /// Vector of token IDs
     pub ids: Vec<i64>,

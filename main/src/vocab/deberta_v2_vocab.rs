@@ -131,7 +131,7 @@ impl Vocab for DeBERTaV2Vocab {
             token,
             &self.values,
             &self.special_values,
-            &self.get_unknown_value(),
+            self.get_unknown_value(),
         )
     }
 
@@ -140,7 +140,7 @@ impl Vocab for DeBERTaV2Vocab {
             id,
             &self.indices,
             &self.special_indices,
-            &self.get_unknown_value(),
+            self.get_unknown_value(),
         )
     }
 }

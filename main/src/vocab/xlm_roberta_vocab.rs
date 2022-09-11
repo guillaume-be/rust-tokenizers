@@ -142,27 +142,27 @@ impl Vocab for XLMRobertaVocab {
         let mut special_values = HashMap::new();
         register_as_special_value(&special_token_map.unk_token, &values, &mut special_values)?;
         register_as_special_value(
-            &special_token_map.bos_token.as_ref().unwrap(),
+            special_token_map.bos_token.as_ref().unwrap(),
             &values,
             &mut special_values,
         )?;
         register_as_special_value(
-            &special_token_map.eos_token.as_ref().unwrap(),
+            special_token_map.eos_token.as_ref().unwrap(),
             &values,
             &mut special_values,
         )?;
         register_as_special_value(
-            &special_token_map.cls_token.as_ref().unwrap(),
+            special_token_map.cls_token.as_ref().unwrap(),
             &values,
             &mut special_values,
         )?;
         register_as_special_value(
-            &special_token_map.mask_token.as_ref().unwrap(),
+            special_token_map.mask_token.as_ref().unwrap(),
             &values,
             &mut special_values,
         )?;
         register_as_special_value(
-            &special_token_map.pad_token.as_ref().unwrap(),
+            special_token_map.pad_token.as_ref().unwrap(),
             &values,
             &mut special_values,
         )?;
@@ -192,17 +192,17 @@ impl Vocab for XLMRobertaVocab {
 
         if let Some(cls_token) = &special_token_map.cls_token {
             values.insert(cls_token.clone(), values.len() as i64);
-            register_as_special_value(&cls_token, &values, &mut special_values)?;
+            register_as_special_value(cls_token, &values, &mut special_values)?;
         }
 
         if let Some(pad_token) = &special_token_map.pad_token {
             values.insert(pad_token.clone(), values.len() as i64);
-            register_as_special_value(&pad_token, &values, &mut special_values)?;
+            register_as_special_value(pad_token, &values, &mut special_values)?;
         }
 
         if let Some(eos_token) = &special_token_map.eos_token {
             values.insert(eos_token.clone(), values.len() as i64);
-            register_as_special_value(&eos_token, &values, &mut special_values)?;
+            register_as_special_value(eos_token, &values, &mut special_values)?;
         }
 
         values.insert(special_token_map.unk_token.clone(), values.len() as i64);
