@@ -36,8 +36,8 @@ pub struct PegasusVocab {
     /// A mapping of token IDs to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask

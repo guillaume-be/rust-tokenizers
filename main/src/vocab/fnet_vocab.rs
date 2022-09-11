@@ -13,7 +13,9 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::base_vocab::{
+    read_protobuf_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
+};
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
 use protobuf::Message;
@@ -37,8 +39,8 @@ pub struct FNetVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -72,12 +74,8 @@ impl FNetVocab {
 }
 
 impl Vocab for FNetVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -97,53 +95,28 @@ impl Vocab for FNetVocab {
     }
 
     fn from_file(path: &str) -> Result<FNetVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
+        let mut values = read_protobuf_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: Some("<pad>".to_string()),
+            bos_token: None,
+            sep_token: Some("[SEP]".to_string()),
+            cls_token: Some("[CLS]".to_string()),
+            eos_token: None,
+            mask_token: Some("[MASK]".to_string()),
+            additional_special_tokens: None,
         };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
 
-        let mut values = HashMap::new();
-        for (idx, piece) in proto.get_pieces().iter().enumerate() {
-            values.insert(piece.get_piece().to_owned(), idx as i64);
-        }
-
-        let mut special_values = HashMap::new();
-        let unknown_value = FNetVocab::unknown_value();
-        FNetVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let cls_value = FNetVocab::cls_value();
-        FNetVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let mask_value = FNetVocab::mask_value();
-        FNetVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
-
-        let pad_value = FNetVocab::pad_value();
-        FNetVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let sep_value = FNetVocab::sep_value();
-        FNetVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
-
-        let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
-
-        Ok(FNetVocab {
-            values,
-            indices,
-            unknown_value,
-            special_values,
-            special_indices,
-        })
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_protobuf_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
