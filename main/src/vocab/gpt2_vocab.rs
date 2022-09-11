@@ -34,8 +34,8 @@ pub struct Gpt2Vocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    unknown_value: String,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -46,11 +46,9 @@ pub struct Gpt2Vocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl Gpt2Vocab {}
-
 impl Vocab for Gpt2Vocab {
     fn get_unknown_value(&self) -> &str {
-        &self.unknown_value
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -128,23 +126,30 @@ mod tests {
         let values: HashMap<String, i64> = HashMap::new();
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
-        let special_indices: HashMap<i64, String> = HashMap::new();
-        let unknown_value = Gpt2Vocab::unknown_value();
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<|endoftext|>".to_string(),
+            pad_token: None,
+            bos_token: Some("<|endoftext|>".to_string()),
+            sep_token: None,
+            cls_token: None,
+            eos_token: Some("<|endoftext|>".to_string()),
+            mask_token: None,
+            additional_special_tokens: None,
+        };
 
         //        When
         let gpt2_vocab = Gpt2Vocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         };
 
-        //        Then
-        assert_eq!(gpt2_vocab.unknown_value, "<|endoftext|>");
-        assert_eq!(Gpt2Vocab::bos_value(), "<|endoftext|>");
-        assert_eq!(Gpt2Vocab::eos_value(), "<|endoftext|>");
-        assert_eq!(gpt2_vocab.unknown_value, Gpt2Vocab::unknown_value());
+        // Then
+        assert_eq!(gpt2_vocab.get_unknown_value(), "<|endoftext|>");
+        assert_eq!(gpt2_vocab.special_token_map.bos_token, "<|endoftext|>");
+        assert_eq!(gpt2_vocab.special_token_map.eos_token, "<|endoftext|>");
         assert_eq!(gpt2_vocab.values, *gpt2_vocab.values());
         assert_eq!(gpt2_vocab.special_values, *gpt2_vocab.special_values());
     }
@@ -175,7 +180,7 @@ mod tests {
         let gpt2_vocab = Gpt2Vocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(gpt2_vocab.unknown_value, "<|endoftext|>");
+        assert_eq!(gpt2_vocab.special_token_map.unk_token, "<|endoftext|>");
         assert_eq!(gpt2_vocab.values, target_values);
         assert_eq!(gpt2_vocab.special_values, special_values);
         drop(path);

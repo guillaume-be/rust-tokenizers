@@ -10,11 +10,13 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
+use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use protobuf::Message;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::hash::Hash;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 
 pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
     input_hashmap: &HashMap<T, U>,
@@ -58,6 +60,31 @@ pub(crate) fn read_json_file(path: &str) -> Result<HashMap<String, i64>, Tokeniz
             return Err(TokenizerError::VocabularyParsingError(e.to_string()));
         }
     };
+    Ok(values)
+}
+
+/// Read a SentencePiece protobuf file and extract vocabulary from it.
+pub(crate) fn read_protobuf_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+    let mut f = File::open(path).map_err(|e| {
+        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    })?;
+    let mut contents = Vec::new();
+    let proto = match f.read_to_end(&mut contents) {
+        Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
+            Ok(proto_value) => proto_value,
+            Err(e) => {
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+            }
+        },
+        Err(e) => {
+            return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+        }
+    };
+
+    let mut values = HashMap::new();
+    for (idx, piece) in proto.get_pieces().iter().enumerate() {
+        values.insert(piece.get_piece().to_owned(), idx as i64);
+    }
     Ok(values)
 }
 
@@ -207,7 +234,7 @@ pub trait Vocab {
         Ok(Self {
             values,
             indices,
-            unknown_value: special_token_map.unk_token,
+            special_token_map,
             special_values,
             special_indices,
         })
@@ -312,8 +339,8 @@ pub struct BaseVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    unknown_value: String,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -326,7 +353,7 @@ pub struct BaseVocab {
 
 impl Vocab for BaseVocab {
     fn get_unknown_value(&self) -> &str {
-        &self.unknown_value
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -405,20 +432,29 @@ mod tests {
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
-        let unknown_value = BaseVocab::unknown_value();
+        let special_token_map = SpecialTokenMap {
+            unk_token: "[UNK]".to_string(),
+            pad_token: None,
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: None,
+            mask_token: None,
+            additional_special_tokens: None,
+        };
 
         //        When
         let base_vocab = BaseVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         };
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
-        assert_eq!(base_vocab.unknown_value, BaseVocab::unknown_value());
+        assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
+        assert_eq!(base_vocab.get_unknown_value(), special_token_map.unk_token);
         assert_eq!(base_vocab.values, *base_vocab.values());
         assert_eq!(base_vocab.special_values, *base_vocab.special_values());
     }
