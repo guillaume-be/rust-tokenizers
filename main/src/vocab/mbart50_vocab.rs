@@ -12,14 +12,13 @@
 
 use crate::error::TokenizerError;
 use crate::vocab::base_vocab::{
-    read_special_token_mapping_file, register_as_special_value, swap_key_values, SpecialTokenMap,
+    open_protobuf_file, read_special_token_mapping_file, register_as_special_value,
+    swap_key_values, SpecialTokenMap,
 };
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
 use protobuf::Message;
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::Read;
 
 pub static FAIRSEQ_LANGUAGE_CODES: [&str; 52] = [
     ">>ar<<", ">>cs<<", ">>de<<", ">>en<<", ">>es<<", ">>et<<", ">>fi<<", ">>fr<<", ">>gu<<",
@@ -113,21 +112,7 @@ impl Vocab for MBart50Vocab {
         );
         values.insert(special_token_map.unk_token.clone(), values.len() as i64);
 
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        let proto = open_protobuf_file(path)?;
         for piece in proto.get_pieces().iter().skip(3) {
             values.insert(piece.get_piece().to_owned(), values.len() as i64);
         }
@@ -184,21 +169,7 @@ impl Vocab for MBart50Vocab {
 
         values.insert(special_token_map.unk_token.clone(), values.len() as i64);
 
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        let proto = open_protobuf_file(path)?;
         for piece in proto.get_pieces().iter().skip(3) {
             values.insert(piece.get_piece().to_owned(), values.len() as i64);
         }

@@ -12,7 +12,9 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::{swap_key_values, Vocab};
+use crate::vocab::base_vocab::{
+    read_json_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
+};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -80,12 +82,8 @@ impl RobertaVocab {
 }
 
 impl Vocab for RobertaVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -106,48 +104,28 @@ impl Vocab for RobertaVocab {
 
     ///Read a Roberta-style vocab.json file
     fn from_file(path: &str) -> Result<RobertaVocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
+        let values = read_json_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: Some("<pad>".to_string()),
+            bos_token: Some("<s>".to_string()),
+            sep_token: Some("</s>".to_string()),
+            cls_token: Some("<s>".to_string()),
+            eos_token: Some("</s>".to_string()),
+            mask_token: Some("<mask>".to_string()),
+            additional_special_tokens: None,
         };
-        let mut special_values = HashMap::new();
-        let unknown_value = RobertaVocab::unknown_value();
-        RobertaVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
 
-        let pad_value = RobertaVocab::pad_value();
-        RobertaVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let sep_value = RobertaVocab::sep_value();
-        RobertaVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
-
-        let cls_value = RobertaVocab::cls_value();
-        RobertaVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let mask_value = RobertaVocab::mask_value();
-        RobertaVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
-
-        let bos_value = RobertaVocab::bos_value();
-        RobertaVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
-
-        let eos_value = RobertaVocab::eos_value();
-        RobertaVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
-
-        let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
-
-        Ok(RobertaVocab {
-            values,
-            indices,
-            unknown_value,
-            special_values,
-            special_indices,
-        })
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_json_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
     }
 
     fn token_to_id(&self, token: &str) -> i64 {

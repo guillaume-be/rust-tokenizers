@@ -63,8 +63,7 @@ pub(crate) fn read_json_file(path: &str) -> Result<HashMap<String, i64>, Tokeniz
     Ok(values)
 }
 
-/// Read a SentencePiece protobuf file and extract vocabulary from it.
-pub(crate) fn read_protobuf_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn open_protobuf_file(path: &str) -> Result<ModelProto, TokenizerError> {
     let mut f = File::open(path).map_err(|e| {
         TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
     })?;
@@ -80,6 +79,12 @@ pub(crate) fn read_protobuf_file(path: &str) -> Result<HashMap<String, i64>, Tok
             return Err(TokenizerError::VocabularyParsingError(e.to_string()));
         }
     };
+    Ok(proto)
+}
+
+/// Read a SentencePiece protobuf file and extract vocabulary from it.
+pub(crate) fn read_protobuf_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+    let proto = open_protobuf_file(path)?;
 
     let mut values = HashMap::new();
     for (idx, piece) in proto.get_pieces().iter().enumerate() {

@@ -12,7 +12,10 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::base_vocab::{
+    open_protobuf_file, read_special_token_mapping_file, register_as_special_value,
+    swap_key_values, SpecialTokenMap,
+};
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
 use protobuf::Message;
@@ -84,12 +87,8 @@ impl XLMRobertaVocab {
 }
 
 impl Vocab for XLMRobertaVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
     fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -109,29 +108,33 @@ impl Vocab for XLMRobertaVocab {
     }
 
     fn from_file(path: &str) -> Result<XLMRobertaVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
+        let proto = open_protobuf_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: Some("<pad>".to_string()),
+            bos_token: Some("<s>".to_string()),
+            sep_token: Some("</s>".to_string()),
+            cls_token: Some("<s>".to_string()),
+            eos_token: Some("</s>".to_string()),
+            mask_token: Some("<mask>".to_string()),
+            additional_special_tokens: None,
         };
+
         let mut values = HashMap::new();
-        values.insert(XLMRobertaVocab::cls_value().to_owned(), values.len() as i64);
-        values.insert(XLMRobertaVocab::pad_value().to_owned(), values.len() as i64);
-        values.insert(XLMRobertaVocab::eos_value().to_owned(), values.len() as i64);
         values.insert(
-            XLMRobertaVocab::unknown_value().to_owned(),
+            special_token_map.cls_token.as_ref().unwrap().clone(),
             values.len() as i64,
         );
+        values.insert(
+            special_token_map.pad_token.as_ref().unwrap().clone(),
+            values.len() as i64,
+        );
+        values.insert(
+            special_token_map.eos_token.as_ref().unwrap().clone(),
+            values.len() as i64,
+        );
+        values.insert(special_token_map.unk_token.clone(), values.len() as i64);
         for piece in proto.get_pieces().iter().skip(3) {
             values.insert(piece.get_piece().to_owned(), values.len() as i64);
         }
@@ -141,23 +144,32 @@ impl Vocab for XLMRobertaVocab {
         );
 
         let mut special_values = HashMap::new();
-        let unknown_value = XLMRobertaVocab::unknown_value();
-        XLMRobertaVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let bos_value = XLMRobertaVocab::bos_value();
-        XLMRobertaVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
-
-        let eos_value = XLMRobertaVocab::eos_value();
-        XLMRobertaVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
-
-        let cls_value = XLMRobertaVocab::cls_value();
-        XLMRobertaVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let mask_value = XLMRobertaVocab::mask_value();
-        XLMRobertaVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
-
-        let pad_value = XLMRobertaVocab::pad_value();
-        XLMRobertaVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
+        register_as_special_value(&special_token_map.unk_token, &values, &mut special_values)?;
+        register_as_special_value(
+            &special_token_map.bos_token.as_ref().unwrap(),
+            &values,
+            &mut special_values,
+        )?;
+        register_as_special_value(
+            &special_token_map.eos_token.as_ref().unwrap(),
+            &values,
+            &mut special_values,
+        )?;
+        register_as_special_value(
+            &special_token_map.cls_token.as_ref().unwrap(),
+            &values,
+            &mut special_values,
+        )?;
+        register_as_special_value(
+            &special_token_map.mask_token.as_ref().unwrap(),
+            &values,
+            &mut special_values,
+        )?;
+        register_as_special_value(
+            &special_token_map.pad_token.as_ref().unwrap(),
+            &values,
+            &mut special_values,
+        )?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
@@ -165,7 +177,62 @@ impl Vocab for XLMRobertaVocab {
         Ok(XLMRobertaVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
+            special_values,
+            special_indices,
+        })
+    }
+
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let proto = open_protobuf_file(path)?;
+
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+
+        let mut values = HashMap::new();
+        let mut special_values = HashMap::new();
+
+        if let Some(cls_token) = &special_token_map.cls_token {
+            values.insert(cls_token.clone(), values.len() as i64);
+            register_as_special_value(&cls_token, &values, &mut special_values)?;
+        }
+
+        if let Some(pad_token) = &special_token_map.pad_token {
+            values.insert(pad_token.clone(), values.len() as i64);
+            register_as_special_value(&pad_token, &values, &mut special_values)?;
+        }
+
+        if let Some(eos_token) = &special_token_map.eos_token {
+            values.insert(eos_token.clone(), values.len() as i64);
+            register_as_special_value(&eos_token, &values, &mut special_values)?;
+        }
+
+        values.insert(special_token_map.unk_token.clone(), values.len() as i64);
+        for piece in proto.get_pieces().iter().skip(3) {
+            values.insert(piece.get_piece().to_owned(), values.len() as i64);
+        }
+        values.insert(
+            XLMRobertaVocab::mask_value().to_owned(),
+            values.len() as i64,
+        );
+
+        register_as_special_value(&special_token_map.unk_token, &values, &mut special_values)?;
+        if let Some(bos_token) = &special_token_map.bos_token {
+            register_as_special_value(bos_token, &values, &mut special_values)?;
+        }
+        if let Some(mask_token) = &special_token_map.mask_token {
+            register_as_special_value(mask_token, &values, &mut special_values)?;
+        }
+
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        Ok(XLMRobertaVocab {
+            values,
+            indices,
+            special_token_map,
             special_values,
             special_indices,
         })

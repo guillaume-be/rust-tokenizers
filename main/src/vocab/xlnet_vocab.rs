@@ -11,11 +11,13 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::base_vocab::{
+    read_protobuf_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
+};
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
 use protobuf::Message;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
 
@@ -53,36 +55,6 @@ pub struct XLNetVocab {
 }
 
 impl XLNetVocab {
-    /// Returns the BOS token for XLNet (`<s>`)
-    pub fn bos_value() -> &'static str {
-        "<s>"
-    }
-
-    /// Returns the EOS token for XLNet (`</s>`)
-    pub fn eos_value() -> &'static str {
-        "</s>"
-    }
-
-    /// Returns the SEP token for XLNet (`<sep>`)
-    pub fn sep_value() -> &'static str {
-        "<sep>"
-    }
-
-    /// Returns the CLS token for XLNet (`<cls>`)
-    pub fn cls_value() -> &'static str {
-        "<cls>"
-    }
-
-    /// Returns the MASK token for XLNet (`<mask>`)
-    pub fn mask_value() -> &'static str {
-        "<mask>"
-    }
-
-    /// Returns the PAD token for XLNet (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
-    }
-
     /// Returns the EOP token for XLNet (`<eop>`)
     pub fn eop_value() -> &'static str {
         "<eop>"
@@ -95,12 +67,8 @@ impl XLNetVocab {
 }
 
 impl Vocab for XLNetVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
     fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -120,65 +88,31 @@ impl Vocab for XLNetVocab {
     }
 
     fn from_file(path: &str) -> Result<XLNetVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
+        let mut values = read_protobuf_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: Some("<pad>".to_string()),
+            bos_token: Some("<s>".to_string()),
+            sep_token: Some("<sep>".to_string()),
+            cls_token: Some("<cls>".to_string()),
+            eos_token: Some("</s>".to_string()),
+            mask_token: Some("<mask>".to_string()),
+            additional_special_tokens: Some(HashSet::from([
+                "<eop>".to_string(),
+                "<eod>".to_string(),
+            ])),
         };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
 
-        let mut values = HashMap::new();
-        for (idx, piece) in proto.get_pieces().iter().enumerate() {
-            values.insert(piece.get_piece().to_owned(), idx as i64);
-        }
-
-        let mut special_values = HashMap::new();
-        let unknown_value = XLNetVocab::unknown_value();
-        XLNetVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let bos_value = XLNetVocab::bos_value();
-        XLNetVocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
-
-        let eos_value = XLNetVocab::eos_value();
-        XLNetVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
-
-        let cls_value = XLNetVocab::cls_value();
-        XLNetVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let mask_value = XLNetVocab::mask_value();
-        XLNetVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
-
-        let pad_value = XLNetVocab::pad_value();
-        XLNetVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let sep_value = XLNetVocab::sep_value();
-        XLNetVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
-
-        let eop_value = XLNetVocab::eop_value();
-        XLNetVocab::_register_as_special_value(eop_value, &values, &mut special_values)?;
-
-        let eod_value = XLNetVocab::eod_value();
-        XLNetVocab::_register_as_special_value(eod_value, &values, &mut special_values)?;
-
-        let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
-
-        Ok(XLNetVocab {
-            values,
-            indices,
-            unknown_value,
-            special_values,
-            special_indices,
-        })
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_protobuf_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
     }
 
     fn token_to_id(&self, token: &str) -> i64 {

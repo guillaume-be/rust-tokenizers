@@ -11,12 +11,15 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::base_vocab::{
+    open_protobuf_file, read_special_token_mapping_file, register_as_special_value,
+    swap_key_values, SpecialTokenMap,
+};
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
 use protobuf::Message;
 use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
 
@@ -49,28 +52,6 @@ pub struct PegasusVocab {
 }
 
 impl PegasusVocab {
-    /// Returns the EOS token for Pegasus (`</s>`)
-    pub fn eos_value() -> &'static str {
-        "</s>"
-    }
-
-    /// Returns the MASK token for Pegasus (`<mask_2>`)
-    pub fn mask_value() -> &'static str {
-        "<mask_2>"
-    }
-
-    /// Returns the MASK token for Pegasus (`<mask_1>`)
-    pub fn mask_sent_value() -> &'static str {
-        "<mask_1>"
-    }
-
-    /// Returns the PAD token for Pegasus (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
-    }
-}
-
-impl PegasusVocab {
     fn _add_and_register_special_value(
         values: &mut HashMap<String, i64>,
         special_values: &mut HashMap<String, i64>,
@@ -78,18 +59,14 @@ impl PegasusVocab {
         offset: i64,
     ) -> Result<i64, TokenizerError> {
         values.insert(value.to_string(), offset as i64);
-        PegasusVocab::_register_as_special_value(value, values, special_values)?;
+        register_as_special_value(value, values, special_values)?;
         Ok(offset + 1)
     }
 }
 
 impl Vocab for PegasusVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -109,30 +86,32 @@ impl Vocab for PegasusVocab {
     }
 
     fn from_file(path: &str) -> Result<PegasusVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        let proto = open_protobuf_file(path)?;
 
         let mut values = HashMap::new();
         let mut special_values = HashMap::new();
+
+        let mut additional_special_tokens = HashSet::from(["<mask_1>".into()]);
+        for idx in 2..103 {
+            let _ = additional_special_tokens.insert(format!("<unk_{}>", idx));
+        }
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: Some("<pad>".to_string()),
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: Some("</s>".to_string()),
+            mask_token: Some("<mask_2>".to_string()),
+            additional_special_tokens: Some(additional_special_tokens),
+        };
 
         // Insert special tokens (not contained in SentencePiece proto)
         let mut offset = 0_i64;
 
         // pad value
-        let pad_value = PegasusVocab::pad_value();
+        let pad_value = special_token_map.pad_token.as_ref().unwrap();
         offset = PegasusVocab::_add_and_register_special_value(
             &mut values,
             &mut special_values,
@@ -141,7 +120,7 @@ impl Vocab for PegasusVocab {
         )?;
 
         // EOS value
-        let eos_value = PegasusVocab::eos_value();
+        let eos_value = special_token_map.eos_token.as_ref().unwrap();
         offset = PegasusVocab::_add_and_register_special_value(
             &mut values,
             &mut special_values,
@@ -150,7 +129,7 @@ impl Vocab for PegasusVocab {
         )?;
 
         // Mask value
-        let mask_value = PegasusVocab::mask_value();
+        let mask_value = special_token_map.mask_token.as_ref().unwrap();
         offset = PegasusVocab::_add_and_register_special_value(
             &mut values,
             &mut special_values,
@@ -158,22 +137,16 @@ impl Vocab for PegasusVocab {
             offset,
         )?;
 
-        // Sentence mask value
-        let mask_sent_value = PegasusVocab::mask_sent_value();
-        offset = PegasusVocab::_add_and_register_special_value(
-            &mut values,
-            &mut special_values,
-            mask_sent_value,
-            offset,
-        )?;
-
-        // Reserved additional special tokens
-        for idx in 2..103 {
-            let add_unk_token = format!("<unk_{}>", idx);
+        // Sentence mask value & additional tokens
+        for additional_token in special_token_map
+            .additional_special_tokens
+            .as_ref()
+            .unwrap()
+        {
             offset = PegasusVocab::_add_and_register_special_value(
                 &mut values,
                 &mut special_values,
-                add_unk_token.as_str(),
+                additional_token,
                 offset,
             )?;
         }
@@ -191,8 +164,7 @@ impl Vocab for PegasusVocab {
             };
         }
 
-        let unknown_value = PegasusVocab::unknown_value();
-        PegasusVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        register_as_special_value(&special_token_map.unk_token, &values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
@@ -200,7 +172,95 @@ impl Vocab for PegasusVocab {
         Ok(PegasusVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
+            special_values,
+            special_indices,
+        })
+    }
+
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let proto = open_protobuf_file(path)?;
+
+        let mut values = HashMap::new();
+        let mut special_values = HashMap::new();
+
+        let mut additional_special_tokens = HashSet::from(["<mask_1>".into()]);
+        for idx in 2..103 {
+            let _ = additional_special_tokens.insert(format!("<unk_{}>", idx));
+        }
+
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+
+        // Insert special tokens (not contained in SentencePiece proto)
+        let mut offset = 0_i64;
+
+        // pad value
+        if let Some(pad_value) = &special_token_map.pad_token {
+            offset = PegasusVocab::_add_and_register_special_value(
+                &mut values,
+                &mut special_values,
+                pad_value,
+                offset,
+            )?;
+        }
+
+        // EOS value
+        if let Some(eos_value) = &special_token_map.eos_token {
+            offset = PegasusVocab::_add_and_register_special_value(
+                &mut values,
+                &mut special_values,
+                eos_value,
+                offset,
+            )?;
+        }
+
+        // Mask value
+        if let Some(mask_value) = &special_token_map.mask_token {
+            offset = PegasusVocab::_add_and_register_special_value(
+                &mut values,
+                &mut special_values,
+                mask_value,
+                offset,
+            )?;
+        }
+
+        // Sentence mask value & additional tokens
+        if let Some(additional_tokens) = &special_token_map.additional_special_tokens {
+            for additional_token in additional_tokens {
+                offset = PegasusVocab::_add_and_register_special_value(
+                    &mut values,
+                    &mut special_values,
+                    additional_token,
+                    offset,
+                )?;
+            }
+        }
+
+        let mut current_piece: String;
+        let mut idx = 0;
+        for piece in proto.get_pieces().iter() {
+            current_piece = piece.get_piece().to_owned();
+            match values.entry(current_piece) {
+                Entry::Vacant(v) => {
+                    v.insert(idx as i64 + offset);
+                    idx += 1;
+                }
+                Entry::Occupied(_) => {}
+            };
+        }
+
+        register_as_special_value(&special_token_map.unk_token, &values, &mut special_values)?;
+
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        Ok(PegasusVocab {
+            values,
+            indices,
+            special_token_map,
             special_values,
             special_indices,
         })
