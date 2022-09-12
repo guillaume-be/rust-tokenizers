@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenIdsWithOffsets,
@@ -47,7 +49,7 @@ impl ProphetNetTokenizer {
     ///     ProphetNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<ProphetNetTokenizer, TokenizerError> {
@@ -84,10 +86,10 @@ impl ProphetNetTokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<ProphetNetTokenizer, TokenizerError> {
         let vocab = ProphetNetVocab::from_file_with_special_token_mapping(
             path,

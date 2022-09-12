@@ -16,6 +16,7 @@ use crate::vocab::base_vocab::{
 };
 use crate::vocab::Vocab;
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # SentencePieceVocab
 /// Vocabulary for SentencePiece model/tokenizer.
@@ -64,7 +65,7 @@ impl Vocab for SentencePieceVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<SentencePieceVocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<SentencePieceVocab, TokenizerError> {
         let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
@@ -81,8 +82,8 @@ impl Vocab for SentencePieceVocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let values = read_protobuf_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;

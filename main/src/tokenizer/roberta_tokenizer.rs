@@ -30,6 +30,7 @@ use itertools::Itertools;
 use regex::Regex;
 use std::collections::HashMap;
 use std::iter::Iterator;
+use std::path::Path;
 use std::sync::RwLock;
 
 /// # RoBERTa tokenizer
@@ -72,8 +73,8 @@ impl RobertaTokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file(
-        vocab_path: &str,
-        merges_path: &str,
+        vocab_path: &Path,
+        merges_path: &Path,
         lower_case: bool,
         add_prefix_space: bool,
     ) -> Result<RobertaTokenizer, TokenizerError> {
@@ -108,23 +109,25 @@ impl RobertaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{RobertaTokenizer, Tokenizer};
+    /// use std::path::Path;
+    /// 
     /// let lower_case = false;
     /// let add_prefix_space = true;
     /// let tokenizer = RobertaTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
-    ///     "path/to/merges/file",
+    ///     Path::new("path/to/vocab/file"),
+    ///     Path::new("path/to/merges/file"),
     ///     lower_case,
     ///     add_prefix_space,
-    ///     "path/to/special/token/mapping/file",
+    ///     Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        vocab_path: &str,
-        merges_path: &str,
+        vocab_path: &Path,
+        merges_path: &Path,
         lower_case: bool,
         add_prefix_space: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<RobertaTokenizer, TokenizerError> {
         let vocab = RobertaVocab::from_file_with_special_token_mapping(
             vocab_path,

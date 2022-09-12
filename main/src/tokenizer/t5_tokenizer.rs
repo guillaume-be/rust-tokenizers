@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, split_on_special_tokens,
@@ -47,8 +49,11 @@ impl T5Tokenizer {
     /// let lower_case = false;
     /// let tokenizer = T5Tokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
+    pub fn from_file(
+        path: &Path,
+        lower_case: bool,
+    ) -> Result<T5Tokenizer, TokenizerError> {
+        let model = SentencePieceModel::from_file(&path)?;
         let vocab = T5Vocab::from_file(path)?;
         let eos_token_id = vocab.token_to_id(vocab.get_eos_value());
         Ok(T5Tokenizer {
@@ -79,9 +84,9 @@ impl T5Tokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        path: &str,
+        path: &Path,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab =

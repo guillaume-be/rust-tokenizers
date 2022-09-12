@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
@@ -55,8 +57,8 @@ impl MarianTokenizer {
     ///         .unwrap();
     /// ```
     pub fn from_files(
-        vocab_path: &str,
-        model_path: &str,
+        vocab_path: &Path,
+        model_path: &Path,
         lower_case: bool,
     ) -> Result<MarianTokenizer, TokenizerError> {
         let vocab = MarianVocab::from_file(vocab_path)?;
@@ -93,10 +95,10 @@ impl MarianTokenizer {
     /// .unwrap();
     /// ```
     pub fn from_files_with_special_token_mapping(
-        vocab_path: &str,
-        model_path: &str,
+        vocab_path: &Path,
+        model_path: &Path,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<MarianTokenizer, TokenizerError> {
         let vocab = MarianVocab::from_file_with_special_token_mapping(
             vocab_path,

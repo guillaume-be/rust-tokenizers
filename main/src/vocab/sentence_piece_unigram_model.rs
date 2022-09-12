@@ -19,6 +19,7 @@ use itertools::Itertools;
 use protobuf::Message;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Node<'a> {
@@ -74,11 +75,15 @@ impl SentencePieceModel {
     /// use rust_tokenizers::vocab::SentencePieceModel;
     /// let path = "path/to/spiece.model";
     ///
-    /// let sentence_piece_model = SentencePieceModel::from_file(path);
+    /// let sentence_piece_model = SentencePieceModel::from_file(&std::path::Path::new(path)).unwrap();
     /// ```
-    pub fn from_file(path: &str) -> Result<SentencePieceModel, TokenizerError> {
+    pub fn from_file(path: &Path) -> Result<SentencePieceModel, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                path.display(),
+                e
+            ))
         })?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
@@ -132,7 +137,7 @@ impl SentencePieceModel {
     /// ```no_run
     /// use rust_tokenizers::vocab::SentencePieceModel;
     /// let path = "path/to/spiece.model";
-    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    /// let sentence_piece_model = SentencePieceModel::from_file(&std::path::Path::new(path)).unwrap();
     ///
     /// let query = "hello";
     /// let common_prefixes = sentence_piece_model.common_prefix_search(query);
@@ -181,7 +186,7 @@ impl SentencePieceModel {
     /// use rust_tokenizers::vocab::SentencePieceModel;
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
-    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    /// let sentence_piece_model = SentencePieceModel::from_file(&std::path::Path::new(path)).unwrap();
     ///
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
@@ -239,7 +244,7 @@ impl SentencePieceModel {
     /// use rust_tokenizers::vocab::SentencePieceModel;
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
-    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    /// let sentence_piece_model = SentencePieceModel::from_file(&std::path::Path::new(path)).unwrap();
     ///
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
@@ -277,7 +282,7 @@ impl SentencePieceModel {
     /// use rust_tokenizers::vocab::SentencePieceModel;
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
-    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    /// let sentence_piece_model = SentencePieceModel::from_file(&std::path::Path::new(path)).unwrap();
     ///
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
@@ -330,7 +335,7 @@ impl SentencePieceModel {
     /// use rust_tokenizers::vocab::SentencePieceModel;
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
-    /// let sentence_piece_model = SentencePieceModel::from_file(path).unwrap();
+    /// let sentence_piece_model = SentencePieceModel::from_file(&std::path::Path::new(path)).unwrap();
     ///
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);

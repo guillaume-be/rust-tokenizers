@@ -16,6 +16,7 @@ use crate::vocab::base_vocab::{
     read_json_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
 };
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # GPT Vocab
 /// Vocabulary for GPT tokenizer. Only contains the unknown token as a special value.
@@ -63,7 +64,7 @@ impl Vocab for OpenAiGptVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<OpenAiGptVocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<OpenAiGptVocab, TokenizerError> {
         let values = read_json_file(path)?;
 
         let special_token_map = SpecialTokenMap {
@@ -80,8 +81,8 @@ impl Vocab for OpenAiGptVocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let values = read_json_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
@@ -197,7 +198,7 @@ mod tests {
             [("<unk>".to_owned(), 2)].iter().cloned().collect();
 
         //        When
-        let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let openai_gpt_vocab = OpenAiGptVocab::from_file(&path)?;
 
         //        Then
         assert_eq!(openai_gpt_vocab.get_unknown_value(), "<unk>");
@@ -216,7 +217,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
         //        When & Then
-        let _ctrl_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
+        let _ctrl_vocab = OpenAiGptVocab::from_file(&path).unwrap();
     }
 
     #[test]
@@ -228,7 +229,7 @@ mod tests {
             "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n}}"
         )?;
         let path = vocab_file.into_temp_path();
-        let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let openai_gpt_vocab = OpenAiGptVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(openai_gpt_vocab.token_to_id("hello"), 1);
@@ -250,7 +251,7 @@ mod tests {
             "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n}}"
         )?;
         let path = vocab_file.into_temp_path();
-        let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let openai_gpt_vocab = OpenAiGptVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(openai_gpt_vocab.id_to_token(&(1_i64)), "hello");

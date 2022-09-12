@@ -22,7 +22,7 @@ regex = "1.6.0"
 protobuf = "2.27.1"
 hashbrown = "0.12.3"
 unicode-normalization-alignments = "0.1.12"
-thiserror = "1.0.35"
+thiserror = "1.0.37"
 
 [dev-dependencies]
 tempfile = "3.3.0"

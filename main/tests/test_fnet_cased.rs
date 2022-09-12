@@ -13,7 +13,7 @@ fn test_fnet_tokenization() -> anyhow::Result<()> {
         "fnet-base-spiece.model",
     )?;
 
-    let fnet_tokenizer = FNetTokenizer::from_file(vocab_path.to_str().unwrap(), false, false)?;
+    let fnet_tokenizer = FNetTokenizer::from_file(&vocab_path, false, false)?;
 
     let original_strings = [
         "…",

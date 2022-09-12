@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{TokenIdsWithOffsets, TokenIdsWithSpecialTokens};
 use crate::tokenizer::tokenization_utils::strip_accents;
@@ -55,7 +57,7 @@ impl XLNetTokenizer {
     ///     XLNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<XLNetTokenizer, TokenizerError> {
@@ -93,10 +95,10 @@ impl XLNetTokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<XLNetTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab =

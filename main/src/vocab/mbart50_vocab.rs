@@ -17,6 +17,7 @@ use crate::vocab::base_vocab::{
 };
 use crate::vocab::Vocab;
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 
 pub static FAIRSEQ_LANGUAGE_CODES: [&str; 52] = [
     ">>ar<<", ">>cs<<", ">>de<<", ">>en<<", ">>es<<", ">>et<<", ">>fi<<", ">>fr<<", ">>gu<<",
@@ -125,7 +126,7 @@ impl Vocab for MBart50Vocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<MBart50Vocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<MBart50Vocab, TokenizerError> {
         let mut values = HashMap::new();
         let mut special_values = HashMap::new();
 
@@ -188,8 +189,8 @@ impl Vocab for MBart50Vocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let mut values = HashMap::new();
         let mut special_values = HashMap::new();

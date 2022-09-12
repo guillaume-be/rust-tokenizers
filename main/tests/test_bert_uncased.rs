@@ -12,7 +12,7 @@ fn test_bert_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let vocab = BertVocab::from_file(vocab_path.to_str().unwrap())?;
+    let vocab = BertVocab::from_file(vocab_path.as_path())?;
     let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
 
     let original_strings = [

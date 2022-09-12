@@ -14,8 +14,7 @@ fn test_sentence_piece_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let sentence_piece_tokenizer =
-        SentencePieceTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
+    let sentence_piece_tokenizer = SentencePieceTokenizer::from_file(&vocab_path, false)?;
 
     let original_strings = [
         "…",

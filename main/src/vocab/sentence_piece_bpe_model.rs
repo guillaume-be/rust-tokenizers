@@ -23,6 +23,7 @@ use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::Read;
 use std::ops::Index;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct BpeMergeVocab {
@@ -46,11 +47,15 @@ impl SentencePieceBpeModel {
     /// use rust_tokenizers::vocab::SentencePieceBpeModel;
     /// let path = "path/to/spiece.model";
     ///
-    /// let sentence_piece_model = SentencePieceBpeModel::from_file(path);
+    /// let sentence_piece_model = SentencePieceBpeModel::from_file(&std::path::Path::new(path));
     /// ```
-    pub fn from_file(path: &str) -> Result<SentencePieceBpeModel, TokenizerError> {
+    pub fn from_file(path: &Path) -> Result<SentencePieceBpeModel, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                path.display(),
+                e
+            ))
         })?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
@@ -82,7 +87,7 @@ impl SentencePieceBpeModel {
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
     ///
-    /// let sentence_piece_bpe_model = SentencePieceBpeModel::from_file(path).unwrap();
+    /// let sentence_piece_bpe_model = SentencePieceBpeModel::from_file(&std::path::Path::new(path)).unwrap();
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let tokenized_output = sentence_piece_bpe_model.tokenize_to_tokens(token);
     /// ```
@@ -191,7 +196,7 @@ impl SentencePieceBpeModel {
     /// use rust_tokenizers::vocab::SentencePieceBpeModel;
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
-    /// let sentence_piece_model = SentencePieceBpeModel::from_file(path).unwrap();
+    /// let sentence_piece_model = SentencePieceBpeModel::from_file(&std::path::Path::new(path)).unwrap();
     ///
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let mut sub_tokens = sentence_piece_model.tokenize_to_tokens(token);

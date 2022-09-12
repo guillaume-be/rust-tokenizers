@@ -27,6 +27,7 @@ use itertools::Itertools;
 use regex::Regex;
 use std::collections::HashMap;
 use std::iter::Iterator;
+use std::path::Path;
 use std::sync::RwLock;
 
 /// # DeBERTa tokenizer
@@ -63,10 +64,10 @@ impl DeBERTaTokenizer {
     ///         .unwrap();
     /// ```
     pub fn from_file(
-        vocab_path: &str,
-        merges_path: &str,
+        vocab_path: &Path,
+        merges_path: &Path,
         lower_case: bool,
-    ) -> Result<DeBERTaTokenizer, TokenizerError> {
+    ) -> Result<Self, TokenizerError> {
         let vocab = DeBERTaVocab::from_file(vocab_path)?;
         let bpe_ranks = BpePairVocab::from_file(merges_path)?;
         let cache = RwLock::new(HashMap::new());
@@ -74,7 +75,7 @@ impl DeBERTaTokenizer {
         let pattern_tokenization =
             Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
                 .unwrap();
-        Ok(DeBERTaTokenizer {
+        Ok(Self {
             vocab,
             bpe_ranks,
             cache,
@@ -106,10 +107,10 @@ impl DeBERTaTokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        vocab_path: &str,
-        merges_path: &str,
+        vocab_path: &Path,
+        merges_path: &Path,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<DeBERTaTokenizer, TokenizerError> {
         let vocab = DeBERTaVocab::from_file_with_special_token_mapping(
             vocab_path,

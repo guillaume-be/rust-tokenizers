@@ -17,6 +17,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufRead, BufReader, Read};
+use std::path::Path;
 
 pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
     input_hashmap: &HashMap<T, U>,
@@ -29,9 +30,13 @@ pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
 
 /// Read a flat vocab.txt file (single column, one token per line)
 /// Indices are inferred based on their position in this flat file.
-pub(crate) fn read_flat_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn read_flat_file(path: &Path) -> Result<HashMap<String, i64>, TokenizerError> {
     let f = File::open(path).map_err(|e| {
-        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        TokenizerError::FileNotFound(format!(
+            "{} vocabulary file not found :{}",
+            path.display(),
+            e
+        ))
     })?;
     let br = BufReader::new(f);
     let mut data = HashMap::new();
@@ -49,9 +54,13 @@ pub(crate) fn read_flat_file(path: &str) -> Result<HashMap<String, i64>, Tokeniz
 }
 
 /// Read a json file (mapping of vocabulary to indices).
-pub(crate) fn read_json_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn read_json_file(path: &Path) -> Result<HashMap<String, i64>, TokenizerError> {
     let f = File::open(path).map_err(|e| {
-        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        TokenizerError::FileNotFound(format!(
+            "{} vocabulary file not found :{}",
+            path.display(),
+            e
+        ))
     })?;
     let br = BufReader::new(f);
     let values: HashMap<String, i64> = match serde_json::from_reader(br) {
@@ -63,9 +72,13 @@ pub(crate) fn read_json_file(path: &str) -> Result<HashMap<String, i64>, Tokeniz
     Ok(values)
 }
 
-pub(crate) fn open_protobuf_file(path: &str) -> Result<ModelProto, TokenizerError> {
+pub(crate) fn open_protobuf_file(path: &Path) -> Result<ModelProto, TokenizerError> {
     let mut f = File::open(path).map_err(|e| {
-        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        TokenizerError::FileNotFound(format!(
+            "{} vocabulary file not found :{}",
+            path.display(),
+            e
+        ))
     })?;
     let mut contents = Vec::new();
     let proto = match f.read_to_end(&mut contents) {
@@ -83,7 +96,7 @@ pub(crate) fn open_protobuf_file(path: &str) -> Result<ModelProto, TokenizerErro
 }
 
 /// Read a SentencePiece protobuf file and extract vocabulary from it.
-pub(crate) fn read_protobuf_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn read_protobuf_file(path: &Path) -> Result<HashMap<String, i64>, TokenizerError> {
     let proto = open_protobuf_file(path)?;
 
     let mut values = HashMap::new();
@@ -96,10 +109,14 @@ pub(crate) fn read_protobuf_file(path: &str) -> Result<HashMap<String, i64>, Tok
 /// Read a special token mapping file (expects a JSON-like file with key-value pairs
 /// corresponding to the special token names and values).
 pub(crate) fn read_special_token_mapping_file(
-    path: &str,
+    path: &Path,
 ) -> Result<SpecialTokenMap, TokenizerError> {
     let f = File::open(path).map_err(|e| {
-        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+        TokenizerError::FileNotFound(format!(
+            "{} vocabulary file not found :{}",
+            path.display(),
+            e
+        ))
     })?;
     let br = BufReader::new(f);
     serde_json::from_reader(br).map_err(|e| {
@@ -205,9 +222,9 @@ pub trait Vocab {
     /// use rust_tokenizers::vocab::{BertVocab, Vocab};
     /// let path = "path/to/file";
     ///
-    /// let base_vocab = BertVocab::from_file(path);
+    /// let base_vocab = BertVocab::from_file(&std::path::Path::new(path));
     /// ```
-    fn from_file(path: &str) -> Result<Self, TokenizerError>
+    fn from_file(path: &Path) -> Result<Self, TokenizerError>
     where
         Self: Sized;
 
@@ -223,8 +240,8 @@ pub trait Vocab {
     /// let base_vocab = BertVocab::from_file_with_special_token_mapping(path, special_token_mapping);
     /// ```
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError>
     where
         Self: Sized;
@@ -370,7 +387,7 @@ impl Vocab for BaseVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<BaseVocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<BaseVocab, TokenizerError> {
         let values = read_flat_file(path)?;
         let special_token_map = SpecialTokenMap {
             unk_token: DEFAULT_UNK_TOKEN.to_string(),
@@ -386,8 +403,8 @@ impl Vocab for BaseVocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let values = read_flat_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
@@ -497,7 +514,7 @@ mod tests {
             [("[UNK]".to_owned(), 2)].iter().cloned().collect();
 
         //        When
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = BaseVocab::from_file(&path)?;
 
         //        Then
         assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
@@ -516,7 +533,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
         //        When & Then
-        let _base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
+        let _base_vocab = BaseVocab::from_file(&path).unwrap();
     }
 
     #[test]
@@ -525,7 +542,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n !")?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = BaseVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(base_vocab.token_to_id("hello"), 0);
@@ -544,7 +561,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "hello \n world \n [UNK] \n !")?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = BaseVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(base_vocab.id_to_token(&(0_i64)), "hello");

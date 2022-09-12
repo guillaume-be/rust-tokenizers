@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{
     clean_text, decompose_nfkc, is_whitespace, lowercase, replace_string, split_on_special_tokens,
@@ -57,7 +59,7 @@ impl AlbertTokenizer {
     ///     AlbertTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<AlbertTokenizer, TokenizerError> {
@@ -95,10 +97,10 @@ impl AlbertTokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<AlbertTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab =

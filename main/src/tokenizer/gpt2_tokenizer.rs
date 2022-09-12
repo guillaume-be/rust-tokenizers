@@ -26,6 +26,7 @@ use itertools::Itertools;
 use regex::Regex;
 use std::collections::HashMap;
 use std::iter::Iterator;
+use std::path::Path;
 use std::sync::RwLock;
 
 /// # GPT2 tokenizer
@@ -61,8 +62,8 @@ impl Gpt2Tokenizer {
     ///     Gpt2Tokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case).unwrap();
     /// ```
     pub fn from_file(
-        vocab_path: &str,
-        merges_path: &str,
+        vocab_path: &Path,
+        merges_path: &Path,
         lower_case: bool,
     ) -> Result<Gpt2Tokenizer, TokenizerError> {
         let vocab = Gpt2Vocab::from_file(vocab_path)?;
@@ -105,10 +106,10 @@ impl Gpt2Tokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        vocab_path: &str,
-        merges_path: &str,
+        vocab_path: &Path,
+        merges_path: &Path,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<Gpt2Tokenizer, TokenizerError> {
         let vocab = Gpt2Vocab::from_file_with_special_token_mapping(
             vocab_path,

@@ -16,6 +16,7 @@ use crate::vocab::base_vocab::{
     read_json_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
 };
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # RoBERTa Vocab
 /// Vocabulary for RoBERTa tokenizer. Contains the following special values:
@@ -121,7 +122,7 @@ impl Vocab for RobertaVocab {
     }
 
     ///Read a Roberta-style vocab.json file
-    fn from_file(path: &str) -> Result<RobertaVocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<RobertaVocab, TokenizerError> {
         let values = read_json_file(path)?;
 
         let special_token_map = SpecialTokenMap {
@@ -138,8 +139,8 @@ impl Vocab for RobertaVocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let values = read_json_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
@@ -264,7 +265,7 @@ mod tests {
         .collect();
 
         //        When
-        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let roberta_vocab = RobertaVocab::from_file(&path)?;
 
         //        Then
         assert_eq!(roberta_vocab.get_unknown_value(), "<unk>");
@@ -283,7 +284,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
         //        When & Then
-        let _roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
+        let _roberta_vocab = RobertaVocab::from_file(&path).unwrap();
     }
 
     #[test]
@@ -292,7 +293,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n, \"<pad>\": 4\n, \"<s>\": 5\n, \"</s>\": 6\n, \"<mask>\": 7\n}}")?;
         let path = vocab_file.into_temp_path();
-        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let roberta_vocab = RobertaVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(roberta_vocab.token_to_id("hello"), 1);
@@ -314,7 +315,7 @@ mod tests {
         let mut vocab_file = tempfile::NamedTempFile::new()?;
         write!(vocab_file, "{{\"hello\": 1,\n \"world\": 0,\n \"<unk>\": 2,\n \"!\": 3\n, \"<pad>\": 4\n, \"<s>\": 5\n, \"</s>\": 6\n, \"<mask>\": 7\n}}")?;
         let path = vocab_file.into_temp_path();
-        let roberta_vocab = RobertaVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let roberta_vocab = RobertaVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(roberta_vocab.id_to_token(&(1_i64)), "hello");

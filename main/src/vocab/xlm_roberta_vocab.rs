@@ -18,6 +18,7 @@ use crate::vocab::base_vocab::{
 };
 use crate::vocab::Vocab;
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # XLMRoBERTa Vocab
 /// Vocabulary for XLMRoBERTa tokenizer. Contains the following special values:
@@ -123,7 +124,7 @@ impl Vocab for XLMRobertaVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<XLMRobertaVocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<XLMRobertaVocab, TokenizerError> {
         let proto = open_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
@@ -200,8 +201,8 @@ impl Vocab for XLMRobertaVocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let proto = open_protobuf_file(path)?;
 

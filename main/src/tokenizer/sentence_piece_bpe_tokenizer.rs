@@ -11,6 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{clean_text, decompose_nfkc, is_whitespace, lowercase};
 use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
@@ -52,9 +54,9 @@ impl SentencePieceBpeTokenizer {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        path: &str,
+        path: &Path,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<SentencePieceBpeTokenizer, TokenizerError> {
         let model = SentencePieceBpeModel::from_file(path)?;
         let vocab = SentencePieceVocab::from_file_with_special_token_mapping(
@@ -84,10 +86,10 @@ impl SentencePieceBpeTokenizer {
     /// let tokenizer = SentencePieceTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
     pub fn from_file(
-        path: &str,
+        path: &Path,
         lower_case: bool,
     ) -> Result<SentencePieceBpeTokenizer, TokenizerError> {
-        let model = SentencePieceBpeModel::from_file(path)?;
+        let model = SentencePieceBpeModel::from_file(&path)?;
         let vocab = SentencePieceVocab::from_file(path)?;
         Ok(SentencePieceBpeTokenizer {
             model,

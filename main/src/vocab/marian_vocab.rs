@@ -18,6 +18,7 @@ use crate::vocab::base_vocab::{
 };
 use crate::vocab::Vocab;
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # Marian Vocab
 /// Vocabulary for Marian tokenizer. Contains the following special values:
@@ -86,7 +87,7 @@ impl Vocab for MarianVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<MarianVocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<MarianVocab, TokenizerError> {
         let values = read_json_file(path)?;
 
         let special_token_map = SpecialTokenMap {
@@ -103,8 +104,8 @@ impl Vocab for MarianVocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let values = read_json_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;

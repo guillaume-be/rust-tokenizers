@@ -16,6 +16,7 @@ use crate::vocab::base_vocab::{
     read_flat_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
 };
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # BERT Vocab
 /// Vocabulary for BERT tokenizer. Contains the following special values:
@@ -102,7 +103,7 @@ impl Vocab for BertVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<BertVocab, TokenizerError> {
+    fn from_file(path: &Path) -> Result<BertVocab, TokenizerError> {
         let values = read_flat_file(path)?;
         let special_token_map = SpecialTokenMap {
             unk_token: DEFAULT_UNK_TOKEN.to_string(),
@@ -118,8 +119,8 @@ impl Vocab for BertVocab {
     }
 
     fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+        path: &Path,
+        special_token_mapping_path: &Path,
     ) -> Result<Self, TokenizerError> {
         let values = read_flat_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
@@ -242,7 +243,7 @@ mod tests {
         .collect();
 
         //        When
-        let bert_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let bert_vocab = BertVocab::from_file(&path )?;
 
         //        Then
         assert_eq!(bert_vocab.get_unknown_value(), "[UNK]");
@@ -261,7 +262,7 @@ mod tests {
         let path = vocab_file.into_temp_path();
 
         //        When & Then
-        let _base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap()).unwrap();
+        let _base_vocab = BertVocab::from_file(&path).unwrap();
     }
 
     #[test]
@@ -273,7 +274,7 @@ mod tests {
             "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]"
         )?;
         let path = vocab_file.into_temp_path();
-        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let base_vocab = BertVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(base_vocab.token_to_id("hello"), 0);
@@ -299,7 +300,7 @@ mod tests {
             "hello \n world \n [UNK] \n ! \n [CLS] \n [SEP] \n [MASK] \n [PAD]"
         )?;
         let path = vocab_file.into_temp_path();
-        let bert_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let bert_vocab = BertVocab::from_file(&path)?;
 
         //        When & Then
         assert_eq!(bert_vocab.id_to_token(&(0_i64)), "hello");

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::tokenization_utils::{clean_text, lowercase};
 use crate::tokenizer::tokenization_utils::{
@@ -1480,10 +1482,10 @@ impl<T: Vocab + Sync> BaseTokenizer<T> {
     /// .unwrap();
     /// ```
     pub fn from_file_with_special_token_mapping(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: &Path,
     ) -> Result<BaseTokenizer<T>, TokenizerError> {
         let vocab = T::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
         Ok(BaseTokenizer {
@@ -1512,7 +1514,7 @@ impl<T: Vocab + Sync> BaseTokenizer<T> {
     ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
-        path: &str,
+        path: &Path,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<BaseTokenizer<T>, TokenizerError> {
