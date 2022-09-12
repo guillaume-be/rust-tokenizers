@@ -1779,7 +1779,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_truncate_single_sentence() {
         //        Given
         let test_token_ids: Vec<i64> = (0..15).collect();
@@ -1843,10 +1842,10 @@ mod tests {
             //            Truncate amount larger than sequence length
             (
                 (20, &TruncationStrategy::LongestFirst, 0),
-                ValueSnafu {
-                    message: "First sequence too short for first only truncation",
-                }
-                .fail(),
+                Err(TokenizerError::Value {
+                    message: "First sequence too short for first only truncation".into(),
+                    location: Location::new("src/tokenizer/tokenization_utils.rs", 781, 10),
+                }),
             ),
             //            Truncate entire sequence with stride = 2
             (
@@ -1941,18 +1940,18 @@ mod tests {
             //            No truncation requested, but needed
             (
                 (1, &TruncationStrategy::DoNotTruncate, 0),
-                ValueSnafu {
-                    message: "Truncation needed but no truncation requested",
-                }
-                .fail(),
+                Err(TokenizerError::Value {
+                    message: "Truncation needed but no truncation requested".into(),
+                    location: Location::new("src/tokenizer/tokenization_utils.rs", 775, 14),
+                }),
             ),
             //            Invalid truncation requested
             (
                 (1, &TruncationStrategy::OnlySecond, 0),
-                ValueSnafu {
-                    message: "Invalid truncation strategy for single sentence truncation",
-                }
-                .fail(),
+                Err(TokenizerError::Value {
+                    message: "Invalid truncation strategy for single sentence truncation".into(),
+                    location: Location::new("src/tokenizer/tokenization_utils.rs", 771, 14),
+                }),
             ),
         ];
 
@@ -1980,7 +1979,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_truncate_sentence_pair_longest_first() {
         //        Given
         let test_token_ids: Vec<i64> = (0..15).collect();
@@ -2129,7 +2127,7 @@ mod tests {
                 Err(TokenizerError::Value {
                     message: "Combined sequence length too short for requested truncation amount"
                         .into(),
-                    location: Location::new("", 0, 0),
+                    location: Location::new("src/tokenizer/tokenization_utils.rs", 696, 22),
                 }),
             ),
             //            No truncation
@@ -2177,7 +2175,7 @@ mod tests {
                 (1, &TruncationStrategy::DoNotTruncate, 0),
                 Err(TokenizerError::Value {
                     message: "Truncation needed but no truncation requested".into(),
-                    location: Location::new("", 0, 0),
+                    location: Location::new("src/tokenizer/tokenization_utils.rs", 748, 14),
                 }),
             ),
         ];
@@ -2213,7 +2211,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_truncate_sentence_pair_first_only() {
         //        Given
         let test_token_ids: Vec<i64> = (0..15).collect();
@@ -2295,7 +2292,7 @@ mod tests {
                 (16, &TruncationStrategy::OnlyFirst, 2),
                 Err(TokenizerError::Value {
                     message: "First sequence too short for first only truncation".into(),
-                    location: Location::new("", 0, 0),
+                    location: Location::new("src/tokenizer/tokenization_utils.rs", 719, 22),
                 }),
             ),
             //            No truncation
@@ -2349,7 +2346,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_truncate_sentence_pair_second_only() {
         //        Given
         let test_token_ids: Vec<i64> = (0..15).collect();
@@ -2431,7 +2427,7 @@ mod tests {
                 (10, &TruncationStrategy::OnlySecond, 2),
                 Err(TokenizerError::Value {
                     message: "Second sequence too short for second only truncation".into(),
-                    location: Location::new("", 0, 0),
+                    location: Location::new("src/tokenizer/tokenization_utils.rs", 742, 22),
                 }),
             ),
             //            No truncation
