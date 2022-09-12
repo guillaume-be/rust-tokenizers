@@ -11,7 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use snafu::ResultExt;
+
+use crate::error::*;
 use crate::vocab::base_vocab::{swap_key_values, Vocab};
 use std::collections::HashMap;
 use std::fs::File;
@@ -65,17 +67,13 @@ impl Vocab for OpenAiGptVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<OpenAiGptVocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+    fn from_file(path: &str) -> Result<Self, TokenizerError> {
+        let f = File::open(&path)
+            .context(IOSnafu { path })
+            .map(BufReader::new)?;
+
+        let values: HashMap<String, i64> =
+            serde_json::from_reader(f).context(JsonDeserializeSnafu)?;
         let mut special_values = HashMap::new();
         let unknown_value = OpenAiGptVocab::unknown_value();
         OpenAiGptVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;

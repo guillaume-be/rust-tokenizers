@@ -11,17 +11,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use crate::error::*;
 use crate::tokenizer::base_tokenizer::{Token, TokenRef};
 use crate::tokenizer::tokenization_utils::{is_punctuation, is_whitespace};
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::{Mask, Offset, OffsetSize};
 use hashbrown::HashMap;
 use protobuf::Message;
+use snafu::ResultExt;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::fs::File;
-use std::io::Read;
+use std::io::BufReader;
 use std::ops::Index;
 
 #[derive(Debug, Clone)]
@@ -48,22 +49,12 @@ impl SentencePieceBpeModel {
     ///
     /// let sentence_piece_model = SentencePieceBpeModel::from_file(path);
     /// ```
-    pub fn from_file(path: &str) -> Result<SentencePieceBpeModel, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+    pub fn from_file(path: &str) -> Result<Self, TokenizerError> {
+        let mut f = File::open(&path)
+            .context(IOSnafu { path })
+            .map(BufReader::new)?;
+
+        let proto = ModelProto::parse_from_reader(&mut f).context(ProtobufDeserializeSnafu)?;
 
         let mut values = HashMap::new();
         for (idx, piece) in proto.get_pieces().iter().enumerate() {

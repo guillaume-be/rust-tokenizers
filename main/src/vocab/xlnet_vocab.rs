@@ -10,14 +10,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::TokenizerError;
+use crate::error::*;
 use crate::vocab::base_vocab::swap_key_values;
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use crate::vocab::Vocab;
 use protobuf::Message;
+use snafu::ResultExt;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
+use std::io::BufReader;
 
 /// # XLNet Vocab
 /// Vocabulary for XLNet tokenizer. Contains the following special values:
@@ -119,23 +120,12 @@ impl Vocab for XLNetVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<XLNetVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+    fn from_file(path: &str) -> Result<Self, TokenizerError> {
+        let mut f = File::open(&path)
+            .map(BufReader::new)
+            .context(IOSnafu { path })?;
 
+        let proto = ModelProto::parse_from_reader(&mut f).context(ProtobufDeserializeSnafu)?;
         let mut values = HashMap::new();
         for (idx, piece) in proto.get_pieces().iter().enumerate() {
             values.insert(piece.get_piece().to_owned(), idx as i64);
