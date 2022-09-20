@@ -59,6 +59,42 @@ impl T5Tokenizer {
         })
     }
 
+    /// Create a new instance of a `T5Tokenizer`
+    /// Expects a SentencePiece protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{T5Tokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = T5Tokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<T5Tokenizer, TokenizerError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab =
+            T5Vocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        let eos_token_id = vocab.token_to_id(vocab.get_eos_value());
+        Ok(T5Tokenizer {
+            model,
+            vocab,
+            lower_case,
+            eos_token_id,
+        })
+    }
+
     /// Create a new instance of a `T5Tokenizer` from an existing vocabulary and model
     ///
     /// # Parameters

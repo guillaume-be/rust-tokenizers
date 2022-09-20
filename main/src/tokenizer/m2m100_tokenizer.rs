@@ -70,6 +70,47 @@ impl M2M100Tokenizer {
         })
     }
 
+    /// Create a new instance of a `M2M100Tokenizer`
+    /// Expects a json vocab file and a SentencePiece protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the JSON vocab file
+    /// - model_path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{M2M100Tokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = M2M100Tokenizer::from_files_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     "path/to/spiece/model/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_files_with_special_token_mapping(
+        vocab_path: &str,
+        model_path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<M2M100Tokenizer, TokenizerError> {
+        let vocab = M2M100Vocab::from_file_with_special_token_mapping(
+            vocab_path,
+            special_token_mapping_path,
+        )?;
+        let model = SentencePieceBpeModel::from_file(model_path)?;
+
+        Ok(M2M100Tokenizer {
+            model,
+            vocab,
+            lower_case,
+        })
+    }
+
     /// Create a new instance of a `M2M100Tokenizer` from an existing vocabulary and model
     ///
     /// # Parameters

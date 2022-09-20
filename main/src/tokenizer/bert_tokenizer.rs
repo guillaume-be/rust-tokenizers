@@ -61,6 +61,44 @@ impl BertTokenizer {
         })
     }
 
+    /// Create a new instance of a `BertTokenizer`
+    /// Expects a vocabulary flat-file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the vocabulary file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer};
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer = BertTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     strip_accents,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        strip_accents: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<BertTokenizer, TokenizerError> {
+        let vocab =
+            BertVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        let base_tokenizer =
+            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
+        Ok(BertTokenizer {
+            vocab,
+            base_tokenizer,
+        })
+    }
     /// Create a new instance of a `BertTokenizer` from an existing vocabulary
     ///
     /// # Parameters

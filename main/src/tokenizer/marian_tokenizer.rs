@@ -70,6 +70,48 @@ impl MarianTokenizer {
         })
     }
 
+    /// Create a new instance of a `MarianTokenizer`
+    /// Expects a json vocab file and a SentencePiece protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the JSON vocab file
+    /// - model_path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = MarianTokenizer::from_files_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     "path/to/model/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_files_with_special_token_mapping(
+        vocab_path: &str,
+        model_path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<MarianTokenizer, TokenizerError> {
+        let vocab = MarianVocab::from_file_with_special_token_mapping(
+            vocab_path,
+            special_token_mapping_path,
+        )?;
+        let model = SentencePieceModel::from_file(model_path)?;
+        let pattern_language_code = Regex::new(r">>.+<<").unwrap();
+        Ok(MarianTokenizer {
+            model,
+            vocab,
+            pattern_language_code,
+            lower_case,
+        })
+    }
+
     /// Create a new instance of a `MarianTokenizer` from an existing vocabulary and model
     ///
     /// # Parameters

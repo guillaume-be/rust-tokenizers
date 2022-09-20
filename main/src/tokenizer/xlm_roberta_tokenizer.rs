@@ -59,6 +59,43 @@ impl XLMRobertaTokenizer {
         })
     }
 
+    /// Create a new instance of a `XLMRobertaTokenizer`
+    /// Expects a json vocab file and a SentencePiece protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = XLMRobertaTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<XLMRobertaTokenizer, TokenizerError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab = XLMRobertaVocab::from_file_with_special_token_mapping(
+            path,
+            special_token_mapping_path,
+        )?;
+        Ok(XLMRobertaTokenizer {
+            model,
+            vocab,
+            lower_case,
+        })
+    }
+
     /// Create a new instance of a `MarianTokenizer` from an existing vocabulary and model
     ///
     /// # Parameters

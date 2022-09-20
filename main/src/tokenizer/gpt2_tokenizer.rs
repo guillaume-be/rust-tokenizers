@@ -82,6 +82,54 @@ impl Gpt2Tokenizer {
         })
     }
 
+    /// Create a new instance of a `Gpt2Tokenizer`
+    /// Expects a vocabulary json file and a merges file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the vocabulary file
+    /// - merges_path (`&str`): path to the merges file (use as part of the BPE encoding process)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{Gpt2Tokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = Gpt2Tokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        vocab_path: &str,
+        merges_path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<Gpt2Tokenizer, TokenizerError> {
+        let vocab = Gpt2Vocab::from_file_with_special_token_mapping(
+            vocab_path,
+            special_token_mapping_path,
+        )?;
+        let bpe_ranks = BpePairVocab::from_file(merges_path)?;
+        let cache = RwLock::new(HashMap::new());
+        let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
+        let pattern_tokenization =
+            Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
+                .unwrap();
+        Ok(Gpt2Tokenizer {
+            vocab,
+            bpe_ranks,
+            cache,
+            pattern_lookahead,
+            pattern_tokenization,
+            lower_case,
+        })
+    }
+
     /// Create a new instance of a `Gpt2Tokenizer` from an existing vocabulary and merges
     ///
     /// # Parameters
