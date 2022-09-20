@@ -43,6 +43,18 @@ pub struct ReformerVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+
+impl ReformerVocab {
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
+    }
+}
+
 impl Vocab for ReformerVocab {
     fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
@@ -68,12 +80,12 @@ impl Vocab for ReformerVocab {
         let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
             pad_token: None,
             bos_token: None,
             sep_token: None,
             cls_token: None,
-            eos_token: Some("</s>".to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
             mask_token: None,
             additional_special_tokens: None,
         };

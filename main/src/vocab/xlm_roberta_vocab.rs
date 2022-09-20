@@ -50,35 +50,55 @@ pub struct XLMRobertaVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_BOS_TOKEN: &str = "<s>";
+const DEFAULT_SEP_TOKEN: &str = "</s>";
+const DEFAULT_CLS_TOKEN: &str = "<s>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+const DEFAULT_MASK_TOKEN: &str = "<mask>";
+
 impl XLMRobertaVocab {
-    /// Returns the BOS token for XLMRoBERTa (`<s>`)
-    pub fn bos_value() -> &'static str {
-        "<s>"
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
     }
 
-    /// Returns the EOS token for XLMRoBERTa (`</s>`)
-    pub fn eos_value() -> &'static str {
-        "</s>"
+    pub fn get_bos_value(&self) -> &str {
+        self.special_token_map
+            .bos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_BOS_TOKEN)
     }
 
-    /// Returns the SEP token for XLMRoBERTa (`</s>`)
-    pub fn sep_value() -> &'static str {
-        "</s>"
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
     }
 
-    /// Returns the CLS token for XLMRoBERTa (`<s>`)
-    pub fn cls_value() -> &'static str {
-        "<s>"
+    pub fn get_cls_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_CLS_TOKEN)
     }
 
-    /// Returns the MASK token for XLMRoBERTa (`<mask>`)
-    pub fn mask_value() -> &'static str {
-        "<mask>"
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
     }
 
-    /// Returns the PAD token for XLMRoBERTa (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
+    pub fn get_mask_value(&self) -> &str {
+        self.special_token_map
+            .mask_token
+            .as_deref()
+            .unwrap_or(DEFAULT_MASK_TOKEN)
     }
 }
 
@@ -107,13 +127,13 @@ impl Vocab for XLMRobertaVocab {
         let proto = open_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
-            pad_token: Some("<pad>".to_string()),
-            bos_token: Some("<s>".to_string()),
-            sep_token: Some("</s>".to_string()),
-            cls_token: Some("<s>".to_string()),
-            eos_token: Some("</s>".to_string()),
-            mask_token: Some("<mask>".to_string()),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: Some(DEFAULT_BOS_TOKEN.to_string()),
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: Some(DEFAULT_CLS_TOKEN.to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
+            mask_token: Some(DEFAULT_MASK_TOKEN.to_string()),
             additional_special_tokens: None,
         };
 
@@ -135,7 +155,7 @@ impl Vocab for XLMRobertaVocab {
             values.insert(piece.get_piece().to_owned(), values.len() as i64);
         }
         values.insert(
-            XLMRobertaVocab::mask_value().to_owned(),
+            special_token_map.mask_token.as_ref().unwrap().clone(),
             values.len() as i64,
         );
 
@@ -210,7 +230,7 @@ impl Vocab for XLMRobertaVocab {
             values.insert(piece.get_piece().to_owned(), values.len() as i64);
         }
         values.insert(
-            XLMRobertaVocab::mask_value().to_owned(),
+            special_token_map.cls_token.as_ref().unwrap().clone(),
             values.len() as i64,
         );
 

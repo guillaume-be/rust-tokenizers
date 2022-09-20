@@ -50,15 +50,57 @@ pub struct XLNetVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_BOS_TOKEN: &str = "<s>";
+const DEFAULT_SEP_TOKEN: &str = "<sep>";
+const DEFAULT_CLS_TOKEN: &str = "<cls>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+const DEFAULT_EOP_TOKEN: &str = "<eop>";
+const DEFAULT_EOD_TOKEN: &str = "<eod>";
+const DEFAULT_MASK_TOKEN: &str = "<mask>";
+
 impl XLNetVocab {
-    /// Returns the EOP token for XLNet (`<eop>`)
-    pub fn eop_value() -> &'static str {
-        "<eop>"
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
     }
 
-    /// Returns the EOD token for XLNet (`<eod>`)
-    pub fn eod_value() -> &'static str {
-        "<eod>"
+    pub fn get_bos_value(&self) -> &str {
+        self.special_token_map
+            .bos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_BOS_TOKEN)
+    }
+
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
+    }
+
+    pub fn get_cls_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_CLS_TOKEN)
+    }
+
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
+    }
+
+    pub fn get_mask_value(&self) -> &str {
+        self.special_token_map
+            .mask_token
+            .as_deref()
+            .unwrap_or(DEFAULT_MASK_TOKEN)
     }
 }
 
@@ -87,16 +129,16 @@ impl Vocab for XLNetVocab {
         let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
-            pad_token: Some("<pad>".to_string()),
-            bos_token: Some("<s>".to_string()),
-            sep_token: Some("<sep>".to_string()),
-            cls_token: Some("<cls>".to_string()),
-            eos_token: Some("</s>".to_string()),
-            mask_token: Some("<mask>".to_string()),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: Some(DEFAULT_BOS_TOKEN.to_string()),
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: Some(DEFAULT_CLS_TOKEN.to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
+            mask_token: Some(DEFAULT_MASK_TOKEN.to_string()),
             additional_special_tokens: Some(HashSet::from([
-                "<eop>".to_string(),
-                "<eod>".to_string(),
+                DEFAULT_EOP_TOKEN.to_string(),
+                DEFAULT_EOD_TOKEN.to_string(),
             ])),
         };
         Self::from_values_and_special_token_map(values, special_token_map)

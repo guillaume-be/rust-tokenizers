@@ -18,13 +18,7 @@ use crate::vocab::Vocab;
 use std::collections::HashMap;
 
 /// # SentencePieceVocab
-/// Vocabulary for SentencePiece model/tokenizer. Contains the following special values:
-/// - BOS token
-/// - EOS token
-/// - CLS token
-/// - SEP token
-/// - PAD token
-/// - MASK token
+/// Vocabulary for SentencePiece model/tokenizer.
 ///
 /// Expects a SentencePiece protobuf file when created from file.
 #[derive(Debug, Clone)]
@@ -47,37 +41,7 @@ pub struct SentencePieceVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl SentencePieceVocab {
-    /// Returns the PAD token for SentencePiece (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
-    }
-
-    /// Returns the SEP token for SentencePiece (`<sep>`)
-    pub fn sep_value() -> &'static str {
-        "<sep>"
-    }
-
-    /// Returns the CLS token for SentencePiece (`<cls>`)
-    pub fn cls_value() -> &'static str {
-        "<cls>"
-    }
-
-    /// Returns the MASK token for SentencePiece (`<mask>`)
-    pub fn mask_value() -> &'static str {
-        "<mask>"
-    }
-
-    /// Returns the BOS token for SentencePiece (`<s>`)
-    pub fn bos_value() -> &'static str {
-        "<s>"
-    }
-
-    /// Returns the EOS token for SentencePiece (`</s>`)
-    pub fn eos_value() -> &'static str {
-        "</s>"
-    }
-}
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
 
 impl Vocab for SentencePieceVocab {
     fn get_unknown_value(&self) -> &str {
@@ -104,7 +68,7 @@ impl Vocab for SentencePieceVocab {
         let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
             pad_token: None,
             bos_token: None,
             sep_token: None,

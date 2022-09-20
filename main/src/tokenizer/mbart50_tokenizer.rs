@@ -156,15 +156,7 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 1]);
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(
-            self.vocab.token_to_id(
-                self.vocab
-                    .special_token_map
-                    .sep_token
-                    .as_ref()
-                    .expect("SEP token expected for encoding"),
-            ),
-        );
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         if !offsets.is_empty() {
             offsets[0] = None;
@@ -186,15 +178,7 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(
-                self.vocab.token_to_id(
-                    self.vocab
-                        .special_token_map
-                        .sep_token
-                        .as_ref()
-                        .expect("SEP token expected for encoding"),
-                ),
-            );
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             offsets.push(None);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);

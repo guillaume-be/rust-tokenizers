@@ -217,9 +217,9 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
-        output.push(self.vocab.token_to_id(RobertaVocab::cls_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_cls_value()));
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
@@ -236,9 +236,9 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.push(0);
             token_segment_ids.extend(vec![1; length + 1]);
-            output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.push(None);
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);

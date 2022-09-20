@@ -347,6 +347,8 @@ pub struct BaseVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "[UNK]";
+
 impl Vocab for BaseVocab {
     fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
@@ -371,7 +373,7 @@ impl Vocab for BaseVocab {
     fn from_file(path: &str) -> Result<BaseVocab, TokenizerError> {
         let values = read_flat_file(path)?;
         let special_token_map = SpecialTokenMap {
-            unk_token: "[UNK]".to_string(),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
             pad_token: None,
             bos_token: None,
             sep_token: None,

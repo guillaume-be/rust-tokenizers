@@ -60,6 +60,42 @@ pub struct M2M100Vocab {
     pub language_codes_bytes: HashSet<Vec<u8>>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_BOS_TOKEN: &str = "<s>";
+const DEFAULT_SEP_TOKEN: &str = "</s>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+
+impl M2M100Vocab {
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
+    }
+
+    pub fn get_bos_value(&self) -> &str {
+        self.special_token_map
+            .bos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_BOS_TOKEN)
+    }
+
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
+    }
+
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
+    }
+}
+
 impl Vocab for M2M100Vocab {
     fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
@@ -85,12 +121,12 @@ impl Vocab for M2M100Vocab {
         let values = read_json_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
-            pad_token: Some("<pad>".to_string()),
-            bos_token: Some("<s>".to_string()),
-            sep_token: Some("</s>".to_string()),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: Some(DEFAULT_BOS_TOKEN.to_string()),
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
             cls_token: None,
-            eos_token: Some("</s>".to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
             mask_token: None,
             additional_special_tokens: None,
         };

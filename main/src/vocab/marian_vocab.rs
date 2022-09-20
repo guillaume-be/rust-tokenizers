@@ -45,6 +45,26 @@ pub struct MarianVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+
+impl MarianVocab {
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
+    }
+
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
+    }
+}
+
 impl Vocab for MarianVocab {
     fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
@@ -70,12 +90,12 @@ impl Vocab for MarianVocab {
         let values = read_protobuf_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
-            pad_token: Some("<pad>".to_string()),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
             bos_token: None,
             sep_token: None,
             cls_token: None,
-            eos_token: Some("</s>".to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
             mask_token: None,
             additional_special_tokens: None,
         };

@@ -43,6 +43,26 @@ pub struct Gpt2Vocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<|endoftext|>";
+const DEFAULT_BOS_TOKEN: &str = DEFAULT_UNK_TOKEN;
+const DEFAULT_EOS_TOKEN: &str = DEFAULT_UNK_TOKEN;
+
+impl Gpt2Vocab {
+    pub fn get_bos_value(&self) -> &str {
+        self.special_token_map
+            .bos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_BOS_TOKEN)
+    }
+
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
+    }
+}
+
 impl Vocab for Gpt2Vocab {
     fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
@@ -68,12 +88,12 @@ impl Vocab for Gpt2Vocab {
         let values = read_json_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<|endoftext|>".to_string(),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
             pad_token: None,
-            bos_token: Some("<|endoftext|>".to_string()),
+            bos_token: Some(DEFAULT_BOS_TOKEN.to_string()),
             sep_token: None,
             cls_token: None,
-            eos_token: Some("<|endoftext|>".to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
             mask_token: None,
             additional_special_tokens: None,
         };

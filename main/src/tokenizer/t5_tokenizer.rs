@@ -50,7 +50,7 @@ impl T5Tokenizer {
     pub fn from_file(path: &str, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = T5Vocab::from_file(path)?;
-        let eos_token_id = vocab.token_to_id(T5Vocab::eos_value());
+        let eos_token_id = vocab.token_to_id(vocab.get_eos_value());
         Ok(T5Tokenizer {
             model,
             vocab,
@@ -82,7 +82,7 @@ impl T5Tokenizer {
         model: SentencePieceModel,
         lower_case: bool,
     ) -> T5Tokenizer {
-        let eos_token_id = vocab.token_to_id(T5Vocab::eos_value());
+        let eos_token_id = vocab.token_to_id(vocab.get_eos_value());
         T5Tokenizer {
             model,
             vocab,

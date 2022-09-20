@@ -47,7 +47,34 @@ pub struct PegasusVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+const DEFAULT_MASK_TOKEN: &str = "<mask_2>";
+const DEFAULT_SENTENCE_MASK_TOKEN: &str = "<mask_1>";
+
 impl PegasusVocab {
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
+    }
+
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
+    }
+
+    pub fn get_mask_value(&self) -> &str {
+        self.special_token_map
+            .mask_token
+            .as_deref()
+            .unwrap_or(DEFAULT_MASK_TOKEN)
+    }
+
     fn _add_and_register_special_value(
         values: &mut HashMap<String, i64>,
         special_values: &mut HashMap<String, i64>,
@@ -87,19 +114,19 @@ impl Vocab for PegasusVocab {
         let mut values = HashMap::new();
         let mut special_values = HashMap::new();
 
-        let mut additional_special_tokens = HashSet::from(["<mask_1>".into()]);
+        let mut additional_special_tokens = HashSet::from([DEFAULT_SENTENCE_MASK_TOKEN.into()]);
         for idx in 2..103 {
             let _ = additional_special_tokens.insert(format!("<unk_{}>", idx));
         }
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
-            pad_token: Some("<pad>".to_string()),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
             bos_token: None,
             sep_token: None,
             cls_token: None,
-            eos_token: Some("</s>".to_string()),
-            mask_token: Some("<mask_2>".to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
+            mask_token: Some(DEFAULT_MASK_TOKEN.to_string()),
             additional_special_tokens: Some(additional_special_tokens),
         };
 

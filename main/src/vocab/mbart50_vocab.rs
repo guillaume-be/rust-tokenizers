@@ -60,6 +60,50 @@ pub struct MBart50Vocab {
     pub language_codes_bytes: HashSet<Vec<u8>>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_SEP_TOKEN: &str = "</s>";
+const DEFAULT_CLS_TOKEN: &str = "<s>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+const DEFAULT_MASK_TOKEN: &str = "<mask>";
+
+impl MBart50Vocab {
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
+    }
+
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
+    }
+
+    pub fn get_cls_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_CLS_TOKEN)
+    }
+
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
+    }
+
+    pub fn get_mask_value(&self) -> &str {
+        self.special_token_map
+            .mask_token
+            .as_deref()
+            .unwrap_or(DEFAULT_MASK_TOKEN)
+    }
+}
+
 impl Vocab for MBart50Vocab {
     fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
@@ -86,16 +130,15 @@ impl Vocab for MBart50Vocab {
         let mut special_values = HashMap::new();
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "<unk>".to_string(),
-            pad_token: Some("<pad>".to_string()),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
             bos_token: None,
-            sep_token: Some("</s>".to_string()),
-            cls_token: Some("<s>".to_string()),
-            eos_token: Some("</s>".to_string()),
-            mask_token: Some("<mask>".to_string()),
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: Some(DEFAULT_CLS_TOKEN.to_string()),
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
+            mask_token: Some(DEFAULT_MASK_TOKEN.to_string()),
             additional_special_tokens: None,
         };
-
         values.insert(
             special_token_map.cls_token.as_ref().unwrap().clone(),
             values.len() as i64,

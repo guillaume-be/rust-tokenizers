@@ -45,6 +45,43 @@ pub struct ProphetNetVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "[UNK]";
+const DEFAULT_PAD_TOKEN: &str = "[PAD]";
+const DEFAULT_SEP_TOKEN: &str = "[SEP]";
+const DEFAULT_X_SEP_TOKEN: &str = "[X_SEP]";
+const DEFAULT_CLS_TOKEN: &str = "[CLS]";
+const DEFAULT_MASK_TOKEN: &str = "[MASK]";
+
+impl ProphetNetVocab {
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
+    }
+
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
+    }
+
+    pub fn get_cls_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_CLS_TOKEN)
+    }
+
+    pub fn get_mask_value(&self) -> &str {
+        self.special_token_map
+            .mask_token
+            .as_deref()
+            .unwrap_or(DEFAULT_MASK_TOKEN)
+    }
+}
+
 impl Vocab for ProphetNetVocab {
     fn get_unknown_value(&self) -> &str {
         &self.special_token_map.unk_token
@@ -70,14 +107,14 @@ impl Vocab for ProphetNetVocab {
         let values = read_flat_file(path)?;
 
         let special_token_map = SpecialTokenMap {
-            unk_token: "[UNK]".to_string(),
-            pad_token: Some("[PAD]".to_string()),
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
             bos_token: None,
-            sep_token: Some("[SEP]".to_string()),
-            cls_token: Some("[CLS]".to_string()),
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: Some(DEFAULT_CLS_TOKEN.to_string()),
             eos_token: None,
-            mask_token: Some("[MASK]".to_string()),
-            additional_special_tokens: Some(HashSet::from(["[X_SEP]".into()])),
+            mask_token: Some(DEFAULT_MASK_TOKEN.to_string()),
+            additional_special_tokens: Some(HashSet::from([DEFAULT_X_SEP_TOKEN.into()])),
         };
 
         Self::from_values_and_special_token_map(values, special_token_map)
