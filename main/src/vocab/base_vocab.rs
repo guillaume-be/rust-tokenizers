@@ -209,7 +209,7 @@ pub trait Vocab {
     /// ```
     fn from_file(path: &str) -> Result<Self, TokenizerError>
     where
-        Self: std::marker::Sized;
+        Self: Sized;
 
     /// Read a vocabulary from file with special token mapping
     ///
@@ -227,14 +227,14 @@ pub trait Vocab {
         special_token_mapping_path: &str,
     ) -> Result<Self, TokenizerError>
     where
-        Self: std::marker::Sized;
+        Self: Sized;
 
     fn from_values_and_special_token_map(
         values: HashMap<String, i64>,
         special_token_map: SpecialTokenMap,
     ) -> Result<Self, TokenizerError>
     where
-        Self: std::marker::Sized;
+        Self: Sized;
 
     /// Converts a token to an id, provided a `HashMap` of values, a `HashMap` of special values and
     /// the unknown value token string representation. This is not meant to be directly used, the method
@@ -399,7 +399,7 @@ impl Vocab for BaseVocab {
         special_token_map: SpecialTokenMap,
     ) -> Result<Self, TokenizerError>
     where
-        Self: std::marker::Sized,
+        Self: Sized,
     {
         let mut special_values = HashMap::new();
         special_token_map.register_special_values(&values, &mut special_values)?;

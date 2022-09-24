@@ -174,7 +174,6 @@ impl Vocab for M2M100Vocab {
             })
             .collect::<HashSet<Vec<u8>>>();
 
-        let mut special_values = HashMap::new();
         special_token_map.register_special_values(&values, &mut special_values)?;
 
         let indices = swap_key_values(&values);

@@ -294,7 +294,7 @@ impl Vocab for PegasusVocab {
         special_token_map: SpecialTokenMap,
     ) -> Result<Self, TokenizerError>
     where
-        Self: std::marker::Sized,
+        Self: Sized,
     {
         let mut special_values = HashMap::new();
         special_token_map.register_special_values(&values, &mut special_values)?;

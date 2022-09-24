@@ -14,7 +14,7 @@
 
 use crate::error::TokenizerError;
 use crate::vocab::base_vocab::{
-    read_protobuf_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
+    read_json_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
 };
 use crate::vocab::Vocab;
 use std::collections::HashMap;
@@ -87,7 +87,7 @@ impl Vocab for MarianVocab {
     }
 
     fn from_file(path: &str) -> Result<MarianVocab, TokenizerError> {
-        let values = read_protobuf_file(path)?;
+        let values = read_json_file(path)?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: DEFAULT_UNK_TOKEN.to_string(),
@@ -106,7 +106,7 @@ impl Vocab for MarianVocab {
         path: &str,
         special_token_mapping_path: &str,
     ) -> Result<Self, TokenizerError> {
-        let values = read_protobuf_file(path)?;
+        let values = read_json_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
         Self::from_values_and_special_token_map(values, special_token_map)
     }
@@ -115,7 +115,7 @@ impl Vocab for MarianVocab {
         special_token_map: SpecialTokenMap,
     ) -> Result<Self, TokenizerError>
     where
-        Self: std::marker::Sized,
+        Self: Sized,
     {
         let mut special_values = HashMap::new();
         special_token_map.register_special_values(&values, &mut special_values)?;
