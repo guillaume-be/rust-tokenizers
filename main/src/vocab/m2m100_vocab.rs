@@ -11,11 +11,12 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::base_vocab::{
+    read_json_file, read_special_token_mapping_file, register_as_special_value, swap_key_values,
+    SpecialTokenMap,
+};
 use crate::vocab::Vocab;
 use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::BufReader;
 
 pub static FAIRSEQ_LANGUAGE_CODES: [&str; 100] = [
     "af", "am", "ar", "ast", "az", "ba", "be", "bg", "bn", "br", "bs", "ca", "ceb", "cs", "cy",
@@ -44,8 +45,8 @@ pub struct M2M100Vocab {
     /// A mapping of token IDs to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -59,35 +60,45 @@ pub struct M2M100Vocab {
     pub language_codes_bytes: HashSet<Vec<u8>>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_BOS_TOKEN: &str = "<s>";
+const DEFAULT_SEP_TOKEN: &str = "</s>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+
 impl M2M100Vocab {
-    /// Returns the BOS token for M2M100 (`<s>`)
-    pub fn bos_value() -> &'static str {
-        "<s>"
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
     }
 
-    /// Returns the EOS token for M2M100 (`</s>`)
-    pub fn eos_value() -> &'static str {
-        "</s>"
+    pub fn get_bos_value(&self) -> &str {
+        self.special_token_map
+            .bos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_BOS_TOKEN)
     }
 
-    /// Returns the SEP token for M2M100 (`</s>`)
-    pub fn sep_value() -> &'static str {
-        "</s>"
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
     }
 
-    /// Returns the PAD token for M2M100 (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
     }
 }
 
 impl Vocab for M2M100Vocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -107,18 +118,35 @@ impl Vocab for M2M100Vocab {
     }
 
     fn from_file(path: &str) -> Result<M2M100Vocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
-        let mut values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
-        let mut special_values = HashMap::new();
+        let values = read_json_file(path)?;
 
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: Some(DEFAULT_BOS_TOKEN.to_string()),
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: None,
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
+            mask_token: None,
+            additional_special_tokens: None,
+        };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_json_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_values_and_special_token_map(
+        mut values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError> {
+        let mut special_values = HashMap::new();
         for language_code in FAIRSEQ_LANGUAGE_CODES.iter() {
             let language_code = if language_code.len() == 2 {
                 format!(">>{}.<<", language_code)
@@ -130,30 +158,9 @@ impl Vocab for M2M100Vocab {
                 ));
             };
             values.insert(language_code.clone(), values.len() as i64);
-            M2M100Vocab::_register_as_special_value(
-                language_code.as_str(),
-                &values,
-                &mut special_values,
-            )?;
+            register_as_special_value(language_code.as_str(), &values, &mut special_values)?;
         }
 
-        let unknown_value = M2M100Vocab::unknown_value();
-        M2M100Vocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let sep_value = M2M100Vocab::sep_value();
-        M2M100Vocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
-
-        let bos_value = M2M100Vocab::bos_value();
-        M2M100Vocab::_register_as_special_value(bos_value, &values, &mut special_values)?;
-
-        let eos_value = M2M100Vocab::eos_value();
-        M2M100Vocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
-
-        let pad_value = M2M100Vocab::pad_value();
-        M2M100Vocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let indices = swap_key_values(&values);
-        let special_indices = swap_key_values(&special_values);
         let language_codes_bytes = FAIRSEQ_LANGUAGE_CODES
             .iter()
             .map(|f| {
@@ -167,10 +174,15 @@ impl Vocab for M2M100Vocab {
             })
             .collect::<HashSet<Vec<u8>>>();
 
-        Ok(M2M100Vocab {
+        special_token_map.register_special_values(&values, &mut special_values)?;
+
+        let indices = swap_key_values(&values);
+        let special_indices = swap_key_values(&special_values);
+
+        Ok(Self {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
             language_codes_bytes,
@@ -182,11 +194,16 @@ impl Vocab for M2M100Vocab {
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }

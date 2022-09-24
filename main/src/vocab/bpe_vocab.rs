@@ -37,7 +37,7 @@ pub struct BpePairVocab {
 }
 
 impl BpePairVocab {
-    /// Create a new `BpePairVocab` from a flat file containing merges in the format `first elment second element`)
+    /// Create a new `BpePairVocab` from a flat file containing merges in the format `first_element second_element`)
     /// The indices are implied by the lien position of each pair in the merges file. The first line needs to be a
     /// header and is skipped.
     ///

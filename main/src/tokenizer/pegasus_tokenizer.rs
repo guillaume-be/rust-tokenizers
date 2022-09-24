@@ -42,14 +42,47 @@ impl PegasusTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
+    /// use rust_tokenizers::tokenizer::{PegasusTokenizer, Tokenizer};
     /// let lower_case = false;
-    /// let tokenizer =
-    ///     MarianTokenizer::from_files("path/to/vocab/file", "path/to/model/file", lower_case)
-    ///         .unwrap();
+    /// let tokenizer = PegasusTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
     pub fn from_file(path: &str, lower_case: bool) -> Result<PegasusTokenizer, TokenizerError> {
         let vocab = PegasusVocab::from_file(path)?;
+        let model = SentencePieceModel::from_file(path)?;
+        Ok(PegasusTokenizer {
+            model,
+            vocab,
+            lower_case,
+        })
+    }
+
+    /// Create a new instance of a `PegasusTokenizer`
+    /// Expects a SentencePiece protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{PegasusTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = PegasusTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<PegasusTokenizer, TokenizerError> {
+        let vocab =
+            PegasusVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
         let model = SentencePieceModel::from_file(path)?;
         Ok(PegasusTokenizer {
             model,
@@ -179,7 +212,7 @@ impl Tokenizer<PegasusVocab> for PegasusTokenizer {
         }
         special_tokens_mask.push(1);
         token_segment_ids.push(1);
-        output.push(self.vocab.token_to_id(PegasusVocab::eos_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_eos_value()));
         offsets.push(None);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);

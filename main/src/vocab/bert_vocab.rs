@@ -12,7 +12,9 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::{swap_key_values, Vocab};
+use crate::vocab::base_vocab::{
+    read_flat_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
+};
 use std::collections::HashMap;
 
 /// # BERT Vocab
@@ -31,8 +33,8 @@ pub struct BertVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -43,35 +45,45 @@ pub struct BertVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "[UNK]";
+const DEFAULT_PAD_TOKEN: &str = "[PAD]";
+const DEFAULT_SEP_TOKEN: &str = "[SEP]";
+const DEFAULT_CLS_TOKEN: &str = "[CLS]";
+const DEFAULT_MASK_TOKEN: &str = "[MASK]";
+
 impl BertVocab {
-    /// Returns the PAD token for BERT (`[PAD]`)
-    pub fn pad_value() -> &'static str {
-        "[PAD]"
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
     }
 
-    /// Returns the SEP token for BERT (`[SEP]`)
-    pub fn sep_value() -> &'static str {
-        "[SEP]"
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
     }
 
-    /// Returns the CLS token for BERT (`[CLS]`)
-    pub fn cls_value() -> &'static str {
-        "[CLS]"
+    pub fn get_cls_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_CLS_TOKEN)
     }
 
-    /// Returns the MASK token for BERT (`[MASK]`)
-    pub fn mask_value() -> &'static str {
-        "[MASK]"
+    pub fn get_mask_value(&self) -> &str {
+        self.special_token_map
+            .mask_token
+            .as_deref()
+            .unwrap_or(DEFAULT_MASK_TOKEN)
     }
 }
 
 impl Vocab for BertVocab {
-    fn unknown_value() -> &'static str {
-        "[UNK]"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "[UNK]"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -91,47 +103,65 @@ impl Vocab for BertVocab {
     }
 
     fn from_file(path: &str) -> Result<BertVocab, TokenizerError> {
-        let values = BertVocab::read_vocab_file(path)?;
+        let values = read_flat_file(path)?;
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: None,
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: Some(DEFAULT_CLS_TOKEN.to_string()),
+            eos_token: None,
+            mask_token: Some(DEFAULT_MASK_TOKEN.to_string()),
+            additional_special_tokens: None,
+        };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_flat_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized,
+    {
         let mut special_values = HashMap::new();
-
-        let unknown_value = BertVocab::unknown_value();
-        BertVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let pad_value = BertVocab::pad_value();
-        BertVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let sep_value = BertVocab::sep_value();
-        BertVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
-
-        let cls_value = BertVocab::cls_value();
-        BertVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let mask_value = BertVocab::mask_value();
-        BertVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
-
-        Ok(BertVocab {
+        Ok(Self {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         })
     }
-
     fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }
 
@@ -151,26 +181,30 @@ mod tests {
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
-        let unknown_value = BertVocab::unknown_value();
+        let special_token_map = SpecialTokenMap {
+            unk_token: "[UNK]".to_string(),
+            pad_token: Some("[PAD]".to_string()),
+            bos_token: None,
+            sep_token: Some("[SEP]".to_string()),
+            cls_token: Some("[CLS]".to_string()),
+            eos_token: None,
+            mask_token: Some("[MASK]".to_string()),
+            additional_special_tokens: None,
+        };
 
         //        When
-        let base_vocab = BertVocab {
+        let bert_vocab = BertVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         };
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
-        assert_eq!(base_vocab.unknown_value, BertVocab::unknown_value());
-        assert_eq!(BertVocab::pad_value(), "[PAD]");
-        assert_eq!(BertVocab::sep_value(), "[SEP]");
-        assert_eq!(BertVocab::cls_value(), "[CLS]");
-        assert_eq!(BertVocab::mask_value(), "[MASK]");
-        assert_eq!(base_vocab.values, *base_vocab.values());
-        assert_eq!(base_vocab.special_values, *base_vocab.special_values());
+        assert_eq!(bert_vocab.get_unknown_value(), "[UNK]");
+        assert_eq!(bert_vocab.values, *bert_vocab.values());
+        assert_eq!(bert_vocab.special_values, *bert_vocab.special_values());
     }
 
     #[test]
@@ -208,12 +242,12 @@ mod tests {
         .collect();
 
         //        When
-        let base_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let bert_vocab = BertVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
-        assert_eq!(base_vocab.values, target_values);
-        assert_eq!(base_vocab.special_values, special_values);
+        assert_eq!(bert_vocab.get_unknown_value(), "[UNK]");
+        assert_eq!(bert_vocab.values, target_values);
+        assert_eq!(bert_vocab.special_values, special_values);
         drop(path);
         Ok(())
     }

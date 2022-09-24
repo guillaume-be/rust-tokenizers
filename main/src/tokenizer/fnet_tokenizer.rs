@@ -71,6 +71,46 @@ impl FNetTokenizer {
         })
     }
 
+    /// Create a new instance of a `FNetTokenizer`
+    /// Expects a SentencePiece BPE protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{FNetTokenizer, Tokenizer};
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer = FNetTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     strip_accents,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        strip_accents: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<FNetTokenizer, TokenizerError> {
+        let model = SentencePieceBpeModel::from_file(path)?;
+        let vocab =
+            FNetVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        Ok(FNetTokenizer {
+            model,
+            vocab,
+            lower_case,
+            strip_accents,
+        })
+    }
+
     /// Create a new instance of a `FNetTokenizer` from an existing vocabulary and model
     ///
     /// # Parameters
@@ -126,7 +166,7 @@ impl FNetTokenizer {
                     } else {
                         let first_char_length =
                             updated_tokens[0].text.chars().next().unwrap().len_utf8();
-                        updated_tokens[0].text = (&updated_tokens[0].text[first_char_length..])
+                        updated_tokens[0].text = (updated_tokens[0].text[first_char_length..])
                             .parse()
                             .unwrap();
                     }
@@ -212,9 +252,9 @@ impl Tokenizer<FNetVocab> for FNetTokenizer {
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
-        output.push(self.vocab.token_to_id(FNetVocab::cls_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_cls_value()));
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(FNetVocab::sep_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
@@ -230,7 +270,7 @@ impl Tokenizer<FNetVocab> for FNetTokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(FNetVocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);

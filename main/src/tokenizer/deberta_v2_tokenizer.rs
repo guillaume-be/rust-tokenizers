@@ -80,6 +80,50 @@ impl DeBERTaV2Tokenizer {
         })
     }
 
+    /// Create a new instance of a `DeBERTaV2Tokenizer`
+    /// Expects a SentencePiece BPE protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    /// - add_prefix_space (`bool`): flag indicating if a space should be preprended to the input text before tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{DeBERTaV2Tokenizer, Tokenizer};
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let add_prefix_space = false;
+    /// let tokenizer = DeBERTaV2Tokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     strip_accents,
+    ///     add_prefix_space,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        strip_accents: bool,
+        add_prefix_space: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<DeBERTaV2Tokenizer, TokenizerError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab =
+            DeBERTaV2Vocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        Ok(DeBERTaV2Tokenizer {
+            model,
+            vocab,
+            lower_case,
+            strip_accents,
+            add_prefix_space,
+        })
+    }
+
     /// Create a new instance of a `DeBERTaV2Tokenizer` from an existing vocabulary and model
     ///
     /// # Parameters
@@ -146,7 +190,7 @@ impl DeBERTaV2Tokenizer {
                     } else {
                         let first_char_length =
                             updated_tokens[0].text.chars().next().unwrap().len_utf8();
-                        updated_tokens[0].text = (&updated_tokens[0].text[first_char_length..])
+                        updated_tokens[0].text = (updated_tokens[0].text[first_char_length..])
                             .parse()
                             .unwrap();
                     }
@@ -243,9 +287,9 @@ impl Tokenizer<DeBERTaV2Vocab> for DeBERTaV2Tokenizer {
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
-        output.push(self.vocab.token_to_id(DeBERTaV2Vocab::cls_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_cls_value()));
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(DeBERTaV2Vocab::sep_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
@@ -261,7 +305,7 @@ impl Tokenizer<DeBERTaV2Vocab> for DeBERTaV2Tokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(DeBERTaV2Vocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);

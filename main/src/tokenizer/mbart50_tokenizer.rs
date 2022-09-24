@@ -59,6 +59,41 @@ impl MBart50Tokenizer {
         })
     }
 
+    /// Create a new instance of a `MBart50Tokenizer`
+    /// Expects a SentencePiece protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{MBart50Tokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = MBart50Tokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<MBart50Tokenizer, TokenizerError> {
+        let model = SentencePieceModel::from_file(path)?;
+        let vocab =
+            MBart50Vocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        Ok(MBart50Tokenizer {
+            model,
+            vocab,
+            lower_case,
+        })
+    }
+
     /// Create a new instance of a `MBart50Tokenizer` from an existing vocabulary and model
     ///
     /// # Parameters
@@ -156,7 +191,7 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 1]);
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(MBart50Vocab::sep_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         if !offsets.is_empty() {
             offsets[0] = None;
@@ -178,7 +213,7 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(MBart50Vocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             offsets.push(None);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);

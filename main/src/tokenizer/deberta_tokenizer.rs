@@ -84,6 +84,53 @@ impl DeBERTaTokenizer {
         })
     }
 
+    /// Create a new instance of a `DeBERTaTokenizer`
+    /// Expects a vocabulary json file and a merges file as an input.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the vocabulary file
+    /// - merges_path (`&str`): path to the merges file (use as part of the BPE encoding process)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = DeBERTaTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        vocab_path: &str,
+        merges_path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<DeBERTaTokenizer, TokenizerError> {
+        let vocab = DeBERTaVocab::from_file_with_special_token_mapping(
+            vocab_path,
+            special_token_mapping_path,
+        )?;
+        let bpe_ranks = BpePairVocab::from_file(merges_path)?;
+        let cache = RwLock::new(HashMap::new());
+        let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
+        let pattern_tokenization =
+            Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
+                .unwrap();
+        Ok(DeBERTaTokenizer {
+            vocab,
+            bpe_ranks,
+            cache,
+            pattern_lookahead,
+            pattern_tokenization,
+            lower_case,
+        })
+    }
+
     /// Create a new instance of a `DeBERTaTokenizer` from an existing vocabulary and merges
     ///
     /// # Parameters
@@ -189,9 +236,9 @@ impl Tokenizer<DeBERTaVocab> for DeBERTaTokenizer {
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
-        output.push(self.vocab.token_to_id(DeBERTaVocab::cls_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_cls_value()));
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(DeBERTaVocab::sep_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
@@ -207,7 +254,7 @@ impl Tokenizer<DeBERTaVocab> for DeBERTaTokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(DeBERTaVocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);

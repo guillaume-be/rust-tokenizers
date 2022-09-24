@@ -58,6 +58,44 @@ impl ReformerTokenizer {
             lower_case,
         })
     }
+
+    /// Create a new instance of a `ReformerTokenizer`
+    /// Expects a SentencePiece protobuf file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the SentencePiece model file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{SentencePieceTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let tokenizer = SentencePieceTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<ReformerTokenizer, TokenizerError> {
+        let vocab =
+            ReformerVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        let bpe_ranks = BpePairVocab::from_sentencepiece_file(path)?;
+        let cache = RwLock::new(HashMap::new());
+        Ok(ReformerTokenizer {
+            vocab,
+            bpe_ranks,
+            cache,
+            lower_case,
+        })
+    }
 }
 
 impl Tokenizer<ReformerVocab> for ReformerTokenizer {

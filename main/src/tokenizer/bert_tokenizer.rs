@@ -61,6 +61,44 @@ impl BertTokenizer {
         })
     }
 
+    /// Create a new instance of a `BertTokenizer`
+    /// Expects a vocabulary flat-file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - path (`&str`): path to the vocabulary file
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - strip_accents (`bool`): flag indicating if accents should be stripped from the text
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer};
+    /// let strip_accents = false;
+    /// let lower_case = false;
+    /// let tokenizer = BertTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     lower_case,
+    ///     strip_accents,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        path: &str,
+        lower_case: bool,
+        strip_accents: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<BertTokenizer, TokenizerError> {
+        let vocab =
+            BertVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        let base_tokenizer =
+            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
+        Ok(BertTokenizer {
+            vocab,
+            base_tokenizer,
+        })
+    }
     /// Create a new instance of a `BertTokenizer` from an existing vocabulary
     ///
     /// # Parameters
@@ -126,9 +164,9 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
-        output.push(self.vocab.token_to_id(BertVocab::cls_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_cls_value()));
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(BertVocab::sep_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
@@ -144,7 +182,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.extend(vec![1; length + 1]);
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(BertVocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
             offsets.push(None);
@@ -173,7 +211,7 @@ impl MultiThreadedTokenizer<BertVocab> for BertTokenizer {}
 mod tests {
     use super::*;
     use crate::tokenizer::base_tokenizer::TruncationStrategy;
-    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::base_vocab::{swap_key_values, SpecialTokenMap};
     use crate::vocab::BertVocab;
     use crate::TokenizedInput;
     use itertools::Itertools;
@@ -200,6 +238,17 @@ mod tests {
         .cloned()
         .collect();
 
+        let special_token_map = SpecialTokenMap {
+            unk_token: "[UNK]".to_string(),
+            pad_token: Some("[PAD]".to_string()),
+            bos_token: None,
+            sep_token: Some("[SEP]".to_string()),
+            cls_token: Some("[CLS]".to_string()),
+            eos_token: None,
+            mask_token: Some("[MASK]".to_string()),
+            additional_special_tokens: None,
+        };
+
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
             ("[CLS]".to_owned(), 4),
@@ -217,7 +266,7 @@ mod tests {
         BertVocab {
             values,
             indices,
-            unknown_value: "[UNK]",
+            special_token_map,
             special_values,
             special_indices,
         }

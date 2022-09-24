@@ -11,8 +11,10 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::{swap_key_values, Vocab};
-use std::collections::HashMap;
+use crate::vocab::base_vocab::{
+    read_flat_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
+};
+use std::collections::{HashMap, HashSet};
 
 /// # ProphetNet Vocab
 /// Vocabulary for ProphetNet tokenizer. Contains the following special values:
@@ -31,8 +33,8 @@ pub struct ProphetNetVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -43,40 +45,46 @@ pub struct ProphetNetVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "[UNK]";
+const DEFAULT_PAD_TOKEN: &str = "[PAD]";
+const DEFAULT_SEP_TOKEN: &str = "[SEP]";
+const DEFAULT_X_SEP_TOKEN: &str = "[X_SEP]";
+const DEFAULT_CLS_TOKEN: &str = "[CLS]";
+const DEFAULT_MASK_TOKEN: &str = "[MASK]";
+
 impl ProphetNetVocab {
-    /// Returns the PAD token for ProphetNet (`[PAD]`)
-    pub fn pad_value() -> &'static str {
-        "[PAD]"
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
     }
 
-    /// Returns the CLS token for ProphetNet (`[CLS]`)
-    pub fn cls_value() -> &'static str {
-        "[CLS]"
+    pub fn get_sep_value(&self) -> &str {
+        self.special_token_map
+            .sep_token
+            .as_deref()
+            .unwrap_or(DEFAULT_SEP_TOKEN)
     }
 
-    /// Returns the SEP token for ProphetNet (`[SEP]`)
-    pub fn sep_value() -> &'static str {
-        "[SEP]"
+    pub fn get_cls_value(&self) -> &str {
+        self.special_token_map
+            .cls_token
+            .as_deref()
+            .unwrap_or(DEFAULT_CLS_TOKEN)
     }
 
-    /// Returns the X_SEP token for ProphetNet (`[X_SEP]`)
-    pub fn x_sep_value() -> &'static str {
-        "[X_SEP]"
-    }
-
-    /// Returns the MASK token for ProphetNet (`[MASK]`)
-    pub fn mask_value() -> &'static str {
-        "[MASK]"
+    pub fn get_mask_value(&self) -> &str {
+        self.special_token_map
+            .mask_token
+            .as_deref()
+            .unwrap_or(DEFAULT_MASK_TOKEN)
     }
 }
 
 impl Vocab for ProphetNetVocab {
-    fn unknown_value() -> &'static str {
-        "[UNK]"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "[UNK]"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -96,31 +104,47 @@ impl Vocab for ProphetNetVocab {
     }
 
     fn from_file(path: &str) -> Result<ProphetNetVocab, TokenizerError> {
-        let values = ProphetNetVocab::read_vocab_file(path)?;
+        let values = read_flat_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: None,
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: Some(DEFAULT_CLS_TOKEN.to_string()),
+            eos_token: None,
+            mask_token: Some(DEFAULT_MASK_TOKEN.to_string()),
+            additional_special_tokens: Some(HashSet::from([DEFAULT_X_SEP_TOKEN.into()])),
+        };
+
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_flat_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized,
+    {
         let mut special_values = HashMap::new();
-
-        let unknown_value = ProphetNetVocab::unknown_value();
-        ProphetNetVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let pad_value = ProphetNetVocab::pad_value();
-        ProphetNetVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let cls_value = ProphetNetVocab::cls_value();
-        ProphetNetVocab::_register_as_special_value(cls_value, &values, &mut special_values)?;
-
-        let sep_value = ProphetNetVocab::sep_value();
-        ProphetNetVocab::_register_as_special_value(sep_value, &values, &mut special_values)?;
-
-        let mask_value = ProphetNetVocab::mask_value();
-        ProphetNetVocab::_register_as_special_value(mask_value, &values, &mut special_values)?;
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
-
-        Ok(ProphetNetVocab {
+        Ok(Self {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         })
@@ -131,12 +155,17 @@ impl Vocab for ProphetNetVocab {
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }
 
@@ -156,24 +185,28 @@ mod tests {
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
-        let unknown_value = ProphetNetVocab::unknown_value();
+        let special_token_map = SpecialTokenMap {
+            unk_token: "[UNK]".to_string(),
+            pad_token: Some("[PAD]".to_string()),
+            bos_token: None,
+            sep_token: Some("[SEP]".to_string()),
+            cls_token: Some("[CLS]".to_string()),
+            eos_token: None,
+            mask_token: Some("[MASK]".to_string()),
+            additional_special_tokens: Some(HashSet::from(["[X_SEP".into()])),
+        };
 
         //        When
         let base_vocab = ProphetNetVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         };
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
-        assert_eq!(base_vocab.unknown_value, ProphetNetVocab::unknown_value());
-        assert_eq!(ProphetNetVocab::pad_value(), "[PAD]");
-        assert_eq!(ProphetNetVocab::sep_value(), "[SEP]");
-        assert_eq!(ProphetNetVocab::x_sep_value(), "[X_SEP]");
-        assert_eq!(ProphetNetVocab::mask_value(), "[MASK]");
+        assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
         assert_eq!(base_vocab.values, *base_vocab.values());
         assert_eq!(base_vocab.special_values, *base_vocab.special_values());
     }
@@ -204,6 +237,7 @@ mod tests {
 
         let special_values: HashMap<String, i64> = [
             ("[UNK]".to_owned(), 2),
+            ("[X_SEP]".to_owned(), 4),
             ("[SEP]".to_owned(), 5),
             ("[MASK]".to_owned(), 6),
             ("[PAD]".to_owned(), 7),
@@ -217,7 +251,7 @@ mod tests {
         let base_vocab = ProphetNetVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
+        assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
         assert_eq!(base_vocab.values, target_values);
         assert_eq!(base_vocab.special_values, special_values);
         drop(path);

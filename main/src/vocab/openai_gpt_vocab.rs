@@ -12,10 +12,10 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::{swap_key_values, Vocab};
+use crate::vocab::base_vocab::{
+    read_json_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap, Vocab,
+};
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 
 /// # GPT Vocab
 /// Vocabulary for GPT tokenizer. Only contains the unknown token as a special value.
@@ -28,8 +28,8 @@ pub struct OpenAiGptVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -40,13 +40,11 @@ pub struct OpenAiGptVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl Vocab for OpenAiGptVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
 
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+impl Vocab for OpenAiGptVocab {
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -66,27 +64,46 @@ impl Vocab for OpenAiGptVocab {
     }
 
     fn from_file(path: &str) -> Result<OpenAiGptVocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
+        let values = read_json_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: None,
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: None,
+            mask_token: None,
+            additional_special_tokens: None,
         };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_json_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized,
+    {
         let mut special_values = HashMap::new();
-        let unknown_value = OpenAiGptVocab::unknown_value();
-        OpenAiGptVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
-
-        Ok(OpenAiGptVocab {
+        Ok(Self {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         })
@@ -97,12 +114,17 @@ impl Vocab for OpenAiGptVocab {
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }
 
@@ -123,23 +145,28 @@ mod tests {
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
-        let unknown_value = OpenAiGptVocab::unknown_value();
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: None,
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: None,
+            mask_token: None,
+            additional_special_tokens: None,
+        };
 
         //        When
         let openai_gpt_vocab = OpenAiGptVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         };
 
         //        Then
-        assert_eq!(openai_gpt_vocab.unknown_value, "<unk>");
-        assert_eq!(
-            openai_gpt_vocab.unknown_value,
-            OpenAiGptVocab::unknown_value()
-        );
+        assert_eq!(openai_gpt_vocab.get_unknown_value(), "<unk>");
         assert_eq!(openai_gpt_vocab.values, *openai_gpt_vocab.values());
         assert_eq!(
             openai_gpt_vocab.special_values,
@@ -173,7 +200,7 @@ mod tests {
         let openai_gpt_vocab = OpenAiGptVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(openai_gpt_vocab.unknown_value, "<unk>");
+        assert_eq!(openai_gpt_vocab.get_unknown_value(), "<unk>");
         assert_eq!(openai_gpt_vocab.values, target_values);
         assert_eq!(openai_gpt_vocab.special_values, special_values);
         drop(path);
