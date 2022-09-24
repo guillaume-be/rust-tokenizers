@@ -168,7 +168,7 @@ impl AlbertTokenizer {
                     } else {
                         let first_char_length =
                             updated_tokens[0].text.chars().next().unwrap().len_utf8();
-                        updated_tokens[0].text = (&updated_tokens[0].text[first_char_length..])
+                        updated_tokens[0].text = (updated_tokens[0].text[first_char_length..])
                             .parse()
                             .unwrap();
                     }
