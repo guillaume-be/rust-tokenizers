@@ -45,9 +45,9 @@ impl SentencePieceBpeModel {
     /// # Example
     /// ```no_run
     /// use rust_tokenizers::vocab::SentencePieceBpeModel;
-    /// let path = "path/to/spiece.model";
     ///
-    /// let sentence_piece_model = SentencePieceBpeModel::from_file(&std::path::Path::new(path));
+    /// let path = std::path::Path::new("path/to/spiece.model");
+    /// let sentence_piece_model = SentencePieceBpeModel::from_file(&path);
     /// ```
     pub fn from_file(path: &Path) -> Result<SentencePieceBpeModel, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {

@@ -46,13 +46,12 @@ impl T5Tokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{T5Tokenizer, Tokenizer};
+    ///
     /// let lower_case = false;
-    /// let tokenizer = T5Tokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
+    /// let path = std::path::Path::new("path/to/vocab/file");
+    /// let tokenizer = T5Tokenizer::from_file(&path, lower_case).unwrap();
     /// ```
-    pub fn from_file(
-        path: &Path,
-        lower_case: bool,
-    ) -> Result<T5Tokenizer, TokenizerError> {
+    pub fn from_file(path: &Path, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
         let vocab = T5Vocab::from_file(path)?;
         let eos_token_id = vocab.token_to_id(vocab.get_eos_value());
@@ -75,11 +74,13 @@ impl T5Tokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{T5Tokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let tokenizer = T5Tokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -112,9 +113,11 @@ impl T5Tokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{T5Tokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{SentencePieceModel, T5Vocab, Vocab};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
-    /// let vocab = T5Vocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    /// let vocab = T5Vocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
+    /// let model = SentencePieceModel::from_file(&Path::new("path/to/model/file")).unwrap();
     ///
     /// let tokenizer = T5Tokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
     /// ```

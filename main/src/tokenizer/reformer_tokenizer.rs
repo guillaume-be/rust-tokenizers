@@ -45,13 +45,12 @@ impl ReformerTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{SentencePieceTokenizer, Tokenizer};
+    ///
     /// let lower_case = false;
-    /// let tokenizer = SentencePieceTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
+    /// let path = std::path::Path::new("path/to/vocab/file");
+    /// let tokenizer = SentencePieceTokenizer::from_file(&path, lower_case).unwrap();
     /// ```
-    pub fn from_file(
-        path: &Path,
-        lower_case: bool,
-    ) -> Result<ReformerTokenizer, TokenizerError> {
+    pub fn from_file(path: &Path, lower_case: bool) -> Result<ReformerTokenizer, TokenizerError> {
         let vocab = ReformerVocab::from_file(&path)?;
         let bpe_ranks = BpePairVocab::from_sentencepiece_file(path)?;
         let cache = RwLock::new(HashMap::new());
@@ -76,11 +75,13 @@ impl ReformerTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{SentencePieceTokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let tokenizer = SentencePieceTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```

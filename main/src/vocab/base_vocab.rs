@@ -220,9 +220,9 @@ pub trait Vocab {
     ///
     /// ```no_run
     /// use rust_tokenizers::vocab::{BertVocab, Vocab};
-    /// let path = "path/to/file";
     ///
-    /// let base_vocab = BertVocab::from_file(&std::path::Path::new(path));
+    /// let path = std::path::Path::new("path/to/file");
+    /// let base_vocab = BertVocab::from_file(&path);
     /// ```
     fn from_file(path: &Path) -> Result<Self, TokenizerError>
     where
@@ -234,10 +234,12 @@ pub trait Vocab {
     ///
     /// ```no_run
     /// use rust_tokenizers::vocab::{BertVocab, Vocab};
-    /// let path = "path/to/file";
-    /// let special_token_mapping = "path/to/mapping.json";
+    /// use std::path::Path;
     ///
-    /// let base_vocab = BertVocab::from_file_with_special_token_mapping(path, special_token_mapping);
+    /// let path = Path::new("path/to/file");
+    /// let special_token_mapping = Path::new("path/to/mapping.json");
+    ///
+    /// let base_vocab = BertVocab::from_file_with_special_token_mapping(&path, &special_token_mapping);
     /// ```
     fn from_file_with_special_token_mapping(
         path: &Path,

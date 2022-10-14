@@ -51,10 +51,12 @@ impl XLNetTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Tokenizer, XLNetTokenizer};
+    ///
     /// let lower_case = false;
     /// let strip_accents = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer =
-    ///     XLNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     XLNetTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
         path: &Path,
@@ -84,13 +86,15 @@ impl XLNetTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Tokenizer, XLNetTokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let strip_accents = false;
     /// let tokenizer = XLNetTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
     ///     strip_accents,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -124,10 +128,12 @@ impl XLNetTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Tokenizer, XLNetTokenizer};
     /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, XLNetVocab};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let strip_accents = false;
-    /// let vocab = XLNetVocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    /// let vocab = XLNetVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
+    /// let model = SentencePieceModel::from_file(&Path::new("path/to/model/file")).unwrap();
     ///
     /// let tokenizer =
     ///     XLNetTokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents);

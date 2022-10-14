@@ -53,10 +53,12 @@ impl AlbertTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer =
-    ///     AlbertTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     AlbertTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
         path: &Path,
@@ -86,13 +88,15 @@ impl AlbertTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let tokenizer = AlbertTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
     ///     strip_accents,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -126,10 +130,12 @@ impl AlbertTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{AlbertTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{AlbertVocab, SentencePieceModel, Vocab};
+    /// use std::path::Path;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let vocab = AlbertVocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    /// let vocab = AlbertVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
+    /// let model = SentencePieceModel::from_file(&Path::new("path/to/model/file")).unwrap();
     ///
     /// let tokenizer =
     ///     AlbertTokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents);

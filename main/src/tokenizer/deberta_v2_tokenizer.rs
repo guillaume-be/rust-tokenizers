@@ -53,11 +53,13 @@ impl DeBERTaV2Tokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaV2Tokenizer, Tokenizer};
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let add_prefix_space = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer = DeBERTaV2Tokenizer::from_file(
-    ///     "path/to/vocab/file",
+    ///     &path,
     ///     lower_case,
     ///     strip_accents,
     ///     add_prefix_space,
@@ -94,15 +96,17 @@ impl DeBERTaV2Tokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaV2Tokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let add_prefix_space = false;
     /// let tokenizer = DeBERTaV2Tokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
     ///     strip_accents,
     ///     add_prefix_space,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -139,11 +143,13 @@ impl DeBERTaV2Tokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::DeBERTaV2Tokenizer;
     /// use rust_tokenizers::vocab::{DeBERTaV2Vocab, SentencePieceModel, Vocab};
+    /// use std::path::Path;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let add_prefix_space = false;
-    /// let vocab = DeBERTaV2Vocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    /// let vocab = DeBERTaV2Vocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
+    /// let model = SentencePieceModel::from_file(&Path::new("path/to/model/file")).unwrap();
     ///
     /// let tokenizer = DeBERTaV2Tokenizer::from_existing_vocab_and_model(
     ///     vocab,

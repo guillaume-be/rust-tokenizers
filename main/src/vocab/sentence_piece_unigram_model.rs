@@ -73,9 +73,9 @@ impl SentencePieceModel {
     /// # Example
     /// ```no_run
     /// use rust_tokenizers::vocab::SentencePieceModel;
-    /// let path = "path/to/spiece.model";
     ///
-    /// let sentence_piece_model = SentencePieceModel::from_file(&std::path::Path::new(path)).unwrap();
+    /// let path = std::path::Path::new("path/to/spiece.model");
+    /// let sentence_piece_model = SentencePieceModel::from_file(&path).unwrap();
     /// ```
     pub fn from_file(path: &Path) -> Result<SentencePieceModel, TokenizerError> {
         let mut f = File::open(path).map_err(|e| {

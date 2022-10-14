@@ -58,9 +58,11 @@ impl DeBERTaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let tokenizer =
-    ///     DeBERTaTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case)
+    ///     DeBERTaTokenizer::from_file(&Path::new("path/to/vocab/file"), &Path::new("path/to/merges/file"), lower_case)
     ///         .unwrap();
     /// ```
     pub fn from_file(
@@ -97,12 +99,14 @@ impl DeBERTaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let tokenizer = DeBERTaTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
-    ///     "path/to/merges/file",
+    ///     &Path::new("path/to/vocab/file"),
+    ///     &Path::new("path/to/merges/file"),
     ///     lower_case,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -144,9 +148,11 @@ impl DeBERTaTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BpePairVocab, DeBERTaVocab, Vocab};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
-    /// let vocab = DeBERTaVocab::from_file("path/to/vocab/file").unwrap();
-    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
+    /// let vocab = DeBERTaVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
+    /// let merges = BpePairVocab::from_file(&Path::new("path/to/merges/file")).unwrap();
     ///
     /// let tokenizer = DeBERTaTokenizer::from_existing_vocab_and_merges(vocab, merges, lower_case);
     /// ```

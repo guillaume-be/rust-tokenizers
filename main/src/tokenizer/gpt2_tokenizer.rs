@@ -57,9 +57,11 @@ impl Gpt2Tokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Gpt2Tokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let tokenizer =
-    ///     Gpt2Tokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case).unwrap();
+    ///     Gpt2Tokenizer::from_file(&Path::new("path/to/vocab/file"), &Path::new("path/to/merges/file"), lower_case).unwrap();
     /// ```
     pub fn from_file(
         vocab_path: &Path,
@@ -96,12 +98,14 @@ impl Gpt2Tokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Gpt2Tokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let tokenizer = Gpt2Tokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
-    ///     "path/to/merges/file",
+    ///     &Path::new("path/to/vocab/file"),
+    ///     &Path::new("path/to/merges/file"),
     ///     lower_case,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -143,9 +147,11 @@ impl Gpt2Tokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Gpt2Tokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BpePairVocab, Gpt2Vocab, Vocab};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
-    /// let vocab = Gpt2Vocab::from_file("path/to/vocab/file").unwrap();
-    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
+    /// let vocab = Gpt2Vocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
+    /// let merges = BpePairVocab::from_file(&Path::new("path/to/merges/file")).unwrap();
     ///
     /// let tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, lower_case);
     /// ```

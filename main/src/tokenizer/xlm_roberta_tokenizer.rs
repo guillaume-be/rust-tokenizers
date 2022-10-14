@@ -47,14 +47,13 @@ impl XLMRobertaTokenizer {
     /// # Example
     ///
     /// ```no_run
-    /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
+    /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer}
+    /// ;
     /// let lower_case = false;
-    /// let tokenizer = XLMRobertaTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
+    /// let path = std::path::Path::new("path/to/vocab/file");
+    /// let tokenizer = XLMRobertaTokenizer::from_file(&path, lower_case).unwrap();
     /// ```
-    pub fn from_file(
-        path: &Path,
-        lower_case: bool,
-    ) -> Result<XLMRobertaTokenizer, TokenizerError> {
+    pub fn from_file(path: &Path, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(path)?;
         let vocab = XLMRobertaVocab::from_file(path)?;
         Ok(XLMRobertaTokenizer {
@@ -76,11 +75,13 @@ impl XLMRobertaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
     /// let tokenizer = XLMRobertaTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -113,9 +114,11 @@ impl XLMRobertaTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{Tokenizer, XLMRobertaTokenizer};
     /// use rust_tokenizers::vocab::{SentencePieceModel, Vocab, XLMRobertaVocab};
+    /// use std::path::Path;
+    ///
     /// let lower_case = false;
-    /// let vocab = XLMRobertaVocab::from_file("path/to/vocab/file").unwrap();
-    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
+    /// let vocab = XLMRobertaVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
+    /// let model = SentencePieceModel::from_file(&Path::new("path/to/model/file")).unwrap();
     ///
     /// let tokenizer = XLMRobertaTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
     /// ```

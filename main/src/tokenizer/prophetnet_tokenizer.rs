@@ -43,10 +43,12 @@ impl ProphetNetTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{ProphetNetTokenizer, Tokenizer};
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer =
-    ///     ProphetNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     ProphetNetTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
         path: &Path,
@@ -75,13 +77,15 @@ impl ProphetNetTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{ProphetNetTokenizer, Tokenizer};
+    /// use std::path::Path;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let tokenizer = ProphetNetTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
     ///     strip_accents,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -117,7 +121,8 @@ impl ProphetNetTokenizer {
     /// use rust_tokenizers::vocab::{ProphetNetVocab, Vocab};
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let vocab = ProphetNetVocab::from_file("path/to/vocab/file").unwrap();
+    /// let path = std::path::Path::new("path/to/vocab/file");
+    /// let vocab = ProphetNetVocab::from_file(&path).unwrap();
     ///
     /// let tokenizer = ProphetNetTokenizer::from_existing_vocab(vocab, lower_case, strip_accents);
     /// ```

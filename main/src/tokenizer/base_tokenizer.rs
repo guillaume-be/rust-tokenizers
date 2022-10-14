@@ -484,10 +484,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text = "Hello, world!";
     /// let tokens = tokenizer.tokenize(text);
@@ -509,10 +511,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text = "Hello, world!";
     /// let tokens = tokenizer.tokenize_with_offsets(text);
@@ -572,10 +576,12 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
     /// use rust_tokenizers::{OffsetSize, TokenRef};
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text = "Hello, world!";
     /// let offsets = (0..text.len() as OffsetSize).collect_vec();
@@ -597,10 +603,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let texts = ["Hello, world!", "Second sentence"];
     /// let tokens = tokenizer.tokenize_list(&texts);
@@ -631,10 +639,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text = ["Hello, world!", "Second sentence"];
     /// let tokens = tokenizer.tokenize_list_with_offsets(&text);
@@ -663,10 +673,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let tokens = ["Hello", ",", "world", "!"];
     /// let token_ids = tokenizer.convert_tokens_to_ids(&tokens);
@@ -703,10 +715,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "How is it going?";
@@ -827,10 +841,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "How is it going?";
@@ -880,10 +896,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "This is a second sentence";
@@ -935,10 +953,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let tokens_ids = vec![0, 1, 2, 42];
     /// let tokens = tokenizer.decode_to_vec(&tokens_ids, false);
@@ -975,10 +995,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let skip_special_tokens = true;
     /// let clean_up_tokenization_spaces = true;
@@ -1014,10 +1036,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let skip_special_tokens = true;
     /// let clean_up_tokenization_spaces = true;
@@ -1046,10 +1070,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let skip_special_tokens = true;
     /// let clean_up_tokenization_spaces = true;
@@ -1088,10 +1114,12 @@ pub trait Tokenizer<T: Vocab> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let skip_special_tokens = true;
     /// let clean_up_tokenization_spaces = true;
@@ -1136,10 +1164,12 @@ pub trait Tokenizer<T: Vocab> {
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
     /// use rust_tokenizers::TokenIdsWithOffsets;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let skip_special_tokens = true;
     /// let clean_up_tokenization_spaces = true;
@@ -1228,10 +1258,12 @@ where
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text = ["Hello, world!", "Second sentence"];
     /// let tokens = tokenizer.tokenize_list_with_offsets(&text);
@@ -1260,10 +1292,12 @@ where
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let texts = ["Hello, world!", "Second sentence"];
     /// let tokens = tokenizer.tokenize_list(&texts);
@@ -1300,10 +1334,12 @@ where
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "How is it going?";
@@ -1353,10 +1389,12 @@ where
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let text_1 = "Hello, world!";
     /// let text_2 = "This is a second sentence";
@@ -1411,10 +1449,12 @@ where
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, MultiThreadedTokenizer, TruncationStrategy};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     ///
     /// let skip_special_tokens = true;
     /// let clean_up_tokenization_spaces = true;
@@ -1471,13 +1511,15 @@ impl<T: Vocab + Sync> BaseTokenizer<T> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    /// use std::path::Path;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let tokenizer: BaseTokenizer<BaseVocab> = BaseTokenizer::from_file_with_special_token_mapping(
-    ///     "path/to/vocab/file",
+    ///     &Path::new("path/to/vocab/file"),
     ///     lower_case,
     ///     strip_accents,
-    ///     "path/to/special/token/mapping/file",
+    ///     &Path::new("path/to/special/token/mapping/file"),
     /// )
     /// .unwrap();
     /// ```
@@ -1508,10 +1550,12 @@ impl<T: Vocab + Sync> BaseTokenizer<T> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::BaseVocab;
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
+    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer: BaseTokenizer<BaseVocab> =
-    ///     BaseTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
+    ///     BaseTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file(
         path: &Path,
@@ -1538,9 +1582,11 @@ impl<T: Vocab + Sync> BaseTokenizer<T> {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{BaseTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BaseVocab, Vocab};
+    ///
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let base_vocab = BaseVocab::from_file("path/to/vocab/file").unwrap();
+    /// let path = std::path::Path::new("path/to/vocab/file");
+    /// let base_vocab = BaseVocab::from_file(&path).unwrap();
     ///
     /// let tokenizer = BaseTokenizer::from_existing_vocab(base_vocab, lower_case, strip_accents);
     /// ```
