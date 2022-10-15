@@ -13,11 +13,11 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::swap_key_values;
+use crate::vocab::base_vocab::{
+    read_json_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
+};
 use crate::vocab::Vocab;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 
 /// # Marian Vocab
 /// Vocabulary for Marian tokenizer. Contains the following special values:
@@ -33,8 +33,8 @@ pub struct MarianVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -45,25 +45,29 @@ pub struct MarianVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
+
 impl MarianVocab {
-    /// Returns the PAD token for Marian (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
+    pub fn get_pad_value(&self) -> &str {
+        self.special_token_map
+            .pad_token
+            .as_deref()
+            .unwrap_or(DEFAULT_PAD_TOKEN)
     }
 
-    /// Returns the EOS token for Marian (`</s>`)
-    pub fn eos_value() -> &'static str {
-        "</s>"
+    pub fn get_eos_value(&self) -> &str {
+        self.special_token_map
+            .eos_token
+            .as_deref()
+            .unwrap_or(DEFAULT_EOS_TOKEN)
     }
 }
 
 impl Vocab for MarianVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -83,49 +87,64 @@ impl Vocab for MarianVocab {
     }
 
     fn from_file(path: &str) -> Result<MarianVocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
-        let values: HashMap<String, i64> = match serde_json::from_reader(br) {
-            Ok(value) => value,
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
+        let values = read_json_file(path)?;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
+            mask_token: None,
+            additional_special_tokens: None,
         };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
 
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_json_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized,
+    {
         let mut special_values = HashMap::new();
-        let unknown_value = MarianVocab::unknown_value();
-        MarianVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
-
-        let pad_value = MarianVocab::pad_value();
-        MarianVocab::_register_as_special_value(pad_value, &values, &mut special_values)?;
-
-        let eos_value = MarianVocab::eos_value();
-        MarianVocab::_register_as_special_value(eos_value, &values, &mut special_values)?;
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
-
-        Ok(MarianVocab {
+        Ok(Self {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         })
     }
-
     fn token_to_id(&self, token: &str) -> i64 {
         self._token_to_id(
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }

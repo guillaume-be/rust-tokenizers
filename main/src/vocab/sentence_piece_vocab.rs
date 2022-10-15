@@ -11,22 +11,14 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use crate::vocab::base_vocab::swap_key_values;
-use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use crate::vocab::base_vocab::{
+    read_protobuf_file, read_special_token_mapping_file, swap_key_values, SpecialTokenMap,
+};
 use crate::vocab::Vocab;
-use protobuf::Message;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Read;
 
 /// # SentencePieceVocab
-/// Vocabulary for SentencePiece model/tokenizer. Contains the following special values:
-/// - BOS token
-/// - EOS token
-/// - CLS token
-/// - SEP token
-/// - PAD token
-/// - MASK token
+/// Vocabulary for SentencePiece model/tokenizer.
 ///
 /// Expects a SentencePiece protobuf file when created from file.
 #[derive(Debug, Clone)]
@@ -37,8 +29,8 @@ pub struct SentencePieceVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -49,45 +41,11 @@ pub struct SentencePieceVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl SentencePieceVocab {
-    /// Returns the PAD token for SentencePiece (`<pad>`)
-    pub fn pad_value() -> &'static str {
-        "<pad>"
-    }
-
-    /// Returns the SEP token for SentencePiece (`<sep>`)
-    pub fn sep_value() -> &'static str {
-        "<sep>"
-    }
-
-    /// Returns the CLS token for SentencePiece (`<cls>`)
-    pub fn cls_value() -> &'static str {
-        "<cls>"
-    }
-
-    /// Returns the MASK token for SentencePiece (`<mask>`)
-    pub fn mask_value() -> &'static str {
-        "<mask>"
-    }
-
-    /// Returns the BOS token for SentencePiece (`<s>`)
-    pub fn bos_value() -> &'static str {
-        "<s>"
-    }
-
-    /// Returns the EOS token for SentencePiece (`</s>`)
-    pub fn eos_value() -> &'static str {
-        "</s>"
-    }
-}
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
 
 impl Vocab for SentencePieceVocab {
-    fn unknown_value() -> &'static str {
-        "<unk>"
-    }
-
-    fn get_unknown_value(&self) -> &'static str {
-        "<unk>"
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -107,48 +65,46 @@ impl Vocab for SentencePieceVocab {
     }
 
     fn from_file(path: &str) -> Result<SentencePieceVocab, TokenizerError> {
-        let mut f = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => {
-                return Err(TokenizerError::FileNotFound(format!(
-                    "{} vocabulary file not found",
-                    path
-                )));
-            }
-        };
-        let mut contents = Vec::new();
-        let proto = match f.read_to_end(&mut contents) {
-            Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
-                Ok(proto_value) => proto_value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            },
-            Err(e) => {
-                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-            }
-        };
+        let values = read_protobuf_file(path)?;
 
-        let mut values = HashMap::new();
-        for (idx, piece) in proto.get_pieces().iter().enumerate() {
-            values.insert(piece.get_piece().to_owned(), idx as i64);
-        }
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: None,
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: None,
+            mask_token: None,
+            additional_special_tokens: None,
+        };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
 
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_protobuf_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized,
+    {
         let mut special_values = HashMap::new();
-        let unknown_value = SentencePieceVocab::unknown_value();
-        SentencePieceVocab::_register_as_special_value(
-            unknown_value,
-            &values,
-            &mut special_values,
-        )?;
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
-
-        Ok(SentencePieceVocab {
+        Ok(Self {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         })
@@ -159,11 +115,16 @@ impl Vocab for SentencePieceVocab {
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }

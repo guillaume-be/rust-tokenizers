@@ -10,10 +10,13 @@
 // limitations under the License.
 
 use crate::error::TokenizerError;
-use std::collections::HashMap;
+use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
+use protobuf::Message;
+use serde::Deserialize;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::hash::Hash;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 
 pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
     input_hashmap: &HashMap<T, U>,
@@ -24,28 +27,177 @@ pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
         .collect()
 }
 
+/// Read a flat vocab.txt file (single column, one token per line)
+/// Indices are inferred based on their position in this flat file.
+pub(crate) fn read_flat_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+    let f = File::open(path).map_err(|e| {
+        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    })?;
+    let br = BufReader::new(f);
+    let mut data = HashMap::new();
+
+    for (index, line) in br.lines().enumerate() {
+        let line = match line {
+            Ok(value) => value,
+            Err(e) => {
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+            }
+        };
+        data.insert(line.trim().to_owned(), index as i64);
+    }
+    Ok(data)
+}
+
+/// Read a json file (mapping of vocabulary to indices).
+pub(crate) fn read_json_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+    let f = File::open(path).map_err(|e| {
+        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    })?;
+    let br = BufReader::new(f);
+    let values: HashMap<String, i64> = match serde_json::from_reader(br) {
+        Ok(value) => value,
+        Err(e) => {
+            return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+        }
+    };
+    Ok(values)
+}
+
+pub(crate) fn open_protobuf_file(path: &str) -> Result<ModelProto, TokenizerError> {
+    let mut f = File::open(path).map_err(|e| {
+        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    })?;
+    let mut contents = Vec::new();
+    let proto = match f.read_to_end(&mut contents) {
+        Ok(_) => match ModelProto::parse_from_bytes(contents.as_slice()) {
+            Ok(proto_value) => proto_value,
+            Err(e) => {
+                return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+            }
+        },
+        Err(e) => {
+            return Err(TokenizerError::VocabularyParsingError(e.to_string()));
+        }
+    };
+    Ok(proto)
+}
+
+/// Read a SentencePiece protobuf file and extract vocabulary from it.
+pub(crate) fn read_protobuf_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
+    let proto = open_protobuf_file(path)?;
+
+    let mut values = HashMap::new();
+    for (idx, piece) in proto.get_pieces().iter().enumerate() {
+        values.insert(piece.get_piece().to_owned(), idx as i64);
+    }
+    Ok(values)
+}
+
+/// Read a special token mapping file (expects a JSON-like file with key-value pairs
+/// corresponding to the special token names and values).
+pub(crate) fn read_special_token_mapping_file(
+    path: &str,
+) -> Result<SpecialTokenMap, TokenizerError> {
+    let f = File::open(path).map_err(|e| {
+        TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    })?;
+    let br = BufReader::new(f);
+    serde_json::from_reader(br).map_err(|e| {
+        TokenizerError::FileNotFound(format!("Invalid special token mapping file {}", e))
+    })
+}
+
+/// Register a token as a special value
+///
+/// # Parameters
+/// - token (`&str`): token to register as a special value
+/// - values (`&HashMap<String, i64>`): mapping from tokens to ids. This should contain the token to add and will be used to read the id for registration in `special_values`
+/// - special_values (`&HashMap<String, i64>`): mapping from special tokens to ids
+pub(crate) fn register_as_special_value(
+    token: &str,
+    values: &HashMap<String, i64>,
+    special_values: &mut HashMap<String, i64>,
+) -> Result<(), TokenizerError> {
+    let token_id = match values.get(token) {
+        Some(index) => *index,
+        None => {
+            return Err(TokenizerError::TokenNotFound(format!(
+                "The special value {} could not be found in the vocabulary",
+                token
+            )));
+        }
+    };
+    special_values.insert(String::from(token), token_id);
+    Ok(())
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SpecialTokenMap {
+    pub unk_token: String,
+    pub pad_token: Option<String>,
+    pub bos_token: Option<String>,
+    pub sep_token: Option<String>,
+    pub cls_token: Option<String>,
+    pub eos_token: Option<String>,
+    pub mask_token: Option<String>,
+    pub additional_special_tokens: Option<HashSet<String>>,
+}
+
+impl SpecialTokenMap {
+    /// Modifies special_values in-place, registering the existing special tokens registered in the
+    /// special token map. Indices must be present in the provided `value` reference mapping.
+    pub(crate) fn register_special_values(
+        &self,
+        values: &HashMap<String, i64>,
+        special_values: &mut HashMap<String, i64>,
+    ) -> Result<(), TokenizerError> {
+        register_as_special_value(self.unk_token.as_str(), values, special_values)?;
+        if let Some(pad_token) = &self.pad_token {
+            register_as_special_value(pad_token, values, special_values)?;
+        }
+        if let Some(bos_token) = &self.bos_token {
+            register_as_special_value(bos_token, values, special_values)?;
+        }
+        if let Some(sep_token) = &self.sep_token {
+            register_as_special_value(sep_token, values, special_values)?;
+        }
+        if let Some(cls_token) = &self.cls_token {
+            register_as_special_value(cls_token, values, special_values)?;
+        }
+        if let Some(eos_token) = &self.eos_token {
+            register_as_special_value(eos_token, values, special_values)?;
+        }
+        if let Some(mask_token) = &self.mask_token {
+            register_as_special_value(mask_token, values, special_values)?;
+        }
+        if let Some(additional_special_tokens) = &self.additional_special_tokens {
+            for token in additional_special_tokens {
+                register_as_special_value(token, values, special_values)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 /// # Base Vocab trait
 /// Defines a common interface to the vocabularies for use in the tokenizers.
 pub trait Vocab {
-    /// Associative function returning the unknown value for the vocabulary
-    fn unknown_value() -> &'static str;
-
     /// Returns the unknown value on an instance
-    fn get_unknown_value(&self) -> &'static str;
+    fn get_unknown_value(&self) -> &str;
 
     /// Return the map of token strings to IDs
     fn values(&self) -> &HashMap<String, i64>;
 
-    ///Return the map of token IDs to strings
+    /// Return the map of token IDs to strings
     fn indices(&self) -> &HashMap<i64, String>;
 
-    ///Return the map of token strings to IDs
+    /// Return the map of token strings to IDs
     fn special_values(&self) -> &HashMap<String, i64>;
 
-    ///Return the map of token IDs to strings for special values
+    /// Return the map of token IDs to strings for special values
     fn special_indices(&self) -> &HashMap<i64, String>;
 
-    ///Read a vocabulary from file
+    /// Read a vocabulary from file
     ///
     /// # Example
     ///
@@ -57,28 +209,32 @@ pub trait Vocab {
     /// ```
     fn from_file(path: &str) -> Result<Self, TokenizerError>
     where
-        Self: std::marker::Sized;
+        Self: Sized;
 
-    /// Read a Bert-style vocab.txt file (single column, one token per line)
-    /// The `from_file` method should be preferred, and needs to be implemented by the specific vocabularies
-    fn read_vocab_file(path: &str) -> Result<HashMap<String, i64>, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
-        })?;
-        let br = BufReader::new(f);
-        let mut data = HashMap::new();
+    /// Read a vocabulary from file with special token mapping
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::vocab::{BertVocab, Vocab};
+    /// let path = "path/to/file";
+    /// let special_token_mapping = "path/to/mapping.json";
+    ///
+    /// let base_vocab = BertVocab::from_file_with_special_token_mapping(path, special_token_mapping);
+    /// ```
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized;
 
-        for (index, line) in br.lines().enumerate() {
-            let line = match line {
-                Ok(value) => value,
-                Err(e) => {
-                    return Err(TokenizerError::VocabularyParsingError(e.to_string()));
-                }
-            };
-            data.insert(line.trim().to_owned(), index as i64);
-        }
-        Ok(data)
-    }
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized;
 
     /// Converts a token to an id, provided a `HashMap` of values, a `HashMap` of special values and
     /// the unknown value token string representation. This is not meant to be directly used, the method
@@ -138,30 +294,6 @@ pub trait Vocab {
         }
     }
 
-    /// Register a token as a special value
-    ///
-    /// # Parameters
-    /// - token (`&str`): token to register as a special value
-    /// - values (`&HashMap<String, i64>`): mapping from tokens to ids. This should contain the token to add and will be used to read the id for registration in `special_values`
-    /// - special_values (`&HashMap<String, i64>`): mapping from special tokens to ids
-    fn _register_as_special_value(
-        token: &str,
-        values: &HashMap<String, i64>,
-        special_values: &mut HashMap<String, i64>,
-    ) -> Result<(), TokenizerError> {
-        let token_id = match values.get(token) {
-            Some(index) => *index,
-            None => {
-                return Err(TokenizerError::TokenNotFound(format!(
-                    "The special value {} could not be found in the vocabulary",
-                    token
-                )));
-            }
-        };
-        special_values.insert(String::from(token), token_id);
-        Ok(())
-    }
-
     /// Converts a token to an id.
     ///
     /// # Parameters
@@ -203,8 +335,8 @@ pub struct BaseVocab {
     /// A mapping of token ids to strings (i.e. the decoder base)
     pub indices: HashMap<i64, String>,
 
-    /// The string to use for unknown (out of vocabulary) tokens
-    pub unknown_value: &'static str,
+    /// Special tokens used by the vocabulary
+    pub special_token_map: SpecialTokenMap,
 
     /// A mapping of special value tokens as strings to IDs (i.e. the encoder base for special
     /// values), special values typically include things like BOS/EOS markers, class markers, mask
@@ -215,13 +347,11 @@ pub struct BaseVocab {
     pub special_indices: HashMap<i64, String>,
 }
 
-impl Vocab for BaseVocab {
-    fn unknown_value() -> &'static str {
-        "[UNK]"
-    }
+const DEFAULT_UNK_TOKEN: &str = "[UNK]";
 
-    fn get_unknown_value(&self) -> &'static str {
-        "[UNK]"
+impl Vocab for BaseVocab {
+    fn get_unknown_value(&self) -> &str {
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -241,18 +371,45 @@ impl Vocab for BaseVocab {
     }
 
     fn from_file(path: &str) -> Result<BaseVocab, TokenizerError> {
-        let values = BaseVocab::read_vocab_file(path)?;
+        let values = read_flat_file(path)?;
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: None,
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: None,
+            mask_token: None,
+            additional_special_tokens: None,
+        };
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_file_with_special_token_mapping(
+        path: &str,
+        special_token_mapping_path: &str,
+    ) -> Result<Self, TokenizerError> {
+        let values = read_flat_file(path)?;
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        Self::from_values_and_special_token_map(values, special_token_map)
+    }
+
+    fn from_values_and_special_token_map(
+        values: HashMap<String, i64>,
+        special_token_map: SpecialTokenMap,
+    ) -> Result<Self, TokenizerError>
+    where
+        Self: Sized,
+    {
         let mut special_values = HashMap::new();
-        let unknown_value = BaseVocab::unknown_value();
-        BaseVocab::_register_as_special_value(unknown_value, &values, &mut special_values)?;
+        special_token_map.register_special_values(&values, &mut special_values)?;
 
         let indices = swap_key_values(&values);
         let special_indices = swap_key_values(&special_values);
-
-        Ok(BaseVocab {
+        Ok(Self {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         })
@@ -263,12 +420,17 @@ impl Vocab for BaseVocab {
             token,
             &self.values,
             &self.special_values,
-            self.unknown_value,
+            self.get_unknown_value(),
         )
     }
 
     fn id_to_token(&self, id: &i64) -> String {
-        self._id_to_token(id, &self.indices, &self.special_indices, self.unknown_value)
+        self._id_to_token(
+            id,
+            &self.indices,
+            &self.special_indices,
+            self.get_unknown_value(),
+        )
     }
 }
 
@@ -289,20 +451,28 @@ mod tests {
         let special_values: HashMap<String, i64> = HashMap::new();
         let indices: HashMap<i64, String> = HashMap::new();
         let special_indices: HashMap<i64, String> = HashMap::new();
-        let unknown_value = BaseVocab::unknown_value();
+        let special_token_map = SpecialTokenMap {
+            unk_token: "[UNK]".to_string(),
+            pad_token: None,
+            bos_token: None,
+            sep_token: None,
+            cls_token: None,
+            eos_token: None,
+            mask_token: None,
+            additional_special_tokens: None,
+        };
 
         //        When
         let base_vocab = BaseVocab {
             values,
             indices,
-            unknown_value,
+            special_token_map,
             special_values,
             special_indices,
         };
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
-        assert_eq!(base_vocab.unknown_value, BaseVocab::unknown_value());
+        assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
         assert_eq!(base_vocab.values, *base_vocab.values());
         assert_eq!(base_vocab.special_values, *base_vocab.special_values());
     }
@@ -330,7 +500,7 @@ mod tests {
         let base_vocab = BaseVocab::from_file(path.to_path_buf().to_str().unwrap())?;
 
         //        Then
-        assert_eq!(base_vocab.unknown_value, "[UNK]");
+        assert_eq!(base_vocab.get_unknown_value(), "[UNK]");
         assert_eq!(base_vocab.values, target_values);
         assert_eq!(base_vocab.special_values, special_values);
         drop(path);

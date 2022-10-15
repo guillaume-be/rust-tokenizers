@@ -95,6 +95,58 @@ impl RobertaTokenizer {
         })
     }
 
+    /// Create a new instance of a `RobertaTokenizer`
+    /// Expects a vocabulary json file and a merges file and special token mapping file as inputs.
+    ///
+    /// # Parameters
+    /// - vocab_path (`&str`): path to the vocabulary file
+    /// - merges_path (`&str`): path to the merges file (use as part of the BPE encoding process)
+    /// - lower_case (`bool`): flag indicating if the text should be lower-cased as part of the tokenization
+    /// - special_token_mapping_path (`&str`): path to a special token mapping file to overwrite default special tokens
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_tokenizers::tokenizer::{RobertaTokenizer, Tokenizer};
+    /// let lower_case = false;
+    /// let add_prefix_space = true;
+    /// let tokenizer = RobertaTokenizer::from_file_with_special_token_mapping(
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
+    ///     lower_case,
+    ///     add_prefix_space,
+    ///     "path/to/special/token/mapping/file",
+    /// )
+    /// .unwrap();
+    /// ```
+    pub fn from_file_with_special_token_mapping(
+        vocab_path: &str,
+        merges_path: &str,
+        lower_case: bool,
+        add_prefix_space: bool,
+        special_token_mapping_path: &str,
+    ) -> Result<RobertaTokenizer, TokenizerError> {
+        let vocab = RobertaVocab::from_file_with_special_token_mapping(
+            vocab_path,
+            special_token_mapping_path,
+        )?;
+        let bpe_ranks = BpePairVocab::from_file(merges_path)?;
+        let cache = RwLock::new(HashMap::new());
+        let pattern_lookahead = Regex::new(r"\s+\S").unwrap();
+        let pattern_tokenization =
+            Regex::new(r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+")
+                .unwrap();
+        Ok(RobertaTokenizer {
+            vocab,
+            bpe_ranks,
+            cache,
+            pattern_lookahead,
+            pattern_tokenization,
+            lower_case,
+            add_prefix_space,
+        })
+    }
+
     /// Create a new instance of a `RobertaTokenizer` from an existing vocabulary and merges
     ///
     /// # Parameters
@@ -217,9 +269,9 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
-        output.push(self.vocab.token_to_id(RobertaVocab::cls_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_cls_value()));
         output.extend(tokens_ids_with_offsets_1.ids);
-        output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
         offsets.push(None);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
         offsets.push(None);
@@ -236,9 +288,9 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             special_tokens_mask.push(1);
             token_segment_ids.push(0);
             token_segment_ids.extend(vec![1; length + 1]);
-            output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             output.extend(tokens_ids_with_offsets_2_value.ids);
-            output.push(self.vocab.token_to_id(RobertaVocab::sep_value()));
+            output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             offsets.push(None);
             offsets.extend(tokens_ids_with_offsets_2_value.offsets);
             original_offsets.extend(tokens_ids_with_offsets_2_value.reference_offsets);
@@ -264,7 +316,7 @@ impl MultiThreadedTokenizer<RobertaVocab> for RobertaTokenizer {}
 mod tests {
     use super::*;
     use crate::tokenizer::base_tokenizer::{TokenizedInput, TruncationStrategy};
-    use crate::vocab::base_vocab::swap_key_values;
+    use crate::vocab::base_vocab::{swap_key_values, SpecialTokenMap};
     use crate::vocab::RobertaVocab;
     use std::collections::HashMap;
 
@@ -289,6 +341,17 @@ mod tests {
         .cloned()
         .collect();
 
+        let special_token_map = SpecialTokenMap {
+            unk_token: "<unk>".to_string(),
+            pad_token: Some("<pad>".to_string()),
+            bos_token: Some("<s>".to_string()),
+            sep_token: Some("</s>".to_string()),
+            cls_token: Some("<s>".to_string()),
+            eos_token: Some("</s>".to_string()),
+            mask_token: Some("<mask>".to_string()),
+            additional_special_tokens: None,
+        };
+
         let special_values: HashMap<String, i64> = [
             ("<unk>".to_owned(), 6),
             ("<s>".to_owned(), 8),
@@ -306,7 +369,7 @@ mod tests {
         RobertaVocab {
             values,
             indices,
-            unknown_value: "<unk>",
+            special_token_map,
             special_values,
             special_indices,
         }
