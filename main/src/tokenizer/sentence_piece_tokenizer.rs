@@ -49,8 +49,8 @@ impl SentencePieceTokenizer {
     /// let lower_case = false;
     /// let tokenizer = SentencePieceTokenizer::from_file(&Path::new("path/to/vocab/file"), lower_case).unwrap();
     /// ```
-    pub fn from_file(
-        path: &Path,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
     ) -> Result<SentencePieceTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
@@ -85,12 +85,12 @@ impl SentencePieceTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        path: &Path,
+    pub fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
         lower_case: bool,
-        special_token_mapping_path: &Path,
+        special_token_mapping_path: S,
     ) -> Result<SentencePieceTokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
+        let model = SentencePieceModel::from_file(&path)?;
         let vocab = SentencePieceVocab::from_file_with_special_token_mapping(
             path,
             special_token_mapping_path,

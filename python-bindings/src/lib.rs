@@ -818,7 +818,7 @@ impl PySentencePieceTokenizer {
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -830,7 +830,7 @@ impl PySentencePieceTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -847,7 +847,7 @@ impl PySentencePieceTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -864,7 +864,7 @@ impl PySentencePieceTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -879,7 +879,7 @@ impl PySentencePieceTokenizer {
         truncation_strategy: &str,
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
-        <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_pair_list(&self, text_list, max_len, truncation_strategy, stride)
+        <Self as PyMultiThreadTokenizer<SentencePieceTokenizer, SentencePieceVocab>>::encode_pair_list(self, text_list, max_len, truncation_strategy, stride)
     }
 }
 
@@ -924,7 +924,7 @@ impl PyAlbertTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -941,7 +941,7 @@ impl PyAlbertTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -958,7 +958,7 @@ impl PyAlbertTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -974,7 +974,7 @@ impl PyAlbertTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<AlbertTokenizer, AlbertVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1007,12 +1007,12 @@ impl PyXLNetTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<XLNetTokenizer, XLNetVocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<XLNetTokenizer, XLNetVocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -1024,7 +1024,7 @@ impl PyXLNetTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<XLNetTokenizer, XLNetVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1041,7 +1041,7 @@ impl PyXLNetTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<XLNetTokenizer, XLNetVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1058,7 +1058,7 @@ impl PyXLNetTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1074,7 +1074,7 @@ impl PyXLNetTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1106,11 +1106,11 @@ impl PyT5Tokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::tokenize_list(self, text_list)
     }
 
     fn encode(
@@ -1121,7 +1121,7 @@ impl PyT5Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1138,7 +1138,7 @@ impl PyT5Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<T5Tokenizer, T5Vocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1155,7 +1155,7 @@ impl PyT5Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1171,7 +1171,7 @@ impl PyT5Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<T5Tokenizer, T5Vocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1203,12 +1203,12 @@ impl PyXLMRobertaTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -1220,7 +1220,7 @@ impl PyXLMRobertaTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1237,7 +1237,7 @@ impl PyXLMRobertaTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1254,7 +1254,7 @@ impl PyXLMRobertaTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1270,7 +1270,7 @@ impl PyXLMRobertaTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<XLMRobertaTokenizer, XLMRobertaVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1302,12 +1302,12 @@ impl PyReformerTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<ReformerTokenizer, ReformerVocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<ReformerTokenizer, ReformerVocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<ReformerTokenizer, ReformerVocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -1319,7 +1319,7 @@ impl PyReformerTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<ReformerTokenizer, ReformerVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1336,7 +1336,7 @@ impl PyReformerTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<ReformerTokenizer, ReformerVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1353,7 +1353,7 @@ impl PyReformerTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<ReformerTokenizer, ReformerVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1369,7 +1369,7 @@ impl PyReformerTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<ReformerTokenizer, ReformerVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1407,7 +1407,7 @@ impl PyProphetNetTokenizer {
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -1419,7 +1419,7 @@ impl PyProphetNetTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1436,7 +1436,7 @@ impl PyProphetNetTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1453,7 +1453,7 @@ impl PyProphetNetTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1469,7 +1469,7 @@ impl PyProphetNetTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<ProphetNetTokenizer, ProphetNetVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1501,7 +1501,7 @@ impl PyPegasusTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<PegasusTokenizer, PegasusVocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<PegasusTokenizer, PegasusVocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
@@ -1518,7 +1518,7 @@ impl PyPegasusTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<PegasusTokenizer, PegasusVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1535,7 +1535,7 @@ impl PyPegasusTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<PegasusTokenizer, PegasusVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1552,7 +1552,7 @@ impl PyPegasusTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<PegasusTokenizer, PegasusVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1568,7 +1568,7 @@ impl PyPegasusTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<PegasusTokenizer, PegasusVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1600,12 +1600,12 @@ impl PyMBart50Tokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<MBart50Tokenizer, MBart50Vocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<MBart50Tokenizer, MBart50Vocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<MBart50Tokenizer, MBart50Vocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -1617,7 +1617,7 @@ impl PyMBart50Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1634,7 +1634,7 @@ impl PyMBart50Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1651,7 +1651,7 @@ impl PyMBart50Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1667,7 +1667,7 @@ impl PyMBart50Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<MBart50Tokenizer, MBart50Vocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1707,7 +1707,7 @@ impl PySentencePieceBpeTokenizer {
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<SentencePieceBpeTokenizer, SentencePieceVocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -1719,7 +1719,7 @@ impl PySentencePieceBpeTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<SentencePieceBpeTokenizer, SentencePieceVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1736,7 +1736,7 @@ impl PySentencePieceBpeTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<SentencePieceBpeTokenizer, SentencePieceVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1753,7 +1753,7 @@ impl PySentencePieceBpeTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<SentencePieceBpeTokenizer, SentencePieceVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1769,7 +1769,7 @@ impl PySentencePieceBpeTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<SentencePieceBpeTokenizer, SentencePieceVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1811,7 +1811,7 @@ impl PyM2M100Tokenizer {
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<M2M100Tokenizer, M2M100Vocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -1823,7 +1823,7 @@ impl PyM2M100Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<M2M100Tokenizer, M2M100Vocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1840,7 +1840,7 @@ impl PyM2M100Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<M2M100Tokenizer, M2M100Vocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1857,7 +1857,7 @@ impl PyM2M100Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<M2M100Tokenizer, M2M100Vocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1873,7 +1873,7 @@ impl PyM2M100Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<M2M100Tokenizer, M2M100Vocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1906,11 +1906,11 @@ impl PyFNetTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<FNetTokenizer, FNetVocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<FNetTokenizer, FNetVocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyMultiThreadTokenizer<FNetTokenizer, FNetVocab>>::tokenize_list(&self, text_list)
+        <Self as PyMultiThreadTokenizer<FNetTokenizer, FNetVocab>>::tokenize_list(self, text_list)
     }
 
     fn encode(
@@ -1921,7 +1921,7 @@ impl PyFNetTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<FNetTokenizer, FNetVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -1938,7 +1938,7 @@ impl PyFNetTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<FNetTokenizer, FNetVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -1955,7 +1955,7 @@ impl PyFNetTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<FNetTokenizer, FNetVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -1971,7 +1971,7 @@ impl PyFNetTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<FNetTokenizer, FNetVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -2008,12 +2008,12 @@ impl PyDeBertaTokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<DeBERTaTokenizer, DeBERTaVocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<DeBERTaTokenizer, DeBERTaVocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<DeBERTaTokenizer, DeBERTaVocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -2025,7 +2025,7 @@ impl PyDeBertaTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<DeBERTaTokenizer, DeBERTaVocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -2042,7 +2042,7 @@ impl PyDeBertaTokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<DeBERTaTokenizer, DeBERTaVocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -2059,7 +2059,7 @@ impl PyDeBertaTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<DeBERTaTokenizer, DeBERTaVocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -2075,7 +2075,7 @@ impl PyDeBertaTokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<DeBERTaTokenizer, DeBERTaVocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -2118,12 +2118,12 @@ impl PyDeBertaV2Tokenizer {
     }
 
     fn tokenize(&self, text: &str) -> PyResult<Vec<String>> {
-        <Self as PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::tokenize(&self, text)
+        <Self as PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::tokenize(self, text)
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
         <Self as PyMultiThreadTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::tokenize_list(
-            &self, text_list,
+            self, text_list,
         )
     }
 
@@ -2135,7 +2135,7 @@ impl PyDeBertaV2Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode(
-            &self,
+            self,
             text,
             max_len,
             truncation_strategy,
@@ -2152,7 +2152,7 @@ impl PyDeBertaV2Tokenizer {
         stride: usize,
     ) -> PyResult<PyTokenizedInput> {
         <Self as PyTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode_pair(
-            &self,
+            self,
             text_a,
             text_b,
             max_len,
@@ -2169,7 +2169,7 @@ impl PyDeBertaV2Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,
@@ -2185,7 +2185,7 @@ impl PyDeBertaV2Tokenizer {
         stride: usize,
     ) -> PyResult<Vec<PyTokenizedInput>> {
         <Self as PyMultiThreadTokenizer<DeBERTaV2Tokenizer, DeBERTaV2Vocab>>::encode_pair_list(
-            &self,
+            self,
             text_list,
             max_len,
             truncation_strategy,

@@ -53,7 +53,7 @@ impl MBart50Tokenizer {
     /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer = MBart50Tokenizer::from_file(&path, lower_case).unwrap();
     /// ```
-    pub fn from_file(path: &Path, lower_case: bool) -> Result<MBart50Tokenizer, TokenizerError> {
+    pub fn from_file<P: AsRef<Path>>(path: P, lower_case: bool) -> Result<MBart50Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
         let vocab = MBart50Vocab::from_file(path)?;
         Ok(MBart50Tokenizer {
@@ -85,12 +85,12 @@ impl MBart50Tokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        path: &Path,
+    pub fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
         lower_case: bool,
-        special_token_mapping_path: &Path,
+        special_token_mapping_path: S,
     ) -> Result<MBart50Tokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
+        let model = SentencePieceModel::from_file(&path)?;
         let vocab =
             MBart50Vocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
         Ok(MBart50Tokenizer {

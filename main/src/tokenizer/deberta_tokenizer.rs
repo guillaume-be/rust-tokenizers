@@ -65,9 +65,9 @@ impl DeBERTaTokenizer {
     ///     DeBERTaTokenizer::from_file(&Path::new("path/to/vocab/file"), &Path::new("path/to/merges/file"), lower_case)
     ///         .unwrap();
     /// ```
-    pub fn from_file(
-        vocab_path: &Path,
-        merges_path: &Path,
+    pub fn from_file<P: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: P,
+        merges_path: M,
         lower_case: bool,
     ) -> Result<Self, TokenizerError> {
         let vocab = DeBERTaVocab::from_file(vocab_path)?;

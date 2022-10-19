@@ -30,11 +30,11 @@ pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
 
 /// Read a flat vocab.txt file (single column, one token per line)
 /// Indices are inferred based on their position in this flat file.
-pub(crate) fn read_flat_file(path: &Path) -> Result<HashMap<String, i64>, TokenizerError> {
-    let f = File::open(path).map_err(|e| {
+pub(crate) fn read_flat_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
+    let f = File::open(&path).map_err(|e| {
         TokenizerError::FileNotFound(format!(
             "{} vocabulary file not found :{}",
-            path.display(),
+            path.as_ref().display(),
             e
         ))
     })?;
@@ -54,11 +54,11 @@ pub(crate) fn read_flat_file(path: &Path) -> Result<HashMap<String, i64>, Tokeni
 }
 
 /// Read a json file (mapping of vocabulary to indices).
-pub(crate) fn read_json_file(path: &Path) -> Result<HashMap<String, i64>, TokenizerError> {
-    let f = File::open(path).map_err(|e| {
+pub(crate) fn read_json_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
+    let f = File::open(&path).map_err(|e| {
         TokenizerError::FileNotFound(format!(
             "{} vocabulary file not found :{}",
-            path.display(),
+            path.as_ref().display(),
             e
         ))
     })?;
@@ -72,11 +72,11 @@ pub(crate) fn read_json_file(path: &Path) -> Result<HashMap<String, i64>, Tokeni
     Ok(values)
 }
 
-pub(crate) fn open_protobuf_file(path: &Path) -> Result<ModelProto, TokenizerError> {
-    let mut f = File::open(path).map_err(|e| {
+pub(crate) fn open_protobuf_file<P: AsRef<Path>>(path: P) -> Result<ModelProto, TokenizerError> {
+    let mut f = File::open(&path).map_err(|e| {
         TokenizerError::FileNotFound(format!(
             "{} vocabulary file not found :{}",
-            path.display(),
+            path.as_ref().display(),
             e
         ))
     })?;
@@ -96,7 +96,7 @@ pub(crate) fn open_protobuf_file(path: &Path) -> Result<ModelProto, TokenizerErr
 }
 
 /// Read a SentencePiece protobuf file and extract vocabulary from it.
-pub(crate) fn read_protobuf_file(path: &Path) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn read_protobuf_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
     let proto = open_protobuf_file(path)?;
 
     let mut values = HashMap::new();
@@ -108,13 +108,13 @@ pub(crate) fn read_protobuf_file(path: &Path) -> Result<HashMap<String, i64>, To
 
 /// Read a special token mapping file (expects a JSON-like file with key-value pairs
 /// corresponding to the special token names and values).
-pub(crate) fn read_special_token_mapping_file(
-    path: &Path,
+pub(crate) fn read_special_token_mapping_file<P: AsRef<Path>>(
+    path: P,
 ) -> Result<SpecialTokenMap, TokenizerError> {
-    let f = File::open(path).map_err(|e| {
+    let f = File::open(&path).map_err(|e| {
         TokenizerError::FileNotFound(format!(
             "{} vocabulary file not found :{}",
-            path.display(),
+            path.as_ref().display(),
             e
         ))
     })?;
@@ -224,7 +224,7 @@ pub trait Vocab {
     /// let path = std::path::Path::new("path/to/file");
     /// let base_vocab = BertVocab::from_file(&path);
     /// ```
-    fn from_file(path: &Path) -> Result<Self, TokenizerError>
+    fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, TokenizerError>
     where
         Self: Sized;
 
@@ -241,9 +241,9 @@ pub trait Vocab {
     ///
     /// let base_vocab = BertVocab::from_file_with_special_token_mapping(&path, &special_token_mapping);
     /// ```
-    fn from_file_with_special_token_mapping(
-        path: &Path,
-        special_token_mapping_path: &Path,
+    fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
+        special_token_mapping_path: S,
     ) -> Result<Self, TokenizerError>
     where
         Self: Sized;
@@ -389,7 +389,7 @@ impl Vocab for BaseVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &Path) -> Result<BaseVocab, TokenizerError> {
+    fn from_file<P: AsRef<Path>>(path: P) -> Result<BaseVocab, TokenizerError> {
         let values = read_flat_file(path)?;
         let special_token_map = SpecialTokenMap {
             unk_token: DEFAULT_UNK_TOKEN.to_string(),
@@ -404,9 +404,9 @@ impl Vocab for BaseVocab {
         Self::from_values_and_special_token_map(values, special_token_map)
     }
 
-    fn from_file_with_special_token_mapping(
-        path: &Path,
-        special_token_mapping_path: &Path,
+    fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
+        special_token_mapping_path: S,
     ) -> Result<Self, TokenizerError> {
         let values = read_flat_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;

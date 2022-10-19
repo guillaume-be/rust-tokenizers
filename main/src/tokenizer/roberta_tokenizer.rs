@@ -74,9 +74,9 @@ impl RobertaTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file(
-        vocab_path: &Path,
-        merges_path: &Path,
+    pub fn from_file<P: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: P,
+        merges_path: M,
         lower_case: bool,
         add_prefix_space: bool,
     ) -> Result<RobertaTokenizer, TokenizerError> {

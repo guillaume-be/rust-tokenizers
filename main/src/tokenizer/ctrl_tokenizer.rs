@@ -59,9 +59,9 @@ impl CtrlTokenizer {
     /// let tokenizer =
     ///     CtrlTokenizer::from_file(&Path::new("path/to/vocab/file"), &Path::new("path/to/merges/file"), lower_case).unwrap();
     /// ```
-    pub fn from_file(
-        vocab_path: &Path,
-        merges_path: &Path,
+    pub fn from_file<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        merges_path: M,
         lower_case: bool,
     ) -> Result<CtrlTokenizer, TokenizerError> {
         let vocab = OpenAiGptVocab::from_file(vocab_path)?;
@@ -101,11 +101,11 @@ impl CtrlTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        vocab_path: &Path,
-        merges_path: &Path,
+    pub fn from_file_with_special_token_mapping<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+        vocab_path: V,
+        merges_path: M,
         lower_case: bool,
-        special_token_mapping_path: &Path,
+        special_token_mapping_path: S,
     ) -> Result<CtrlTokenizer, TokenizerError> {
         let vocab = OpenAiGptVocab::from_file_with_special_token_mapping(
             vocab_path,

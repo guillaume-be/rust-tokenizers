@@ -66,8 +66,8 @@ impl DeBERTaV2Tokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file(
-        path: &Path,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
         add_prefix_space: bool,

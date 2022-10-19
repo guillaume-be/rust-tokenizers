@@ -77,11 +77,11 @@ impl SentencePieceModel {
     /// let path = std::path::Path::new("path/to/spiece.model");
     /// let sentence_piece_model = SentencePieceModel::from_file(&path).unwrap();
     /// ```
-    pub fn from_file(path: &Path) -> Result<SentencePieceModel, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<SentencePieceModel, TokenizerError> {
+        let mut f = File::open(&path).map_err(|e| {
             TokenizerError::FileNotFound(format!(
                 "{} vocabulary file not found :{}",
-                path.display(),
+                path.as_ref().display(),
                 e
             ))
         })?;

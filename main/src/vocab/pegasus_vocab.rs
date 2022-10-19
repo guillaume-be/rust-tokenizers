@@ -109,7 +109,7 @@ impl Vocab for PegasusVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &Path) -> Result<PegasusVocab, TokenizerError> {
+    fn from_file<P: AsRef<Path>>(path: P) -> Result<PegasusVocab, TokenizerError> {
         let proto = open_protobuf_file(path)?;
 
         let mut values = HashMap::new();
@@ -202,9 +202,9 @@ impl Vocab for PegasusVocab {
         })
     }
 
-    fn from_file_with_special_token_mapping(
-        path: &Path,
-        special_token_mapping_path: &Path,
+    fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
+        special_token_mapping_path: S,
     ) -> Result<Self, TokenizerError> {
         let proto = open_protobuf_file(path)?;
 

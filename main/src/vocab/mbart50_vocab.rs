@@ -126,7 +126,7 @@ impl Vocab for MBart50Vocab {
         &self.special_indices
     }
 
-    fn from_file(path: &Path) -> Result<MBart50Vocab, TokenizerError> {
+    fn from_file<P: AsRef<Path>>(path: P) -> Result<MBart50Vocab, TokenizerError> {
         let mut values = HashMap::new();
         let mut special_values = HashMap::new();
 
@@ -188,9 +188,9 @@ impl Vocab for MBart50Vocab {
         })
     }
 
-    fn from_file_with_special_token_mapping(
-        path: &Path,
-        special_token_mapping_path: &Path,
+    fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
+        special_token_mapping_path: S,
     ) -> Result<Self, TokenizerError> {
         let mut values = HashMap::new();
         let mut special_values = HashMap::new();

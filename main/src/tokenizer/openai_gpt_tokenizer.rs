@@ -56,9 +56,9 @@ impl OpenAiGptTokenizer {
     ///         lower_case)
     ///     .unwrap();
     /// ```
-    pub fn from_file(
-        vocab_path: &Path,
-        merges_path: &Path,
+    pub fn from_file<P: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: P,
+        merges_path: M,
         lower_case: bool,
     ) -> Result<OpenAiGptTokenizer, TokenizerError> {
         let vocab = OpenAiGptVocab::from_file(vocab_path)?;

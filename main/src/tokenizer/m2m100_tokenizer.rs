@@ -59,9 +59,9 @@ impl M2M100Tokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_files(
-        vocab_path: &Path,
-        model_path: &Path,
+    pub fn from_files<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
         lower_case: bool,
     ) -> Result<M2M100Tokenizer, TokenizerError> {
         let vocab = M2M100Vocab::from_file(vocab_path)?;

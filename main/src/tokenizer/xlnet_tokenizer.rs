@@ -58,12 +58,12 @@ impl XLNetTokenizer {
     /// let tokenizer =
     ///     XLNetTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
     /// ```
-    pub fn from_file(
-        path: &Path,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<XLNetTokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
+        let model = SentencePieceModel::from_file(&path)?;
         let vocab = XLNetVocab::from_file(path)?;
         Ok(XLNetTokenizer {
             model,
@@ -98,13 +98,13 @@ impl XLNetTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        path: &Path,
+    pub fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
-        special_token_mapping_path: &Path,
+        special_token_mapping_path: S,
     ) -> Result<XLNetTokenizer, TokenizerError> {
-        let model = SentencePieceModel::from_file(path)?;
+        let model = SentencePieceModel::from_file(&path)?;
         let vocab =
             XLNetVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
         Ok(XLNetTokenizer {
