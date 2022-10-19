@@ -45,9 +45,9 @@ impl SentencePieceBpeModel {
     /// # Example
     /// ```no_run
     /// use rust_tokenizers::vocab::SentencePieceBpeModel;
+    /// let path = "path/to/spiece.model";
     ///
-    /// let path = std::path::Path::new("path/to/spiece.model");
-    /// let sentence_piece_model = SentencePieceBpeModel::from_file(&path);
+    /// let sentence_piece_model = SentencePieceBpeModel::from_file(path);
     /// ```
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<SentencePieceBpeModel, TokenizerError> {
         let mut f = File::open(&path).map_err(|e| {
@@ -87,7 +87,7 @@ impl SentencePieceBpeModel {
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
     ///
-    /// let sentence_piece_bpe_model = SentencePieceBpeModel::from_file(&std::path::Path::new(path)).unwrap();
+    /// let sentence_piece_bpe_model = SentencePieceBpeModel::from_file(path).unwrap();
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let tokenized_output = sentence_piece_bpe_model.tokenize_to_tokens(token);
     /// ```
@@ -196,7 +196,7 @@ impl SentencePieceBpeModel {
     /// use rust_tokenizers::vocab::SentencePieceBpeModel;
     /// use rust_tokenizers::TokenRef;
     /// let path = "path/to/spiece.model";
-    /// let sentence_piece_model = SentencePieceBpeModel::from_file(&std::path::Path::new(path)).unwrap();
+    /// let sentence_piece_model = SentencePieceBpeModel::from_file(path).unwrap();
     ///
     /// let token = TokenRef::new("hello", &[0, 1, 2, 3]);
     /// let mut sub_tokens = sentence_piece_model.tokenize_to_tokens(token);

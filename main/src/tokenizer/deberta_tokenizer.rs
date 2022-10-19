@@ -58,11 +58,9 @@ impl DeBERTaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let tokenizer =
-    ///     DeBERTaTokenizer::from_file(&Path::new("path/to/vocab/file"), &Path::new("path/to/merges/file"), lower_case)
+    ///     DeBERTaTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case)
     ///         .unwrap();
     /// ```
     pub fn from_file<P: AsRef<Path>, M: AsRef<Path>>(
@@ -99,22 +97,20 @@ impl DeBERTaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let tokenizer = DeBERTaTokenizer::from_file_with_special_token_mapping(
-    ///     &Path::new("path/to/vocab/file"),
-    ///     &Path::new("path/to/merges/file"),
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
     ///     lower_case,
-    ///     &Path::new("path/to/special/token/mapping/file"),
+    ///     "path/to/special/token/mapping/file",
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        vocab_path: &Path,
-        merges_path: &Path,
+    pub fn from_file_with_special_token_mapping<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+        vocab_path: V,
+        merges_path: M,
         lower_case: bool,
-        special_token_mapping_path: &Path,
+        special_token_mapping_path: S,
     ) -> Result<DeBERTaTokenizer, TokenizerError> {
         let vocab = DeBERTaVocab::from_file_with_special_token_mapping(
             vocab_path,
@@ -148,11 +144,9 @@ impl DeBERTaTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{DeBERTaTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BpePairVocab, DeBERTaVocab, Vocab};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
-    /// let vocab = DeBERTaVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
-    /// let merges = BpePairVocab::from_file(&Path::new("path/to/merges/file")).unwrap();
+    /// let vocab = DeBERTaVocab::from_file("path/to/vocab/file").unwrap();
+    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
     ///
     /// let tokenizer = DeBERTaTokenizer::from_existing_vocab_and_merges(vocab, merges, lower_case);
     /// ```

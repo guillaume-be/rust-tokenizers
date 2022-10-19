@@ -45,13 +45,11 @@ impl SentencePieceBpeTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{SentencePieceTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let tokenizer = SentencePieceTokenizer::from_file_with_special_token_mapping(
-    ///     &Path::new("path/to/vocab/file"),
+    ///     "path/to/vocab/file",
     ///     lower_case,
-    ///     &Path::new("path/to/special/token/mapping/file"),
+    ///     "path/to/special/token/mapping/file",
     /// )
     /// .unwrap();
     /// ```
@@ -84,10 +82,8 @@ impl SentencePieceBpeTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{SentencePieceTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
-    /// let tokenizer = SentencePieceTokenizer::from_file(&Path::new("path/to/vocab/file"), lower_case).unwrap();
+    /// let tokenizer = SentencePieceTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
     pub fn from_file<P: AsRef<Path>>(
         path: P,
@@ -115,11 +111,9 @@ impl SentencePieceBpeTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{SentencePieceBpeTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{SentencePieceBpeModel, SentencePieceVocab, Vocab};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
-    /// let vocab = SentencePieceVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
-    /// let model = SentencePieceBpeModel::from_file(&Path::new("path/to/model/file")).unwrap();
+    /// let vocab = SentencePieceVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =
     ///     SentencePieceBpeTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);

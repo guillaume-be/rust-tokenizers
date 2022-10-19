@@ -62,13 +62,11 @@ impl RobertaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{RobertaTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let add_prefix_space = true;
     /// let tokenizer = RobertaTokenizer::from_file(
-    ///     &Path::new("path/to/vocab/file"),
-    ///     &Path::new("path/to/merges/file"),
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
     ///     lower_case,
     ///     add_prefix_space,
     /// )
@@ -111,25 +109,24 @@ impl RobertaTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{RobertaTokenizer, Tokenizer};
-    /// use std::path::Path;
     ///
     /// let lower_case = false;
     /// let add_prefix_space = true;
     /// let tokenizer = RobertaTokenizer::from_file_with_special_token_mapping(
-    ///     Path::new("path/to/vocab/file"),
-    ///     Path::new("path/to/merges/file"),
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
     ///     lower_case,
     ///     add_prefix_space,
-    ///     Path::new("path/to/special/token/mapping/file"),
+    ///     "path/to/special/token/mapping/file",
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        vocab_path: &Path,
-        merges_path: &Path,
+    pub fn from_file_with_special_token_mapping<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+        vocab_path: V,
+        merges_path: M,
         lower_case: bool,
         add_prefix_space: bool,
-        special_token_mapping_path: &Path,
+        special_token_mapping_path: S,
     ) -> Result<RobertaTokenizer, TokenizerError> {
         let vocab = RobertaVocab::from_file_with_special_token_mapping(
             vocab_path,
@@ -164,12 +161,10 @@ impl RobertaTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{RobertaTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BpePairVocab, RobertaVocab, Vocab};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let add_prefix_space = true;
-    /// let vocab = RobertaVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
-    /// let merges = BpePairVocab::from_file(&Path::new("path/to/merges/file")).unwrap();
+    /// let vocab = RobertaVocab::from_file("path/to/vocab/file").unwrap();
+    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
     ///
     /// let tokenizer = RobertaTokenizer::from_existing_vocab_and_merges(
     ///     vocab,

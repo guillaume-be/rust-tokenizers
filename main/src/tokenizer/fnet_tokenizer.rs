@@ -53,12 +53,10 @@ impl FNetTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{FNetTokenizer, Tokenizer};
-    ///
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let path = std::path::Path::new("path/to/vocab/file");
     /// let tokenizer =
-    ///     FNetTokenizer::from_file(&path, lower_case, strip_accents).unwrap();
+    ///     FNetTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
     pub fn from_file<P: AsRef<Path>>(
         path: P,
@@ -88,15 +86,13 @@ impl FNetTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{FNetTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let strip_accents = false;
     /// let lower_case = false;
     /// let tokenizer = FNetTokenizer::from_file_with_special_token_mapping(
-    ///     &Path::new("path/to/vocab/file"),
+    ///     "path/to/vocab/file",
     ///     lower_case,
     ///     strip_accents,
-    ///     &Path::new("path/to/special/token/mapping/file"),
+    ///     "path/to/special/token/mapping/file",
     /// )
     /// .unwrap();
     /// ```
@@ -130,12 +126,10 @@ impl FNetTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::FNetTokenizer;
     /// use rust_tokenizers::vocab::{FNetVocab, SentencePieceBpeModel, Vocab};
-    /// use std::path::Path;
-    ///
     /// let strip_accents = false;
     /// let lower_case = false;
-    /// let vocab = FNetVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
-    /// let model = SentencePieceBpeModel::from_file(&Path::new("path/to/model/file")).unwrap();
+    /// let vocab = FNetVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceBpeModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer =
     ///     FNetTokenizer::from_existing_vocab_and_model(vocab, model, lower_case, strip_accents);

@@ -46,9 +46,9 @@ impl BpePairVocab {
     ///
     /// ```no_run
     /// use rust_tokenizers::vocab::{BpePairVocab, Vocab};
+    /// let path = "path/to/file";
     ///
-    /// let path = std::path::Path::new("path/to/file");
-    /// let bpe_vocab = BpePairVocab::from_file(&path);
+    /// let bpe_vocab = BpePairVocab::from_file(path);
     /// ```
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<BpePairVocab, TokenizerError> {
         let f = File::open(&path).map_err(|e| {
@@ -84,9 +84,9 @@ impl BpePairVocab {
     ///
     /// ```no_run
     /// use rust_tokenizers::vocab::{BpePairVocab, Vocab};
+    /// let path = "path/to/spiece.model";
     ///
-    /// let path = std::path::Path::new("path/to/spiece.model");
-    /// let bpe_vocab = BpePairVocab::from_sentencepiece_file(&path);
+    /// let bpe_vocab = BpePairVocab::from_sentencepiece_file(path);
     /// ```
     pub fn from_sentencepiece_file<P: AsRef<Path>>(path: P) -> Result<BpePairVocab, TokenizerError> {
         let mut f = File::open(&path).map_err(|e| {
@@ -134,7 +134,7 @@ impl BpePairVocab {
     /// use rust_tokenizers::vocab::{BpePairRef, BpePairVocab, Vocab};
     /// let path = "path/to/file";
     ///
-    /// let bpe_vocab = BpePairVocab::from_file(&std::path::Path::new(path)).unwrap();
+    /// let bpe_vocab = BpePairVocab::from_file(path).unwrap();
     ///
     /// let query = BpePairRef {
     ///     byte_1: &"won".to_string(),

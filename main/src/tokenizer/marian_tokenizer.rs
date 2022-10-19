@@ -51,15 +51,10 @@ impl MarianTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let tokenizer =
-    ///     MarianTokenizer::from_files(
-    ///         &Path::new("path/to/vocab/file"),
-    ///         &Path::new("path/to/model/file"),
-    ///         lower_case)
-    ///     .unwrap();
+    ///     MarianTokenizer::from_files("path/to/vocab/file", "path/to/model/file", lower_case)
+    ///         .unwrap();
     /// ```
     pub fn from_files<V: AsRef<Path>, M: AsRef<Path>>(
         vocab_path: V,
@@ -90,22 +85,20 @@ impl MarianTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let tokenizer = MarianTokenizer::from_files_with_special_token_mapping(
-    ///     &Path::new("path/to/vocab/file"),
-    ///     &Path::new("path/to/model/file"),
+    ///     "path/to/vocab/file",
+    ///     "path/to/model/file",
     ///     lower_case,
-    ///     &Path::new("path/to/special/token/mapping/file"),
+    ///     "path/to/special/token/mapping/file",
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_files_with_special_token_mapping(
-        vocab_path: &Path,
-        model_path: &Path,
+    pub fn from_files_with_special_token_mapping<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
         lower_case: bool,
-        special_token_mapping_path: &Path,
+        special_token_mapping_path: S,
     ) -> Result<MarianTokenizer, TokenizerError> {
         let vocab = MarianVocab::from_file_with_special_token_mapping(
             vocab_path,
@@ -133,11 +126,9 @@ impl MarianTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{MarianTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{MarianVocab, SentencePieceModel, Vocab};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
-    /// let vocab = MarianVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
-    /// let model = SentencePieceModel::from_file(&Path::new("path/to/model/file")).unwrap();
+    /// let vocab = MarianVocab::from_file("path/to/vocab/file").unwrap();
+    /// let model = SentencePieceModel::from_file("path/to/model/file").unwrap();
     ///
     /// let tokenizer = MarianTokenizer::from_existing_vocab_and_model(vocab, model, lower_case);
     /// ```

@@ -243,7 +243,7 @@ mod tests {
         .collect();
 
         //        When
-        let bert_vocab = BertVocab::from_file(&path)?;
+        let bert_vocab = BertVocab::from_file(&path )?;
 
         //        Then
         assert_eq!(bert_vocab.get_unknown_value(), "[UNK]");

@@ -53,11 +53,9 @@ impl CtrlTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{CtrlTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let tokenizer =
-    ///     CtrlTokenizer::from_file(&Path::new("path/to/vocab/file"), &Path::new("path/to/merges/file"), lower_case).unwrap();
+    ///     CtrlTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case).unwrap();
     /// ```
     pub fn from_file<V: AsRef<Path>, M: AsRef<Path>>(
         vocab_path: V,
@@ -90,14 +88,12 @@ impl CtrlTokenizer {
     ///
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{CtrlTokenizer, Tokenizer};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
     /// let tokenizer = CtrlTokenizer::from_file_with_special_token_mapping(
-    ///     &Path::new("path/to/vocab/file"),
-    ///     &Path::new("path/to/merges/file"),
+    ///     "path/to/vocab/file",
+    ///     "path/to/merges/file",
     ///     lower_case,
-    ///     &Path::new("path/to/special/token/mapping/file"),
+    ///     "path/to/special/token/mapping/file",
     /// )
     /// .unwrap();
     /// ```
@@ -135,11 +131,9 @@ impl CtrlTokenizer {
     /// ```no_run
     /// use rust_tokenizers::tokenizer::{CtrlTokenizer, Tokenizer};
     /// use rust_tokenizers::vocab::{BpePairVocab, OpenAiGptVocab, Vocab};
-    /// use std::path::Path;
-    ///
     /// let lower_case = false;
-    /// let vocab = OpenAiGptVocab::from_file(&Path::new("path/to/vocab/file")).unwrap();
-    /// let merges = BpePairVocab::from_file(&Path::new("path/to/merges/file")).unwrap();
+    /// let vocab = OpenAiGptVocab::from_file("path/to/vocab/file").unwrap();
+    /// let merges = BpePairVocab::from_file("path/to/merges/file").unwrap();
     ///
     /// let tokenizer = CtrlTokenizer::from_existing_vocab_and_merges(vocab, merges, lower_case);
     /// ```
