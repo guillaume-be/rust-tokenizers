@@ -19,8 +19,8 @@ fn test_gpt2_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let vocab = Gpt2Vocab::from_file(vocab_path.to_str().unwrap())?;
-    let merges = BpePairVocab::from_file(merges_path.to_str().unwrap())?;
+    let vocab = Gpt2Vocab::from_file(vocab_path.as_path())?;
+    let merges = BpePairVocab::from_file(merges_path.as_path())?;
 
     let gpt2_tokenizer = Gpt2Tokenizer::from_existing_vocab_and_merges(vocab, merges, false);
 

@@ -18,11 +18,7 @@ fn test_openai_gpt_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let openai_gpt_tokenizer = OpenAiGptTokenizer::from_file(
-        vocab_path.to_str().unwrap(),
-        merges_path.to_str().unwrap(),
-        true,
-    )?;
+    let openai_gpt_tokenizer = OpenAiGptTokenizer::from_file(&vocab_path, &merges_path, true)?;
 
     let original_strings = [
         "…",

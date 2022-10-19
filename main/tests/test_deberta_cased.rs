@@ -18,11 +18,7 @@ fn test_deberta_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let deberta_tokenizer = DeBERTaTokenizer::from_file(
-        vocab_path.to_str().unwrap(),
-        merges_path.to_str().unwrap(),
-        false,
-    )?;
+    let deberta_tokenizer = DeBERTaTokenizer::from_file(&vocab_path, &merges_path, false)?;
 
     let original_strings = [
         "…",

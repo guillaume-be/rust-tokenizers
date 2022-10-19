@@ -23,6 +23,7 @@ use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::Read;
 use std::ops::Index;
+use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct BpeMergeVocab {
@@ -48,9 +49,13 @@ impl SentencePieceBpeModel {
     ///
     /// let sentence_piece_model = SentencePieceBpeModel::from_file(path);
     /// ```
-    pub fn from_file(path: &str) -> Result<SentencePieceBpeModel, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<SentencePieceBpeModel, TokenizerError> {
+        let mut f = File::open(&path).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                path.as_ref().display(),
+                e
+            ))
         })?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {

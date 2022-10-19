@@ -13,7 +13,7 @@ fn test_albert_tokenization() -> anyhow::Result<()> {
         "albert-base-v2-spiece.model",
     )?;
 
-    let albert_tokenizer = AlbertTokenizer::from_file(vocab_path.to_str().unwrap(), true, true)?;
+    let albert_tokenizer = AlbertTokenizer::from_file(&vocab_path, true, true)?;
 
     let original_strings = [
         "…",

@@ -13,7 +13,7 @@ fn test_pegasus_tokenization() -> anyhow::Result<()> {
         "pegasus-cnn_dailymail-spiece.model",
     )?;
 
-    let pegasus_tokenizer = PegasusTokenizer::from_file(vocab_path.to_str().unwrap(), false)?;
+    let pegasus_tokenizer = PegasusTokenizer::from_file(&vocab_path, false)?;
 
     let original_strings = [
         "…",

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenIdsWithOffsets,
@@ -47,8 +49,8 @@ impl BertTokenizer {
     /// let tokenizer =
     ///     BertTokenizer::from_file("path/to/vocab/file", lower_case, strip_accents).unwrap();
     /// ```
-    pub fn from_file(
-        path: &str,
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
     ) -> Result<BertTokenizer, TokenizerError> {
@@ -84,11 +86,11 @@ impl BertTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        path: &str,
+    pub fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
         lower_case: bool,
         strip_accents: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: S,
     ) -> Result<BertTokenizer, TokenizerError> {
         let vocab =
             BertVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;

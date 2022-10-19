@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::mem::ManuallyDrop;
+use std::path::Path;
 use std::ptr;
 
 /// # Byte pair query
@@ -49,9 +50,13 @@ impl BpePairVocab {
     ///
     /// let bpe_vocab = BpePairVocab::from_file(path);
     /// ```
-    pub fn from_file(path: &str) -> Result<BpePairVocab, TokenizerError> {
-        let f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<BpePairVocab, TokenizerError> {
+        let f = File::open(&path).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                path.as_ref().display(),
+                e
+            ))
         })?;
         let br = BufReader::new(f);
         let mut data = HashMap::new();
@@ -83,9 +88,15 @@ impl BpePairVocab {
     ///
     /// let bpe_vocab = BpePairVocab::from_sentencepiece_file(path);
     /// ```
-    pub fn from_sentencepiece_file(path: &str) -> Result<BpePairVocab, TokenizerError> {
-        let mut f = File::open(path).map_err(|e| {
-            TokenizerError::FileNotFound(format!("{} vocabulary file not found :{}", path, e))
+    pub fn from_sentencepiece_file<P: AsRef<Path>>(
+        path: P,
+    ) -> Result<BpePairVocab, TokenizerError> {
+        let mut f = File::open(&path).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                path.as_ref().display(),
+                e
+            ))
         })?;
         let mut contents = Vec::new();
         let proto = match f.read_to_end(&mut contents) {
@@ -185,7 +196,7 @@ mod tests {
         .collect();
 
         //        When
-        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let pair_vocab = BpePairVocab::from_file(&path)?;
 
         //        Then
         assert_eq!(pair_vocab.values, target_values);
@@ -199,7 +210,7 @@ mod tests {
         let mut merges_file = tempfile::NamedTempFile::new()?;
         write!(merges_file, "#version: 0.1\n t h\na n\ni n\nth e</w>")?;
         let path = merges_file.into_temp_path();
-        let pair_vocab = BpePairVocab::from_file(path.to_path_buf().to_str().unwrap())?;
+        let pair_vocab = BpePairVocab::from_file(&path)?;
 
         //        Given
         let t_token = String::from("t");
