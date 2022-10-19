@@ -88,7 +88,9 @@ impl BpePairVocab {
     ///
     /// let bpe_vocab = BpePairVocab::from_sentencepiece_file(path);
     /// ```
-    pub fn from_sentencepiece_file<P: AsRef<Path>>(path: P) -> Result<BpePairVocab, TokenizerError> {
+    pub fn from_sentencepiece_file<P: AsRef<Path>>(
+        path: P,
+    ) -> Result<BpePairVocab, TokenizerError> {
         let mut f = File::open(&path).map_err(|e| {
             TokenizerError::FileNotFound(format!(
                 "{} vocabulary file not found :{}",

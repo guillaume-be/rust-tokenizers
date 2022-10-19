@@ -51,7 +51,10 @@ impl MBart50Tokenizer {
     /// let lower_case = false;
     /// let tokenizer = MBart50Tokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file<P: AsRef<Path>>(path: P, lower_case: bool) -> Result<MBart50Tokenizer, TokenizerError> {
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
+        lower_case: bool,
+    ) -> Result<MBart50Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
         let vocab = MBart50Vocab::from_file(path)?;
         Ok(MBart50Tokenizer {

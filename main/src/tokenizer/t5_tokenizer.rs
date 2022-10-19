@@ -49,7 +49,10 @@ impl T5Tokenizer {
     /// let lower_case = false;
     /// let tokenizer = T5Tokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file<P: AsRef<Path>>(path: P, lower_case: bool) -> Result<T5Tokenizer, TokenizerError> {
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
+        lower_case: bool,
+    ) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
         let vocab = T5Vocab::from_file(path)?;
         let eos_token_id = vocab.token_to_id(vocab.get_eos_value());

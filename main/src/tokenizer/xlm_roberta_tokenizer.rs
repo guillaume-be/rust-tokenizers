@@ -51,7 +51,10 @@ impl XLMRobertaTokenizer {
     /// let lower_case = false;
     /// let tokenizer = XLMRobertaTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file<P: AsRef<Path>>(path: P, lower_case: bool) -> Result<XLMRobertaTokenizer, TokenizerError> {
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
+        lower_case: bool,
+    ) -> Result<XLMRobertaTokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
         let vocab = XLMRobertaVocab::from_file(path)?;
         Ok(XLMRobertaTokenizer {

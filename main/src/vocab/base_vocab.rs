@@ -30,7 +30,9 @@ pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
 
 /// Read a flat vocab.txt file (single column, one token per line)
 /// Indices are inferred based on their position in this flat file.
-pub(crate) fn read_flat_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn read_flat_file<P: AsRef<Path>>(
+    path: P,
+) -> Result<HashMap<String, i64>, TokenizerError> {
     let f = File::open(&path).map_err(|e| {
         TokenizerError::FileNotFound(format!(
             "{} vocabulary file not found :{}",
@@ -54,7 +56,9 @@ pub(crate) fn read_flat_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, 
 }
 
 /// Read a json file (mapping of vocabulary to indices).
-pub(crate) fn read_json_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn read_json_file<P: AsRef<Path>>(
+    path: P,
+) -> Result<HashMap<String, i64>, TokenizerError> {
     let f = File::open(&path).map_err(|e| {
         TokenizerError::FileNotFound(format!(
             "{} vocabulary file not found :{}",
@@ -96,7 +100,9 @@ pub(crate) fn open_protobuf_file<P: AsRef<Path>>(path: P) -> Result<ModelProto, 
 }
 
 /// Read a SentencePiece protobuf file and extract vocabulary from it.
-pub(crate) fn read_protobuf_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, i64>, TokenizerError> {
+pub(crate) fn read_protobuf_file<P: AsRef<Path>>(
+    path: P,
+) -> Result<HashMap<String, i64>, TokenizerError> {
     let proto = open_protobuf_file(path)?;
 
     let mut values = HashMap::new();

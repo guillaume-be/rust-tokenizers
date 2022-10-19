@@ -1011,9 +1011,7 @@ impl PyXLNetTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::tokenize_list(
-            self, text_list,
-        )
+        <Self as PyMultiThreadTokenizer<XLNetTokenizer, XLNetVocab>>::tokenize_list(self, text_list)
     }
 
     fn encode(
