@@ -16,11 +16,7 @@ fn test_ctrl_tokenization() -> anyhow::Result<()> {
         "ctrl_merges.txt",
     )?;
 
-    let ctrl_tokenizer = CtrlTokenizer::from_file(
-        vocab_path.to_str().unwrap(),
-        merges_path.to_str().unwrap(),
-        false,
-    )?;
+    let ctrl_tokenizer = CtrlTokenizer::from_file(&vocab_path, &merges_path, false)?;
 
     let original_strings = [
         "…",

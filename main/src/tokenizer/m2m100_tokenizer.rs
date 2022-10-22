@@ -10,6 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::Path;
+
 use crate::error::TokenizerError;
 use crate::tokenizer::base_tokenizer::{
     Mask, Offset, OffsetSize, Token, TokenIdsWithOffsets, TokenIdsWithSpecialTokens, TokenRef,
@@ -55,9 +57,9 @@ impl M2M100Tokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_files(
-        vocab_path: &str,
-        model_path: &str,
+    pub fn from_files<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
         lower_case: bool,
     ) -> Result<M2M100Tokenizer, TokenizerError> {
         let vocab = M2M100Vocab::from_file(vocab_path)?;
@@ -92,11 +94,11 @@ impl M2M100Tokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_files_with_special_token_mapping(
-        vocab_path: &str,
-        model_path: &str,
+    pub fn from_files_with_special_token_mapping<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: S,
     ) -> Result<M2M100Tokenizer, TokenizerError> {
         let vocab = M2M100Vocab::from_file_with_special_token_mapping(
             vocab_path,

@@ -19,6 +19,7 @@ use crate::vocab::bpe_vocab::BpePairVocab;
 use crate::vocab::{OpenAiGptVocab, Vocab};
 use crate::{Mask, Token, TokenRef};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::RwLock;
 
 /// # GPT tokenizer
@@ -50,9 +51,9 @@ impl OpenAiGptTokenizer {
     ///     OpenAiGptTokenizer::from_file("path/to/vocab/file", "path/to/merges/file", lower_case)
     ///         .unwrap();
     /// ```
-    pub fn from_file(
-        vocab_path: &str,
-        merges_path: &str,
+    pub fn from_file<P: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: P,
+        merges_path: M,
         lower_case: bool,
     ) -> Result<OpenAiGptTokenizer, TokenizerError> {
         let vocab = OpenAiGptVocab::from_file(vocab_path)?;
@@ -89,11 +90,11 @@ impl OpenAiGptTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        vocab_path: &str,
-        merges_path: &str,
+    pub fn from_file_with_special_token_mapping<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+        vocab_path: V,
+        merges_path: M,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: S,
     ) -> Result<OpenAiGptTokenizer, TokenizerError> {
         let vocab = OpenAiGptVocab::from_file_with_special_token_mapping(
             vocab_path,

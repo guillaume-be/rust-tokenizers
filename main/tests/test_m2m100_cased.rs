@@ -20,11 +20,7 @@ fn test_m2m100_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let mbart_tokenizer = M2M100Tokenizer::from_files(
-        vocab_path.to_str().unwrap(),
-        merges_path.to_str().unwrap(),
-        false,
-    )?;
+    let mbart_tokenizer = M2M100Tokenizer::from_files(&vocab_path, &merges_path, false)?;
 
     let original_strings = [
         ">>nl.<< …",

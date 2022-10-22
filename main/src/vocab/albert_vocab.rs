@@ -18,6 +18,7 @@ use crate::vocab::base_vocab::{
 };
 use crate::vocab::Vocab;
 use std::collections::HashMap;
+use std::path::Path;
 
 /// # AlbertVocab
 /// Vocabulary for ALBERT tokenizer. Contains the following special values:
@@ -122,8 +123,8 @@ impl Vocab for AlbertVocab {
         &self.special_indices
     }
 
-    fn from_file(path: &str) -> Result<AlbertVocab, TokenizerError> {
-        let values = read_protobuf_file(path)?;
+    fn from_file<P: AsRef<Path>>(path: P) -> Result<AlbertVocab, TokenizerError> {
+        let values = read_protobuf_file(path.as_ref())?;
 
         let special_token_map = SpecialTokenMap {
             unk_token: DEFAULT_UNK_TOKEN.to_string(),
@@ -138,9 +139,9 @@ impl Vocab for AlbertVocab {
         Self::from_values_and_special_token_map(values, special_token_map)
     }
 
-    fn from_file_with_special_token_mapping(
-        path: &str,
-        special_token_mapping_path: &str,
+    fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
+        special_token_mapping_path: S,
     ) -> Result<Self, TokenizerError> {
         let values = read_protobuf_file(path)?;
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;

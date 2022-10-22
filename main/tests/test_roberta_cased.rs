@@ -18,12 +18,7 @@ fn test_roberta_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let roberta_tokenizer = RobertaTokenizer::from_file(
-        vocab_path.to_str().unwrap(),
-        merges_path.to_str().unwrap(),
-        false,
-        true,
-    )?;
+    let roberta_tokenizer = RobertaTokenizer::from_file(&vocab_path, &merges_path, false, true)?;
 
     let original_strings = [
         "…",

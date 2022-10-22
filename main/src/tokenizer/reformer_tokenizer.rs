@@ -21,6 +21,7 @@ use crate::tokenizer::{MultiThreadedTokenizer, Tokenizer};
 use crate::vocab::{BpePairVocab, ReformerVocab, Vocab};
 use crate::Mask;
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::RwLock;
 
 /// # Reformer tokenizer
@@ -47,8 +48,11 @@ impl ReformerTokenizer {
     /// let lower_case = false;
     /// let tokenizer = SentencePieceTokenizer::from_file("path/to/vocab/file", lower_case).unwrap();
     /// ```
-    pub fn from_file(path: &str, lower_case: bool) -> Result<ReformerTokenizer, TokenizerError> {
-        let vocab = ReformerVocab::from_file(path)?;
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
+        lower_case: bool,
+    ) -> Result<ReformerTokenizer, TokenizerError> {
+        let vocab = ReformerVocab::from_file(&path)?;
         let bpe_ranks = BpePairVocab::from_sentencepiece_file(path)?;
         let cache = RwLock::new(HashMap::new());
         Ok(ReformerTokenizer {
@@ -80,13 +84,13 @@ impl ReformerTokenizer {
     /// )
     /// .unwrap();
     /// ```
-    pub fn from_file_with_special_token_mapping(
-        path: &str,
+    pub fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
         lower_case: bool,
-        special_token_mapping_path: &str,
+        special_token_mapping_path: S,
     ) -> Result<ReformerTokenizer, TokenizerError> {
         let vocab =
-            ReformerVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+            ReformerVocab::from_file_with_special_token_mapping(&path, special_token_mapping_path)?;
         let bpe_ranks = BpePairVocab::from_sentencepiece_file(path)?;
         let cache = RwLock::new(HashMap::new());
         Ok(ReformerTokenizer {
