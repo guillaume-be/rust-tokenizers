@@ -5,15 +5,12 @@ use std::{
     path::Path,
 };
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use crate::error::*;
 
 use super::{
-    base_vocab::{
-        read_special_token_mapping_file, register_as_special_value, swap_key_values,
-        SpecialTokenMap,
-    },
+    base_vocab::{register_as_special_value, swap_key_values, SpecialTokenMap},
     Vocab,
 };
 
@@ -45,6 +42,50 @@ pub const EXTENDED_FAIRSEQ_LANGUAGE_CODES: [&str; 202] = [
     "vie_Latn", "war_Latn", "wol_Latn", "xho_Latn", "ydd_Hebr", "yor_Latn", "yue_Hant", "zho_Hans",
     "zho_Hant", "zul_Latn",
 ];
+
+#[derive(Debug, Default, Clone, Deserialize)]
+pub struct NLLBSpecialTokenMap {
+    pub unk_token: String,
+    pub pad_token: Option<String>,
+    pub bos_token: Option<String>,
+    pub sep_token: Option<String>,
+    pub cls_token: Option<String>,
+    pub eos_token: Option<String>,
+    #[serde(deserialize_with = "get_nllb_mask")]
+    pub mask_token: Option<String>,
+    pub additional_special_tokens: Option<HashSet<String>>,
+}
+
+fn get_nllb_mask<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    struct MaskHelper {
+        mask_token: Option<String>,
+        _lstrip: Option<bool>,
+        _normalized: Option<bool>,
+        _rstrip: Option<bool>,
+        _single_word: Option<bool>,
+    }
+    let helper = MaskHelper::deserialize(deserializer)?;
+    Ok(helper.mask_token)
+}
+
+impl From<NLLBSpecialTokenMap> for SpecialTokenMap {
+    fn from(value: NLLBSpecialTokenMap) -> Self {
+        SpecialTokenMap {
+            unk_token: value.unk_token,
+            pad_token: value.pad_token,
+            bos_token: value.bos_token,
+            sep_token: value.sep_token,
+            cls_token: value.cls_token,
+            eos_token: value.eos_token,
+            mask_token: value.mask_token,
+            additional_special_tokens: value.additional_special_tokens,
+        }
+    }
+}
 
 pub struct NLLBVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
@@ -159,8 +200,19 @@ impl Vocab for NLLBVocab {
         Self: Sized,
     {
         let tokenizer_config = Tokenizer::deserialize(path)?;
-        let special_config = read_special_token_mapping_file(special_token_mapping_path)?;
-        Self::from_values_and_special_token_map(tokenizer_config.model.vocab, special_config)
+        let f = File::open(&special_token_mapping_path).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                special_token_mapping_path.as_ref().display(),
+                e
+            ))
+        })?;
+        let br = BufReader::new(f);
+        let special_config: NLLBSpecialTokenMap = serde_json::from_reader(br).map_err(|e| {
+            TokenizerError::FileNotFound(format!("Invalid special token mapping file {}", e))
+        })?;
+
+        Self::from_values_and_special_token_map(tokenizer_config.model.vocab, special_config.into())
     }
 
     fn from_values_and_special_token_map(

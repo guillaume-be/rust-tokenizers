@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::vocab::EXTENDED_FAIRSEQ_LANGUAGE_CODES;
 use crate::{
     error::TokenizerError,
     vocab::{NLLBVocab, SentencePieceBpeModel, Vocab},
@@ -14,6 +15,7 @@ use super::{
 pub struct NLLBTokenizer {
     model: SentencePieceBpeModel,
     vocab: NLLBVocab,
+    src_lang: String,
 }
 
 impl NLLBTokenizer {
@@ -24,7 +26,13 @@ impl NLLBTokenizer {
     ) -> Result<Self, TokenizerError> {
         let model = SentencePieceBpeModel::from_file(model_path)?;
         let vocab = NLLBVocab::from_file_with_special_token_mapping(vocab_path, special_tokens)?;
-        Ok(Self { model, vocab })
+        let src_lang = String::from("eng_Latn");
+
+        Ok(Self {
+            model,
+            vocab,
+            src_lang,
+        })
     }
 
     pub fn from_file<V: AsRef<Path>, M: AsRef<Path>>(
@@ -33,7 +41,23 @@ impl NLLBTokenizer {
     ) -> Result<Self, TokenizerError> {
         let model = SentencePieceBpeModel::from_file(model_path)?;
         let vocab = NLLBVocab::from_file(vocab_path)?;
-        Ok(Self { model, vocab })
+        let src_lang = String::from("eng_Latn");
+        Ok(Self {
+            model,
+            vocab,
+            src_lang,
+        })
+    }
+
+    pub fn set_src_lang(&mut self, src_lang: &str) -> Result<(), TokenizerError> {
+        if !EXTENDED_FAIRSEQ_LANGUAGE_CODES.contains(&src_lang) {
+            Err(TokenizerError::TokenNotFound(format!(
+                "{src_lang} is not a valid language tag."
+            )))
+        } else {
+            self.src_lang = src_lang.to_string();
+            Ok(())
+        }
     }
 }
 
@@ -85,7 +109,7 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
         &self,
         tokens_ids_with_offsets_1: TokenIdsWithOffsets,
         tokens_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
-    ) -> crate::TokenIdsWithSpecialTokens {
+    ) -> TokenIdsWithSpecialTokens {
         // M2M100 is a special case where it expects the target language code to be provided in the input text
         // This is similar to Marian where the target language may be passed before the sentence to translate
         let mut output: Vec<i64> = vec![];
@@ -95,24 +119,12 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
         let mut mask: Vec<Mask> = vec![];
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
-        if !special_tokens_mask.is_empty() {
-            special_tokens_mask[0] = 1;
-        }
         token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         output.extend(tokens_ids_with_offsets_1.ids);
         offsets.extend(tokens_ids_with_offsets_1.offsets);
-        if !offsets.is_empty() {
-            offsets[0] = None;
-        }
         original_offsets.extend(tokens_ids_with_offsets_1.reference_offsets);
-        if !original_offsets.is_empty() {
-            original_offsets[0] = vec![];
-        }
-
         mask.extend(tokens_ids_with_offsets_1.masks);
-        if !mask.is_empty() {
-            mask[0] = Mask::Special;
-        }
+
         if let Some(tokens_ids_with_offsets_2_value) = tokens_ids_with_offsets_2 {
             let length = tokens_ids_with_offsets_2_value.ids.len();
             special_tokens_mask.extend(vec![0; length]);
@@ -125,9 +137,14 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
             token_segment_ids.push(0);
         }
         special_tokens_mask.push(1);
+        special_tokens_mask.push(1);
         output.push(self.vocab.token_to_id(self.vocab.get_eos_value()));
+        output.push(self.vocab.token_to_id(&self.src_lang));
+        offsets.push(None);
         offsets.push(None);
         original_offsets.push(vec![]);
+        original_offsets.push(vec![]);
+        mask.push(Mask::Special);
         mask.push(Mask::Special);
 
         TokenIdsWithSpecialTokens {

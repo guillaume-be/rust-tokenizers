@@ -69,6 +69,7 @@ pub use m2m100_vocab::M2M100Vocab;
 pub use marian_vocab::MarianVocab;
 pub use mbart50_vocab::MBart50Vocab;
 pub use nllb_vocab::NLLBVocab;
+pub(crate) use nllb_vocab::EXTENDED_FAIRSEQ_LANGUAGE_CODES;
 pub use openai_gpt_vocab::OpenAiGptVocab;
 pub use pegasus_vocab::PegasusVocab;
 pub use prophetnet_vocab::ProphetNetVocab;
