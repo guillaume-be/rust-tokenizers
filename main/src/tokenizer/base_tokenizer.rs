@@ -1860,7 +1860,7 @@ mod tests {
 
         //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let tokens_with_offsets = base_tokenizer.tokenize_with_offsets(*source_text);
+            let tokens_with_offsets = base_tokenizer.tokenize_with_offsets(source_text);
             let tokens: Vec<&str> = tokens_with_offsets
                 .tokens
                 .iter()
@@ -2077,7 +2077,7 @@ mod tests {
 
         //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            let tokens_with_offsets = base_tokenizer.tokenize_with_offsets(*source_text);
+            let tokens_with_offsets = base_tokenizer.tokenize_with_offsets(source_text);
             let tokens: Vec<&str> = tokens_with_offsets
                 .tokens
                 .iter()

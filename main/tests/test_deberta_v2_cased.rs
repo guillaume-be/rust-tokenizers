@@ -12,7 +12,7 @@ fn test_deberta_v2_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let deberta_v2_tokenizer = DeBERTaV2Tokenizer::from_file(&vocab_path, false, false, false)?;
+    let deberta_v2_tokenizer = DeBERTaV2Tokenizer::from_file(vocab_path, false, false, false)?;
 
     let original_strings = [
         "…",

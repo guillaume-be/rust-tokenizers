@@ -82,7 +82,7 @@ impl PegasusVocab {
         value: &str,
         offset: i64,
     ) -> Result<i64, TokenizerError> {
-        values.insert(value.to_string(), offset as i64);
+        values.insert(value.to_string(), offset);
         register_as_special_value(value, values, special_values)?;
         Ok(offset + 1)
     }

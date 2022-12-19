@@ -11,7 +11,7 @@ fn test_prophetnet_tokenization() -> anyhow::Result<()> {
         "prophetnet.tokenizer",
     )?;
 
-    let vocab = ProphetNetVocab::from_file(&vocab_path)?;
+    let vocab = ProphetNetVocab::from_file(vocab_path)?;
     let bert_tokenizer: ProphetNetTokenizer =
         ProphetNetTokenizer::from_existing_vocab(vocab, true, true);
 
