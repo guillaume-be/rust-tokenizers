@@ -11,7 +11,7 @@ fn test_reformer_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let bert_tokenizer: ReformerTokenizer = ReformerTokenizer::from_file(&vocab_path, false)?;
+    let bert_tokenizer: ReformerTokenizer = ReformerTokenizer::from_file(vocab_path, false)?;
 
     let original_strings = [
         "…",

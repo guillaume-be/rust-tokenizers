@@ -15,7 +15,7 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let t5_tokenizer = T5Tokenizer::from_file(&vocab_path, false)?;
+    let t5_tokenizer = T5Tokenizer::from_file(vocab_path, false)?;
 
     let original_strings = [
         "…",

@@ -286,7 +286,7 @@ mod tests {
 
         //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.tokenize(*source_text), *expected_result);
+            assert_eq!(ctrl_tokenizer.tokenize(source_text), *expected_result);
         }
 
         assert_eq!(
@@ -319,7 +319,7 @@ mod tests {
 
         //        When & Then
         for (source_text, expected_result) in test_tuples.iter() {
-            assert_eq!(ctrl_tokenizer.tokenize(*source_text), *expected_result);
+            assert_eq!(ctrl_tokenizer.tokenize(source_text), *expected_result);
         }
 
         assert_eq!(

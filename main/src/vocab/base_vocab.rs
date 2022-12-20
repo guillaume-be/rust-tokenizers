@@ -162,7 +162,6 @@ pub struct SpecialTokenMap {
     pub sep_token: Option<String>,
     pub cls_token: Option<String>,
     pub eos_token: Option<String>,
-    #[serde(skip_deserializing)]
     pub mask_token: Option<String>,
     pub additional_special_tokens: Option<HashSet<String>>,
 }

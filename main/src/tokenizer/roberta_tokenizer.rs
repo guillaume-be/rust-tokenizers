@@ -441,7 +441,7 @@ mod tests {
             expected_mask,
         ) in test_tuples.iter()
         {
-            let tokens_with_offsets = roberta_tokenizer.tokenize_with_offsets(*source_text);
+            let tokens_with_offsets = roberta_tokenizer.tokenize_with_offsets(source_text);
             assert_eq!(tokens_with_offsets.tokens, *expected_tokens);
             assert_eq!(tokens_with_offsets.offsets, *expected_offsets);
             assert_eq!(
@@ -530,7 +530,7 @@ mod tests {
             expected_mask,
         ) in test_tuples.iter()
         {
-            let tokens_with_offsets = roberta_tokenizer.tokenize_with_offsets(*source_text);
+            let tokens_with_offsets = roberta_tokenizer.tokenize_with_offsets(source_text);
             assert_eq!(tokens_with_offsets.tokens, *expected_tokens);
             assert_eq!(tokens_with_offsets.offsets, *expected_offsets);
             assert_eq!(

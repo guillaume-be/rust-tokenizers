@@ -14,7 +14,7 @@ fn test_sentence_piece_bpe_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let mbart_tokenizer = SentencePieceBpeTokenizer::from_file(&vocab_path, false)?;
+    let mbart_tokenizer = SentencePieceBpeTokenizer::from_file(vocab_path, false)?;
 
     let original_strings = [
         "…",

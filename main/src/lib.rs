@@ -29,6 +29,8 @@
 //! - XLNet
 //! - Pegasus
 //! - MBart50
+//! - M2M100
+//! - NLLB
 //! - DeBERTa
 //! - DeBERTa (v2)
 //!

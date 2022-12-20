@@ -1,3 +1,15 @@
+// Copyright 2022 The Facebook AI Research Team Authors and The HuggingFace Inc. team.
+// Copyright 2019-2021 Guillaume Becquin
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//     http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
@@ -5,15 +17,12 @@ use std::{
     path::Path,
 };
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use crate::error::*;
 
 use super::{
-    base_vocab::{
-        read_special_token_mapping_file, register_as_special_value, swap_key_values,
-        SpecialTokenMap,
-    },
+    base_vocab::{register_as_special_value, swap_key_values, SpecialTokenMap},
     Vocab,
 };
 
@@ -46,6 +55,50 @@ pub const EXTENDED_FAIRSEQ_LANGUAGE_CODES: [&str; 202] = [
     "zho_Hant", "zul_Latn",
 ];
 
+#[derive(Debug, Default, Clone, Deserialize)]
+pub struct NLLBSpecialTokenMap {
+    pub unk_token: String,
+    pub pad_token: Option<String>,
+    pub bos_token: Option<String>,
+    pub sep_token: Option<String>,
+    pub cls_token: Option<String>,
+    pub eos_token: Option<String>,
+    #[serde(deserialize_with = "get_nllb_mask")]
+    pub mask_token: Option<String>,
+    pub additional_special_tokens: Option<HashSet<String>>,
+}
+
+fn get_nllb_mask<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    struct MaskHelper {
+        mask_token: Option<String>,
+        _lstrip: Option<bool>,
+        _normalized: Option<bool>,
+        _rstrip: Option<bool>,
+        _single_word: Option<bool>,
+    }
+    let helper = MaskHelper::deserialize(deserializer)?;
+    Ok(helper.mask_token)
+}
+
+impl From<NLLBSpecialTokenMap> for SpecialTokenMap {
+    fn from(value: NLLBSpecialTokenMap) -> Self {
+        SpecialTokenMap {
+            unk_token: value.unk_token,
+            pad_token: value.pad_token,
+            bos_token: value.bos_token,
+            sep_token: value.sep_token,
+            cls_token: value.cls_token,
+            eos_token: value.eos_token,
+            mask_token: value.mask_token,
+            additional_special_tokens: value.additional_special_tokens,
+        }
+    }
+}
+
 pub struct NLLBVocab {
     /// A mapping of tokens as string to indices (i.e. the encoder base)
     pub values: HashMap<String, i64>,
@@ -64,47 +117,53 @@ pub struct NLLBVocab {
     /// Language code stored as bytes for extraction of the prefix in input sequences
     pub language_codes_bytes: HashSet<Vec<u8>>,
 
-    pub special_token_storage: SpecialTokenMap,
+    pub special_token_map: SpecialTokenMap,
 }
+
+const DEFAULT_UNK_TOKEN: &str = "<unk>";
+const DEFAULT_PAD_TOKEN: &str = "<pad>";
+const DEFAULT_BOS_TOKEN: &str = "<s>";
+const DEFAULT_SEP_TOKEN: &str = "</s>";
+const DEFAULT_EOS_TOKEN: &str = "</s>";
 
 impl NLLBVocab {
     /// The beginning of sequence token that was used during pretraining.
     /// Can be used a sequence classifier token.
     pub fn get_bos_value(&self) -> &str {
-        self.special_token_storage
+        self.special_token_map
             .bos_token
             .as_deref()
-            .unwrap_or("<s>")
+            .unwrap_or(DEFAULT_BOS_TOKEN)
     }
 
     /// End of sequence token.
     pub fn get_eos_value(&self) -> &str {
-        self.special_token_storage
+        self.special_token_map
             .eos_token
             .as_deref()
-            .unwrap_or("</s>")
+            .unwrap_or(DEFAULT_EOS_TOKEN)
     }
 
-    /// Returns the SEP token for M2M100 (`</s>`)
+    /// Returns the SEP token for NLLB (`</s>`)
     pub fn get_sep_value(&self) -> &str {
-        self.special_token_storage
-            .eos_token
+        self.special_token_map
+            .sep_token
             .as_deref()
-            .unwrap_or("</s>")
+            .unwrap_or(DEFAULT_SEP_TOKEN)
     }
 
-    /// Returns the PAD token for M2M100 (`<pad>`)
+    /// Returns the PAD token for NLLB (`<pad>`)
     pub fn get_pad_value(&self) -> &str {
-        self.special_token_storage
+        self.special_token_map
             .pad_token
             .as_deref()
-            .unwrap_or("<pad>")
+            .unwrap_or(DEFAULT_PAD_TOKEN)
     }
 }
 
 impl Vocab for NLLBVocab {
     fn get_unknown_value(&self) -> &str {
-        self.special_token_storage.unk_token.as_str()
+        &self.special_token_map.unk_token
     }
 
     fn values(&self) -> &HashMap<String, i64> {
@@ -123,14 +182,21 @@ impl Vocab for NLLBVocab {
         &self.special_indices
     }
 
-    fn from_file<V: AsRef<Path>>(vocab: V) -> Result<Self, TokenizerError> {
-        let tokenizer = Tokenizer::deserialize(vocab)?;
-        let special_config = SpecialTokenMap {
-            unk_token: "<unk>".into(),
-            ..Default::default()
+    fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, TokenizerError> {
+        let values = Tokenizer::deserialize(path)?.model.vocab;
+
+        let special_token_map = SpecialTokenMap {
+            unk_token: DEFAULT_UNK_TOKEN.to_string(),
+            pad_token: Some(DEFAULT_PAD_TOKEN.to_string()),
+            bos_token: Some(DEFAULT_BOS_TOKEN.to_string()),
+            sep_token: Some(DEFAULT_SEP_TOKEN.to_string()),
+            cls_token: None,
+            eos_token: Some(DEFAULT_EOS_TOKEN.to_string()),
+            mask_token: None,
+            additional_special_tokens: None,
         };
 
-        Self::from_values_and_special_token_map(tokenizer.model.vocab, special_config)
+        Self::from_values_and_special_token_map(values, special_token_map)
     }
 
     fn token_to_id(&self, token: &str) -> i64 {
@@ -158,9 +224,20 @@ impl Vocab for NLLBVocab {
     where
         Self: Sized,
     {
-        let tokenizer_config = Tokenizer::deserialize(path)?;
-        let special_config = read_special_token_mapping_file(special_token_mapping_path)?;
-        Self::from_values_and_special_token_map(tokenizer_config.model.vocab, special_config)
+        let values = Tokenizer::deserialize(path)?.model.vocab;
+        let f = File::open(&special_token_mapping_path).map_err(|e| {
+            TokenizerError::FileNotFound(format!(
+                "{} vocabulary file not found :{}",
+                special_token_mapping_path.as_ref().display(),
+                e
+            ))
+        })?;
+        let br = BufReader::new(f);
+        let special_config: NLLBSpecialTokenMap = serde_json::from_reader(br).map_err(|e| {
+            TokenizerError::FileNotFound(format!("Invalid special token mapping file {}", e))
+        })?;
+
+        Self::from_values_and_special_token_map(values, special_config.into())
     }
 
     fn from_values_and_special_token_map(
@@ -176,7 +253,7 @@ impl Vocab for NLLBVocab {
             special_values: HashMap::new(),
             special_indices: HashMap::new(),
             language_codes_bytes: HashSet::new(),
-            special_token_storage: special_token_map,
+            special_token_map,
         };
 
         let mut special_values = HashMap::new();
@@ -191,11 +268,7 @@ impl Vocab for NLLBVocab {
         reserve_special(result.get_pad_value())?;
         reserve_special(result.get_unknown_value())?;
 
-        if let Some(languages) = result
-            .special_token_storage
-            .additional_special_tokens
-            .as_ref()
-        {
+        if let Some(languages) = result.special_token_map.additional_special_tokens.as_ref() {
             for language in languages {
                 reserve_special(language)?;
                 language_code_bytes.insert(language.as_bytes().to_vec());
