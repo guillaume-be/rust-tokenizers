@@ -1,7 +1,7 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use rust_tokenizers::tokenizer::{AlbertTokenizer, BertTokenizer, CtrlTokenizer, DeBERTaTokenizer, DeBERTaV2Tokenizer, FNetTokenizer, Gpt2Tokenizer, M2M100Tokenizer, MBart50Tokenizer, MultiThreadedTokenizer, NLLBTokenizer, OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer, SentencePieceBpeTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer};
-use rust_tokenizers::vocab::{AlbertVocab, BertVocab, DeBERTaV2Vocab, DeBERTaVocab, FNetVocab, Gpt2Vocab, M2M100Vocab, MBart50Vocab, NLLBVocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab, ReformerVocab, RobertaVocab, SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab};
+use ::rust_tokenizers::tokenizer::{AlbertTokenizer, BertTokenizer, CtrlTokenizer, DeBERTaTokenizer, DeBERTaV2Tokenizer, FNetTokenizer, Gpt2Tokenizer, M2M100Tokenizer, MBart50Tokenizer, MultiThreadedTokenizer, NLLBTokenizer, OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer, SentencePieceBpeTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer};
+use ::rust_tokenizers::vocab::{AlbertVocab, BertVocab, DeBERTaV2Vocab, DeBERTaVocab, FNetVocab, Gpt2Vocab, M2M100Vocab, MBart50Vocab, NLLBVocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab, ReformerVocab, RobertaVocab, SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab};
 
 #[pyclass]
 #[derive(Debug, PartialEq, PartialOrd, Clone)]

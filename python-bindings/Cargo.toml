@@ -8,7 +8,7 @@ repository = "https://github.com/guillaume-be/rust-tokenizers"
 license = "Apache-2.0"
 
 [dependencies.pyo3]
-version = "0.16.2"
+version = "0.17.3"
 features = ["extension-module"]
 
 [dependencies.rust_tokenizers]
