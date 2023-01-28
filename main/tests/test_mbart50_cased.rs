@@ -13,7 +13,7 @@ fn test_mbart50_tokenization() -> anyhow::Result<()> {
         "mbart50_spiece.model",
     )?;
 
-    let mbart_tokenizer = MBart50Tokenizer::from_file(&vocab_path, false)?;
+    let mbart_tokenizer = MBart50Tokenizer::from_file(vocab_path, false)?;
 
     let original_strings = [
         ">>en<< …",

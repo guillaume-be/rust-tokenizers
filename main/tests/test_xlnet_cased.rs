@@ -12,7 +12,7 @@ fn test_xlnet_tokenization() -> anyhow::Result<()> {
         "xlnet-base-cased-spiece.model",
     )?;
 
-    let xlnet_tokenizer = XLNetTokenizer::from_file(&vocab_path, false, true)?;
+    let xlnet_tokenizer = XLNetTokenizer::from_file(vocab_path, false, true)?;
 
     let original_strings = [
         "…",

@@ -1008,9 +1008,7 @@ where
                             begin: reference_offsets[start],
                             end: reference_offsets[start + char_count - 1] + 1,
                         },
-                        reference_offsets: reference_offsets
-                            [start as usize..start as usize + char_count]
-                            .to_vec(),
+                        reference_offsets: reference_offsets[start..start + char_count].to_vec(),
                         mask: {
                             if cached_tokens.len() > 1 {
                                 if idx == 0 {
@@ -1047,8 +1045,7 @@ where
                     begin: reference_offsets[start],
                     end: reference_offsets[start + char_count - 1] + 1,
                 },
-                reference_offsets: reference_offsets[start as usize..start as usize + char_count]
-                    .to_vec(),
+                reference_offsets: reference_offsets[start..start + char_count].to_vec(),
                 mask: {
                     if bpe_output.len() > 1 {
                         if idx == 0 {

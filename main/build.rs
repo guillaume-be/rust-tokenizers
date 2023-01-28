@@ -13,7 +13,7 @@ fn main() {
         if metadata.is_err() {
             protobuf_codegen_pure::Codegen::new()
                 .out_dir(out_path)
-                .inputs(&[proto_path])
+                .inputs([proto_path])
                 .include("protos")
                 .run()
                 .expect("Codegen failed.");
