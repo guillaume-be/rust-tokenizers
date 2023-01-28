@@ -6,14 +6,14 @@ extern crate rust_tokenizers as rust_tokenizers_base;
 use rust_tokenizers_base::tokenizer::{
     AlbertTokenizer, BertTokenizer, CtrlTokenizer, DeBERTaTokenizer, DeBERTaV2Tokenizer,
     FNetTokenizer, Gpt2Tokenizer, M2M100Tokenizer, MBart50Tokenizer, MultiThreadedTokenizer,
-    OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
-    SentencePieceBpeTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy,
-    XLMRobertaTokenizer, XLNetTokenizer, NLLBTokenizer,
+    NLLBTokenizer, OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer,
+    RobertaTokenizer, SentencePieceBpeTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer,
+    TruncationStrategy, XLMRobertaTokenizer, XLNetTokenizer,
 };
 use rust_tokenizers_base::vocab::{
     AlbertVocab, BertVocab, DeBERTaV2Vocab, DeBERTaVocab, FNetVocab, Gpt2Vocab, M2M100Vocab,
-    MBart50Vocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab, ReformerVocab, RobertaVocab,
-    SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab, NLLBVocab,
+    MBart50Vocab, NLLBVocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab, ReformerVocab,
+    RobertaVocab, SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
 };
 
 #[pyclass]
@@ -2218,7 +2218,7 @@ impl PyNLLBTokenizer {
                 merges_path.as_str(),
                 special_token_map.as_str(),
             )
-                .unwrap(),
+            .unwrap(),
         }
     }
 
@@ -2227,9 +2227,7 @@ impl PyNLLBTokenizer {
     }
 
     fn tokenize_list(&self, text_list: Vec<&str>) -> PyResult<Vec<Vec<String>>> {
-        <Self as PyMultiThreadTokenizer<NLLBTokenizer, NLLBVocab>>::tokenize_list(
-            self, text_list,
-        )
+        <Self as PyMultiThreadTokenizer<NLLBTokenizer, NLLBVocab>>::tokenize_list(self, text_list)
     }
 
     fn encode(
