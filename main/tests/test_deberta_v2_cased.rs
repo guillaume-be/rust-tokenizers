@@ -8,7 +8,6 @@ use test_utils::download_file_to_cache;
 fn test_deberta_v2_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/microsoft/deberta-v3-base/resolve/main/spm.model",
-        "deberta_v3_model.spm",
     )
     .unwrap();
 

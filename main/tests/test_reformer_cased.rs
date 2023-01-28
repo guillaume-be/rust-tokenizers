@@ -7,7 +7,6 @@ use test_utils::download_file_to_cache;
 fn test_reformer_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://cdn.huggingface.co/google/reformer-crime-and-punishment/spiece.model",
-        "reformer.spiece",
     )
     .unwrap();
 

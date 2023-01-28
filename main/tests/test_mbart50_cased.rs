@@ -10,7 +10,6 @@ use test_utils::download_file_to_cache;
 fn test_mbart50_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/facebook/mbart-large-50-many-to-many-mmt/resolve/main/sentencepiece.bpe.model",
-        "mbart50_spiece.model",
     )?;
 
     let mbart_tokenizer = MBart50Tokenizer::from_file(vocab_path, false)?;

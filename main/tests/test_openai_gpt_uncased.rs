@@ -8,13 +8,11 @@ use test_utils::download_file_to_cache;
 fn test_openai_gpt_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/openai-gpt-vocab.json",
-        "openai-gpt_vocab.json",
     )
     .unwrap();
 
     let merges_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/openai-gpt-merges.txt",
-        "openai-gpt_merges.txt",
     )
     .unwrap();
 

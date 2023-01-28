@@ -10,7 +10,6 @@ use test_utils::download_file_to_cache;
 fn test_sentence_piece_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/xlnet-base-cased-spiece.model",
-        "spiece.model",
     )
     .unwrap();
 

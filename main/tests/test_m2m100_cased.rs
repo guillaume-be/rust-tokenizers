@@ -10,13 +10,11 @@ use test_utils::download_file_to_cache;
 fn test_m2m100_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/facebook/m2m100_418M/resolve/main/vocab.json",
-        "m2m100_419M_vocab.json",
     )
     .unwrap();
 
     let merges_path = download_file_to_cache(
         "https://huggingface.co/facebook/m2m100_418M/resolve/main/sentencepiece.bpe.model",
-        "m2m100_419M_spiece.model",
     )
     .unwrap();
 

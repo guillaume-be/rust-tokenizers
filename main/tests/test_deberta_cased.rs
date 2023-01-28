@@ -8,13 +8,11 @@ use test_utils::download_file_to_cache;
 fn test_deberta_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/microsoft/deberta-base/resolve/main/vocab.json",
-        "deberta_vocab.json",
     )
     .unwrap();
 
     let merges_path = download_file_to_cache(
         "https://huggingface.co/microsoft/deberta-base/resolve/main/merges.txt",
-        "deberta_merges.txt",
     )
     .unwrap();
 
