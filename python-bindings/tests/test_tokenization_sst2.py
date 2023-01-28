@@ -558,6 +558,7 @@ class TestTokenizationSST2:
                                                                    add_special_tokens=True,
                                                                    return_overflowing_tokens=True,
                                                                    return_special_tokens_mask=True,
+                                                                   return_token_type_ids=True,
                                                                    max_length=128))
 
         # When
