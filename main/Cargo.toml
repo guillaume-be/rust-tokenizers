@@ -1,6 +1,6 @@
 [package]
 name = "rust_tokenizers"
-version = "7.0.2"
+version = "8.0.0-alpha"
 authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
 description = "High performance tokenizers for Rust"
