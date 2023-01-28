@@ -234,7 +234,7 @@ impl Vocab for NLLBVocab {
         })?;
         let br = BufReader::new(f);
         let special_config: NLLBSpecialTokenMap = serde_json::from_reader(br).map_err(|e| {
-            TokenizerError::FileNotFound(format!("Invalid special token mapping file {}", e))
+            TokenizerError::FileNotFound(format!("Invalid special token mapping file {e}"))
         })?;
 
         Self::from_values_and_special_token_map(values, special_config.into())
