@@ -10,19 +10,16 @@ use test_utils::download_file_to_cache;
 fn test_nllb_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/tokenizer.json",
-        "nllb_tokenizer.json",
     )
     .unwrap();
 
     let merges_path = download_file_to_cache(
         "https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/sentencepiece.bpe.model",
-        "nllb_sentencepiece.model",
     )
     .unwrap();
 
     let special_path = download_file_to_cache(
         "https://huggingface.co/facebook/nllb-200-distilled-600M/raw/main/special_tokens_map.json",
-        "nllb_special.json",
     )
     .unwrap();
 
