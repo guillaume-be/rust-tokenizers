@@ -126,7 +126,7 @@ pub(crate) fn read_special_token_mapping_file<P: AsRef<Path>>(
     })?;
     let br = BufReader::new(f);
     serde_json::from_reader(br).map_err(|e| {
-        TokenizerError::FileNotFound(format!("Invalid special token mapping file {}", e))
+        TokenizerError::FileNotFound(format!("Invalid special token mapping file {e}"))
     })
 }
 
@@ -145,8 +145,7 @@ pub(crate) fn register_as_special_value(
         Some(index) => *index,
         None => {
             return Err(TokenizerError::TokenNotFound(format!(
-                "The special value {} could not be found in the vocabulary",
-                token
+                "The special value {token} could not be found in the vocabulary"
             )));
         }
     };

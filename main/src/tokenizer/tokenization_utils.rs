@@ -549,7 +549,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
                     end: token.offset.begin + pos_begin as OffsetSize + char_length as OffsetSize,
                 };
                 if start > 0 {
-                    substr = format!("##{}", substr);
+                    substr = format!("##{substr}");
                 }
                 if vocab.values().contains_key(&substr) {
                     tokens.push(Token {
@@ -966,8 +966,8 @@ fn bytes_offsets(text: &str) -> Vec<usize> {
     offsets
 }
 
-pub fn split_on_bpe_pairs<'a, F>(
-    token: TokenRef<'a>,
+pub fn split_on_bpe_pairs<F>(
+    token: TokenRef<'_>,
     bpe_function: F,
     bpe_ranks: &BpePairVocab,
     cache: &BpeCache,
@@ -1135,7 +1135,7 @@ pub(crate) fn unknown_byte_fallback<T: Vocab>(token: TokenRef, vocab: &T) -> Opt
         for byte in token
             .text
             .bytes()
-            .map(|byte| format!("<{:#04X?}>", byte))
+            .map(|byte| format!("<{byte:#04X?}>"))
             .collect::<Vec<String>>()
         {
             updated_tokens.push(Token {

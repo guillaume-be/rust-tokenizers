@@ -117,7 +117,7 @@ impl Vocab for PegasusVocab {
 
         let mut additional_special_tokens = HashSet::from([DEFAULT_SENTENCE_MASK_TOKEN.into()]);
         for idx in 2..103 {
-            let _ = additional_special_tokens.insert(format!("<unk_{}>", idx));
+            let _ = additional_special_tokens.insert(format!("<unk_{idx}>"));
         }
 
         let special_token_map = SpecialTokenMap {
@@ -213,7 +213,7 @@ impl Vocab for PegasusVocab {
 
         let mut additional_special_tokens = HashSet::from(["<mask_1>".into()]);
         for idx in 2..103 {
-            let _ = additional_special_tokens.insert(format!("<unk_{}>", idx));
+            let _ = additional_special_tokens.insert(format!("<unk_{idx}>"));
         }
 
         let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
