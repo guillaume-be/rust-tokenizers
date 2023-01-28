@@ -1,13 +1,16 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use rust_tokenizers::tokenizer::{
+
+extern crate rust_tokenizers as rust_tokenizers_base;
+
+use rust_tokenizers_base::tokenizer::{
     AlbertTokenizer, BertTokenizer, CtrlTokenizer, DeBERTaTokenizer, DeBERTaV2Tokenizer,
     FNetTokenizer, Gpt2Tokenizer, M2M100Tokenizer, MBart50Tokenizer, MultiThreadedTokenizer,
     OpenAiGptTokenizer, PegasusTokenizer, ProphetNetTokenizer, ReformerTokenizer, RobertaTokenizer,
     SentencePieceBpeTokenizer, SentencePieceTokenizer, T5Tokenizer, Tokenizer, TruncationStrategy,
     XLMRobertaTokenizer, XLNetTokenizer,
 };
-use rust_tokenizers::vocab::{
+use rust_tokenizers_base::vocab::{
     AlbertVocab, BertVocab, DeBERTaV2Vocab, DeBERTaVocab, FNetVocab, Gpt2Vocab, M2M100Vocab,
     MBart50Vocab, OpenAiGptVocab, PegasusVocab, ProphetNetVocab, ReformerVocab, RobertaVocab,
     SentencePieceVocab, T5Vocab, Vocab, XLMRobertaVocab, XLNetVocab,
