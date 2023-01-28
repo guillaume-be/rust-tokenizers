@@ -8,15 +8,13 @@ use test_utils::download_file_to_cache;
 fn test_ctrl_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://raw.githubusercontent.com/salesforce/ctrl/master/ctrl-vocab.json",
-        "ctrl_vocab.json",
     )?;
 
     let merges_path = download_file_to_cache(
         "https://raw.githubusercontent.com/salesforce/ctrl/master/ctrl-merges.txt",
-        "ctrl_merges.txt",
     )?;
 
-    let ctrl_tokenizer = CtrlTokenizer::from_file(&vocab_path, &merges_path, false)?;
+    let ctrl_tokenizer = CtrlTokenizer::from_file(vocab_path, merges_path, false)?;
 
     let original_strings = [
         "…",

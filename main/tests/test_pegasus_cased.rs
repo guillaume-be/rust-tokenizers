@@ -10,10 +10,9 @@ use test_utils::download_file_to_cache;
 fn test_pegasus_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://cdn.huggingface.co/google/pegasus-cnn_dailymail/spiece.model",
-        "pegasus-cnn_dailymail-spiece.model",
     )?;
 
-    let pegasus_tokenizer = PegasusTokenizer::from_file(&vocab_path, false)?;
+    let pegasus_tokenizer = PegasusTokenizer::from_file(vocab_path, false)?;
 
     let original_strings = [
         "…",

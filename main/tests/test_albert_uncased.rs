@@ -10,10 +10,9 @@ use test_utils::download_file_to_cache;
 fn test_albert_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/albert-base-v2-spiece.model",
-        "albert-base-v2-spiece.model",
     )?;
 
-    let albert_tokenizer = AlbertTokenizer::from_file(&vocab_path, true, true)?;
+    let albert_tokenizer = AlbertTokenizer::from_file(vocab_path, true, true)?;
 
     let original_strings = [
         "…",

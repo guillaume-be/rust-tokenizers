@@ -10,10 +10,9 @@ use test_utils::download_file_to_cache;
 fn test_fnet_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/google/fnet-base/resolve/main/spiece.model",
-        "fnet-base-spiece.model",
     )?;
 
-    let fnet_tokenizer = FNetTokenizer::from_file(&vocab_path, false, false)?;
+    let fnet_tokenizer = FNetTokenizer::from_file(vocab_path, false, false)?;
 
     let original_strings = [
         "…",

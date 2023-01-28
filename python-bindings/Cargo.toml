@@ -1,6 +1,6 @@
 [package]
 name = "rust_tokenizers_python"
-version = "7.0.2"
+version = "8.0.0-alpha"
 authors = ["Guillaume Becquin <guillaume.becquin@gmail.com>"]
 edition = "2018"
 description = "High performance tokenizers for Rust"
@@ -8,15 +8,15 @@ repository = "https://github.com/guillaume-be/rust-tokenizers"
 license = "Apache-2.0"
 
 [dependencies.pyo3]
-version = "0.16.2"
+version = "0.18"
 features = ["extension-module"]
 
 [dependencies.rust_tokenizers]
-version = "*"
+version = "8.0.0-alpha"
 path = "../main"
 
 [dev-dependencies]
-tempfile = "3.3.0"
+tempfile = "3"
 
 [lib]
 name = "rust_tokenizers"
