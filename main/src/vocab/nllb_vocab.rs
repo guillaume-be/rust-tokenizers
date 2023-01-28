@@ -70,7 +70,7 @@ pub struct NLLBVocab {
 impl NLLBVocab {
     /// The beginning of sequence token that was used during pretraining.
     /// Can be used a sequence classifier token.
-    pub fn bos_value(&self) -> &str {
+    pub fn get_bos_value(&self) -> &str {
         self.special_token_storage
             .bos_token
             .as_deref()
@@ -78,7 +78,7 @@ impl NLLBVocab {
     }
 
     /// End of sequence token.
-    pub fn eos_value(&self) -> &str {
+    pub fn get_eos_value(&self) -> &str {
         self.special_token_storage
             .eos_token
             .as_deref()
@@ -86,7 +86,7 @@ impl NLLBVocab {
     }
 
     /// Returns the SEP token for M2M100 (`</s>`)
-    pub fn sep_value(&self) -> &str {
+    pub fn get_sep_value(&self) -> &str {
         self.special_token_storage
             .eos_token
             .as_deref()
@@ -94,7 +94,7 @@ impl NLLBVocab {
     }
 
     /// Returns the PAD token for M2M100 (`<pad>`)
-    pub fn pad_value(&self) -> &str {
+    pub fn get_pad_value(&self) -> &str {
         self.special_token_storage
             .pad_token
             .as_deref()
@@ -185,10 +185,10 @@ impl Vocab for NLLBVocab {
         let mut reserve_special =
             |t| register_as_special_value(t, &result.values, &mut special_values);
 
-        reserve_special(result.bos_value())?;
-        reserve_special(result.eos_value())?;
-        reserve_special(result.sep_value())?;
-        reserve_special(result.pad_value())?;
+        reserve_special(result.get_bos_value())?;
+        reserve_special(result.get_eos_value())?;
+        reserve_special(result.get_sep_value())?;
+        reserve_special(result.get_pad_value())?;
         reserve_special(result.get_unknown_value())?;
 
         if let Some(languages) = result

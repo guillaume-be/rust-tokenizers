@@ -26,6 +26,15 @@ impl NLLBTokenizer {
         let vocab = NLLBVocab::from_file_with_special_token_mapping(vocab_path, special_tokens)?;
         Ok(Self { model, vocab })
     }
+
+    pub fn from_file<V: AsRef<Path>, M: AsRef<Path>>(
+        vocab_path: V,
+        model_path: M,
+    ) -> Result<Self, TokenizerError> {
+        let model = SentencePieceBpeModel::from_file(model_path)?;
+        let vocab = NLLBVocab::from_file(vocab_path)?;
+        Ok(Self { model, vocab })
+    }
 }
 
 impl Tokenizer<NLLBVocab> for NLLBTokenizer {
@@ -116,7 +125,7 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
             token_segment_ids.push(0);
         }
         special_tokens_mask.push(1);
-        output.push(self.vocab.token_to_id(self.vocab.eos_value()));
+        output.push(self.vocab.token_to_id(self.vocab.get_eos_value()));
         offsets.push(None);
         original_offsets.push(vec![]);
         mask.push(Mask::Special);
