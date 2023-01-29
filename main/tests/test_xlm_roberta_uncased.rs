@@ -7,10 +7,9 @@ use test_utils::download_file_to_cache;
 
 #[test]
 fn test_xlm_roberta_tokenization() -> anyhow::Result<()> {
-    let vocab_path = download_file_to_cache("https://cdn.huggingface.co/xlm-roberta-large-finetuned-conll03-english-sentencepiece.bpe.model",
-                                            "xlm-roberta-spiece.model")?;
+    let vocab_path = download_file_to_cache("https://cdn.huggingface.co/xlm-roberta-large-finetuned-conll03-english-sentencepiece.bpe.model", )?;
 
-    let xlm_roberta_tokenizer = XLMRobertaTokenizer::from_file(&vocab_path, false)?;
+    let xlm_roberta_tokenizer = XLMRobertaTokenizer::from_file(vocab_path, false)?;
 
     let original_strings = [
         "…",

@@ -8,10 +8,9 @@ use test_utils::download_file_to_cache;
 fn test_prophetnet_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://huggingface.co/microsoft/prophetnet-large-uncased/resolve/main/prophetnet.tokenizer",
-        "prophetnet.tokenizer",
     )?;
 
-    let vocab = ProphetNetVocab::from_file(&vocab_path)?;
+    let vocab = ProphetNetVocab::from_file(vocab_path)?;
     let bert_tokenizer: ProphetNetTokenizer =
         ProphetNetTokenizer::from_existing_vocab(vocab, true, true);
 

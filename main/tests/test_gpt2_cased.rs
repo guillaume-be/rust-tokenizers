@@ -9,13 +9,11 @@ use test_utils::download_file_to_cache;
 fn test_gpt2_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-vocab.json",
-        "gpt2_vocab.json",
     )
     .unwrap();
 
     let merges_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-merges.txt",
-        "gpt2_merges.txt",
     )
     .unwrap();
 

@@ -8,7 +8,6 @@ use test_utils::download_file_to_cache;
 fn test_bert_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt",
-        "bert-base-uncased_vocab.txt",
     )
     .unwrap();
 

@@ -150,9 +150,9 @@ impl Vocab for M2M100Vocab {
         let mut special_values = HashMap::new();
         for language_code in FAIRSEQ_LANGUAGE_CODES.iter() {
             let language_code = if language_code.len() == 2 {
-                format!(">>{}.<<", language_code)
+                format!(">>{language_code}.<<")
             } else if language_code.len() == 3 {
-                format!(">>{}<<", language_code)
+                format!(">>{language_code}<<")
             } else {
                 return Err(TokenizerError::VocabularyParsingError(
                     "M2M100 Vocab only supports language code of length 2 or 3".to_string(),
@@ -166,9 +166,9 @@ impl Vocab for M2M100Vocab {
             .iter()
             .map(|f| {
                 if f.len() == 2 {
-                    format!(">>{}.<<", f)
+                    format!(">>{f}.<<")
                 } else {
-                    format!(">>{}<<", f)
+                    format!(">>{f}<<")
                 }
                 .as_bytes()
                 .to_vec()

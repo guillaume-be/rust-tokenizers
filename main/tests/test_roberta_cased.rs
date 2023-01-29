@@ -8,17 +8,15 @@ use test_utils::download_file_to_cache;
 fn test_roberta_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-base-vocab.json",
-        "roberta_vocab.json",
     )
     .unwrap();
 
     let merges_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/roberta-base-merges.txt",
-        "roberta_merges.txt",
     )
     .unwrap();
 
-    let roberta_tokenizer = RobertaTokenizer::from_file(&vocab_path, &merges_path, false, true)?;
+    let roberta_tokenizer = RobertaTokenizer::from_file(vocab_path, merges_path, false, true)?;
 
     let original_strings = [
         "…",

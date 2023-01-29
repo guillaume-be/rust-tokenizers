@@ -549,7 +549,7 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
                     end: token.offset.begin + pos_begin as OffsetSize + char_length as OffsetSize,
                 };
                 if start > 0 {
-                    substr = format!("##{}", substr);
+                    substr = format!("##{substr}");
                 }
                 if vocab.values().contains_key(&substr) {
                     tokens.push(Token {
@@ -966,8 +966,8 @@ fn bytes_offsets(text: &str) -> Vec<usize> {
     offsets
 }
 
-pub fn split_on_bpe_pairs<'a, F>(
-    token: TokenRef<'a>,
+pub fn split_on_bpe_pairs<F>(
+    token: TokenRef<'_>,
     bpe_function: F,
     bpe_ranks: &BpePairVocab,
     cache: &BpeCache,
@@ -1008,9 +1008,7 @@ where
                             begin: reference_offsets[start],
                             end: reference_offsets[start + char_count - 1] + 1,
                         },
-                        reference_offsets: reference_offsets
-                            [start as usize..start as usize + char_count]
-                            .to_vec(),
+                        reference_offsets: reference_offsets[start..start + char_count].to_vec(),
                         mask: {
                             if cached_tokens.len() > 1 {
                                 if idx == 0 {
@@ -1047,8 +1045,7 @@ where
                     begin: reference_offsets[start],
                     end: reference_offsets[start + char_count - 1] + 1,
                 },
-                reference_offsets: reference_offsets[start as usize..start as usize + char_count]
-                    .to_vec(),
+                reference_offsets: reference_offsets[start..start + char_count].to_vec(),
                 mask: {
                     if bpe_output.len() > 1 {
                         if idx == 0 {
@@ -1138,7 +1135,7 @@ pub(crate) fn unknown_byte_fallback<T: Vocab>(token: TokenRef, vocab: &T) -> Opt
         for byte in token
             .text
             .bytes()
-            .map(|byte| format!("<{:#04X?}>", byte))
+            .map(|byte| format!("<{byte:#04X?}>"))
             .collect::<Vec<String>>()
         {
             updated_tokens.push(Token {

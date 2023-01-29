@@ -11,11 +11,10 @@ use test_utils::download_file_to_cache;
 fn test_t5_tokenization() -> anyhow::Result<()> {
     let vocab_path = download_file_to_cache(
         "https://s3.amazonaws.com/models.huggingface.co/bert/t5-spiece.model",
-        "t5-spiece.model",
     )
     .unwrap();
 
-    let t5_tokenizer = T5Tokenizer::from_file(&vocab_path, false)?;
+    let t5_tokenizer = T5Tokenizer::from_file(vocab_path, false)?;
 
     let original_strings = [
         "…",
