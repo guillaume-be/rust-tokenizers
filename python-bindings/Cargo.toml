@@ -12,7 +12,7 @@ version = "0.18"
 features = ["extension-module"]
 
 [dependencies.rust_tokenizers]
-version = "8.0.0-alpha"
+version = "8.0.0"
 path = "../main"
 
 [dev-dependencies]
