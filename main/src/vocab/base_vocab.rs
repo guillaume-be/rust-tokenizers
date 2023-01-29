@@ -153,7 +153,7 @@ pub(crate) fn register_as_special_value(
     Ok(())
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 pub struct SpecialTokenMap {
     pub unk_token: String,
     pub pad_token: Option<String>,
