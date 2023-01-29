@@ -91,7 +91,7 @@ jobs:
       - run: |
           cd python-bindings
           pip install -r requirements-dev.txt
-          pip install transformers==4.12.3
+          pip install transformers==4.21
           python setup.py install
       - run : pytest ./python-bindings/tests/test_tokenization_sst2.py
       - run : pytest ./python-bindings/tests/test_tokenization_qnli.py

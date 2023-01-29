@@ -15,6 +15,7 @@ It includes a broad range of tokenizers for state-of-the-art transformers archit
 - Pegasus
 - MBart50
 - M2M100
+- NLLB
 - DeBERTa
 - DeBERTa (v2)
 

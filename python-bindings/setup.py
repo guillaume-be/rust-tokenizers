@@ -63,7 +63,7 @@ class PyTest(TestCommand):
 
 
 setup_requires = ["setuptools-rust>=1.2.0", "wheel"]
-test_requires = ["pytest", "pytest-benchmark", "torch>=1.11.0", "transformers==4.17.0"]
+test_requires = ["pytest", "pytest-benchmark", "torch>=1.11.0", "transformers==4.21.0"]
 
 setup(
     name="rust_tokenizers",

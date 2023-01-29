@@ -1109,13 +1109,13 @@ pub(crate) fn split_on_language_code<'a>(
         for _ in 0..code_length {
             char_indices.next();
         }
-    }
-    for (c_start, c) in char_indices {
-        if !c.is_whitespace() {
-            break;
+        for (c_start, c) in char_indices {
+            if !c.is_whitespace() {
+                break;
+            }
+            start_byte = c_start;
+            begin_char += 1;
         }
-        start_byte = c_start;
-        begin_char += 1;
     }
     tokens.push(TokenRef {
         text: &token.text[start_byte..],
