@@ -31,7 +31,7 @@ pub struct NLLBTokenizer {
 }
 
 impl NLLBTokenizer {
-    pub fn from_files<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
+    pub fn from_files_with_special_token_map<V: AsRef<Path>, M: AsRef<Path>, S: AsRef<Path>>(
         vocab_path: V,
         model_path: M,
         special_tokens: S,
@@ -47,7 +47,7 @@ impl NLLBTokenizer {
         })
     }
 
-    pub fn from_file<V: AsRef<Path>, M: AsRef<Path>>(
+    pub fn from_files<V: AsRef<Path>, M: AsRef<Path>>(
         vocab_path: V,
         model_path: M,
     ) -> Result<Self, TokenizerError> {

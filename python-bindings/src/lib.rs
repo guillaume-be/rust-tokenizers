@@ -2213,7 +2213,7 @@ impl PyNLLBTokenizer {
     #[new]
     fn new(vocab_path: String, merges_path: String, special_token_map: String) -> Self {
         PyNLLBTokenizer {
-            tokenizer: NLLBTokenizer::from_files(
+            tokenizer: NLLBTokenizer::from_files_with_special_token_map(
                 vocab_path.as_str(),
                 merges_path.as_str(),
                 special_token_map.as_str(),

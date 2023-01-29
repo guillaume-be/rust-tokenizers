@@ -23,7 +23,8 @@ fn test_nllb_tokenization() -> anyhow::Result<()> {
     )
     .unwrap();
 
-    let nllb_tokenizer = NLLBTokenizer::from_files(vocab_path, merges_path, special_path)?;
+    let nllb_tokenizer =
+        NLLBTokenizer::from_files_with_special_token_map(vocab_path, merges_path, special_path)?;
 
     let original_strings = [
         "nld_Latn …",
