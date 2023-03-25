@@ -66,9 +66,10 @@ impl Offset {
 
 /// # Type indication for tokens (e.g. special token, white space, unknown...)
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize, Eq)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy, Serialize, Deserialize, Eq, Default)]
 pub enum Mask {
     /// The token has no particular mask. This is the default situation. It may indicate that further processing can be done on a token.
+    #[default]
     None,
     /// The token represents a whitespace (in any shape or form)
     Whitespace,
@@ -86,12 +87,6 @@ pub enum Mask {
     Unfinished,
     /// The token is out of vocabulary, it is unknown by the tokenizer and it will decode to unknown. Tokens that can be decoded properly (but may still be out of vocabulary) should not set this.
     Unknown,
-}
-
-impl Default for Mask {
-    fn default() -> Mask {
-        Mask::None
-    }
 }
 
 /// Token abstraction trait to access token fields, irrespective of their form (reference of owned)
