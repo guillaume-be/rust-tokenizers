@@ -1199,6 +1199,28 @@ pub trait Tokenizer<T: Vocab> {
             mask: tokens_ids_with_offsets_1.masks,
         }
     }
+
+    /// Add arbitrary tokens to the vocabulary.
+    ///
+    /// These tokens are added to the special token map and are ignored from the tokenization
+    /// algorithm chosen (e.g.
+    ///
+    /// # Parameters
+    /// - tokens (`&[&str]`): list of tokens to add to the vocabulary
+    fn add_tokens(&mut self, tokens: &[&str]) {
+        self.vocab_mut().add_tokens(tokens);
+    }
+
+    /// Add arbitrary tokens to the vocabulary.
+    ///
+    /// These tokens are added to the special token map and are ignored from the tokenization
+    /// algorithm chosen (e.g.
+    ///
+    /// # Parameters
+    /// - num_extra_ids (`i64`): number of tokens to append
+    fn add_extra_ids(&mut self, num_extra_ids: i64) {
+        self.vocab_mut().add_extra_ids(num_extra_ids);
+    }
 }
 
 /// # Extension for multithreaded tokenizers

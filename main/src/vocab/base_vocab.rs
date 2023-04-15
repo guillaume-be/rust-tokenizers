@@ -357,10 +357,33 @@ pub trait Vocab {
         tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
 
+    /// Add extra token ids to the vocab
+    ///
+    /// These tokens are generated automatically using the `<extra_id_{i}>` template and appended to
+    /// the vocabulary. These are ignored from the tokenization algorithm chosen (pre-tokenized).
+    /// This is used by some architectures to allow for further task-specific token identified
+    /// following the pre-training phase (e.g. T5 adds 100 of these tokens at creation).
+    ///
+    /// # Parameters
+    /// - num_extra_ids (`i64`): number of tokens to append
+    fn add_extra_ids(&mut self, num_extra_ids: i64) {
+        let mut additional_special_tokens: Vec<String> = Vec::with_capacity(num_extra_ids as usize);
+        for extra_id in 0..num_extra_ids {
+            additional_special_tokens.push(format!("<extra_id_{extra_id}>"));
+        }
+        self.add_tokens(
+            additional_special_tokens
+                .iter()
+                .map(AsRef::as_ref)
+                .collect::<Vec<&str>>()
+                .as_slice(),
+        );
+    }
+
     /// Add arbitrary tokens to the vocabulary.
     ///
     /// These tokens are added to the special token map and are ignored from the tokenization
-    /// algorithm chosen (e.g.
+    /// algorithm chosen (pre-tokenized).
     ///
     /// # Parameters
     /// - tokens (`&[&str]`): list of tokens to add to the vocabulary

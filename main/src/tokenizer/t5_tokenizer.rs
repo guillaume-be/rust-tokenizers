@@ -54,7 +54,8 @@ impl T5Tokenizer {
         lower_case: bool,
     ) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
-        let vocab = T5Vocab::from_file(path)?;
+        let mut vocab = T5Vocab::from_file(path)?;
+        vocab.add_extra_ids(100);
         let eos_token_id = vocab.token_to_id(vocab.get_eos_value());
         Ok(T5Tokenizer {
             model,
@@ -89,8 +90,9 @@ impl T5Tokenizer {
         special_token_mapping_path: S,
     ) -> Result<T5Tokenizer, TokenizerError> {
         let model = SentencePieceModel::from_file(&path)?;
-        let vocab =
+        let mut vocab =
             T5Vocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        vocab.add_extra_ids(100);
         let eos_token_id = vocab.token_to_id(vocab.get_eos_value());
         Ok(T5Tokenizer {
             model,
