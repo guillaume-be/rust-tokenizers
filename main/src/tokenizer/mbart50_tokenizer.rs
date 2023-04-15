@@ -134,6 +134,9 @@ impl Tokenizer<MBart50Vocab> for MBart50Tokenizer {
     fn vocab(&self) -> &MBart50Vocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut MBart50Vocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let tokens = split_on_language_code(text, 6, &self.vocab.language_codes_bytes);

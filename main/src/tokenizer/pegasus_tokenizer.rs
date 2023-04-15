@@ -131,6 +131,9 @@ impl Tokenizer<PegasusVocab> for PegasusTokenizer {
     fn vocab(&self) -> &PegasusVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut PegasusVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut token = text.to_owned();

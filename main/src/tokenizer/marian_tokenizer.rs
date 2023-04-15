@@ -151,6 +151,9 @@ impl Tokenizer<MarianVocab> for MarianTokenizer {
     fn vocab(&self) -> &MarianVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut MarianVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let tokens = split_at_regex(text, &self.pattern_language_code);

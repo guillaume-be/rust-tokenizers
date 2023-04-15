@@ -67,7 +67,7 @@ test_requires = ["pytest", "pytest-benchmark", "torch>=1.11.0", "transformers==4
 
 setup(
     name="rust_tokenizers",
-    version="8.0.0",
+    version="8.1.0",
     packages=["rust_tokenizers"],
     rust_extensions=[RustExtension("rust_tokenizers.rust_tokenizers", "Cargo.toml", debug=False)],
     setup_requires=setup_requires,

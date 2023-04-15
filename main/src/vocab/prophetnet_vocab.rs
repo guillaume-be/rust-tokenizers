@@ -104,6 +104,22 @@ impl Vocab for ProphetNetVocab {
         &self.special_indices
     }
 
+    fn values_mut(&mut self) -> &mut HashMap<String, i64> {
+        &mut self.values
+    }
+
+    fn indices_mut(&mut self) -> &mut HashMap<i64, String> {
+        &mut self.indices
+    }
+
+    fn special_values_mut(&mut self) -> &mut HashMap<String, i64> {
+        &mut self.special_values
+    }
+
+    fn special_indices_mut(&mut self) -> &mut HashMap<i64, String> {
+        &mut self.special_indices
+    }
+
     fn from_file<P: AsRef<Path>>(path: P) -> Result<ProphetNetVocab, TokenizerError> {
         let values = read_flat_file(path)?;
 

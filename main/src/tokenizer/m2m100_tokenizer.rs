@@ -148,6 +148,9 @@ impl Tokenizer<M2M100Vocab> for M2M100Tokenizer {
     fn vocab(&self) -> &M2M100Vocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut M2M100Vocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let tokens = split_on_language_code(text, 7, &self.vocab.language_codes_bytes);

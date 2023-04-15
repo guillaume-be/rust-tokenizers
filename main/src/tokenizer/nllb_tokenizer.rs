@@ -77,6 +77,9 @@ impl Tokenizer<NLLBVocab> for NLLBTokenizer {
     fn vocab(&self) -> &NLLBVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut NLLBVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: crate::TokenRef) -> Vec<crate::Token> {
         let tokens = split_on_language_code(text, 8, &self.vocab.language_codes_bytes);

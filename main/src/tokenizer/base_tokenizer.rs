@@ -465,6 +465,9 @@ pub trait Tokenizer<T: Vocab> {
     /// returns a reference to the tokenizer vocabulary
     fn vocab(&self) -> &T;
 
+    /// returns a mutable reference to the tokenizer vocabulary
+    fn vocab_mut(&mut self) -> &mut T;
+
     /// Tokenize a string, returns a vector of tokens as strings.
     /// Use `tokenize_with_offsets` or `tokenize_to_tokens` to return offset information.
     ///
@@ -1196,12 +1199,34 @@ pub trait Tokenizer<T: Vocab> {
             mask: tokens_ids_with_offsets_1.masks,
         }
     }
+
+    /// Add arbitrary tokens to the vocabulary.
+    ///
+    /// These tokens are added to the special token map and are ignored from the tokenization
+    /// algorithm chosen (e.g.
+    ///
+    /// # Parameters
+    /// - tokens (`&[&str]`): list of tokens to add to the vocabulary
+    fn add_tokens(&mut self, tokens: &[&str]) {
+        self.vocab_mut().add_tokens(tokens);
+    }
+
+    /// Add arbitrary tokens to the vocabulary.
+    ///
+    /// These tokens are added to the special token map and are ignored from the tokenization
+    /// algorithm chosen (e.g.
+    ///
+    /// # Parameters
+    /// - num_extra_ids (`i64`): number of tokens to append
+    fn add_extra_ids(&mut self, num_extra_ids: i64) {
+        self.vocab_mut().add_extra_ids(num_extra_ids);
+    }
 }
 
 /// # Extension for multithreaded tokenizers
 pub trait MultiThreadedTokenizer<T: Vocab>
 where
-    Self: std::marker::Sync + Send + Tokenizer<T>,
+    Self: Sync + Send + Tokenizer<T>,
 {
     /// returns a reference to the tokenizer vocabulary
     fn vocab(&self) -> &T {
@@ -1555,6 +1580,9 @@ impl<T: Vocab + Sync> BaseTokenizer<T> {
 impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
     fn vocab(&self) -> &T {
         &self.vocab
+    }
+    fn vocab_mut(&mut self) -> &mut T {
+        &mut self.vocab
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {

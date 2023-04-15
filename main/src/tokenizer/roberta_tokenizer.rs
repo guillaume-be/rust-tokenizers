@@ -200,6 +200,9 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
     fn vocab(&self) -> &RobertaVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut RobertaVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         if initial_token.text.is_empty() {

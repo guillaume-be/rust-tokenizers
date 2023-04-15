@@ -9,17 +9,16 @@ use test_utils::download_file_to_cache;
 
 #[test]
 fn test_t5_tokenization() -> anyhow::Result<()> {
-    let vocab_path = download_file_to_cache(
-        "https://s3.amazonaws.com/models.huggingface.co/bert/t5-spiece.model",
-    )
-    .unwrap();
+    let vocab_path =
+        download_file_to_cache("https://huggingface.co/t5-base/resolve/main/spiece.model").unwrap();
 
-    let t5_tokenizer = T5Tokenizer::from_file(vocab_path, false)?;
+    let mut t5_tokenizer = T5Tokenizer::from_file(vocab_path, false)?;
+    t5_tokenizer.add_tokens(&["<sep>", "<hl>"]);
 
     let original_strings = [
         "…",
         "This is a sample sentence to be tokénized",
-        "Wondering how this will get tokenized 🤔 ?",
+        "Wondering how this <sep> will get <hl> tokenized 🤔 ?",
         "İs th!s 𩸽 Ϻ Šœ Ugljšić dấu nặng",
         "   İs th!s    𩸽 Ϻ Šœ   Ugljšić  dấu nặng     ",
         " � İs th!s �� 𩸽 Ϻ Šœ   Ugljšić  dấu nặng     ",
@@ -66,7 +65,9 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
             mask: vec![],
         },
         TokenizedInput {
-            token_ids: vec![16347, 53, 149, 48, 56, 129, 14145, 1601, 3, 2, 3, 58, 1],
+            token_ids: vec![
+                16347, 53, 149, 48, 32100, 56, 129, 32101, 14145, 1601, 3, 2, 3, 58, 1,
+            ],
             segment_ids: vec![],
             special_tokens_mask: vec![],
             overflowing_tokens: vec![],
@@ -76,14 +77,16 @@ fn test_t5_tokenization() -> anyhow::Result<()> {
                 Some(Offset { begin: 6, end: 9 }),
                 Some(Offset { begin: 9, end: 13 }),
                 Some(Offset { begin: 13, end: 18 }),
-                Some(Offset { begin: 18, end: 23 }),
-                Some(Offset { begin: 23, end: 27 }),
-                Some(Offset { begin: 27, end: 33 }),
-                Some(Offset { begin: 33, end: 37 }),
-                Some(Offset { begin: 37, end: 38 }),
-                Some(Offset { begin: 38, end: 39 }),
-                Some(Offset { begin: 39, end: 40 }),
-                Some(Offset { begin: 40, end: 41 }),
+                Some(Offset { begin: 19, end: 24 }),
+                Some(Offset { begin: 24, end: 29 }),
+                Some(Offset { begin: 29, end: 33 }),
+                Some(Offset { begin: 34, end: 38 }),
+                Some(Offset { begin: 38, end: 44 }),
+                Some(Offset { begin: 44, end: 48 }),
+                Some(Offset { begin: 48, end: 49 }),
+                Some(Offset { begin: 49, end: 50 }),
+                Some(Offset { begin: 50, end: 51 }),
+                Some(Offset { begin: 51, end: 52 }),
                 None,
             ],
             reference_offsets: vec![],
