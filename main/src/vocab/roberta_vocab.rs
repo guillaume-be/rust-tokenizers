@@ -121,6 +121,22 @@ impl Vocab for RobertaVocab {
         &self.special_indices
     }
 
+    fn values_mut(&mut self) -> &mut HashMap<String, i64> {
+        &mut self.values
+    }
+
+    fn indices_mut(&mut self) -> &mut HashMap<i64, String> {
+        &mut self.indices
+    }
+
+    fn special_values_mut(&mut self) -> &mut HashMap<String, i64> {
+        &mut self.special_values
+    }
+
+    fn special_indices_mut(&mut self) -> &mut HashMap<i64, String> {
+        &mut self.special_indices
+    }
+
     ///Read a Roberta-style vocab.json file
     fn from_file<P: AsRef<Path>>(path: P) -> Result<RobertaVocab, TokenizerError> {
         let values = read_json_file(path)?;

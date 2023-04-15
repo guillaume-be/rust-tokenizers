@@ -149,6 +149,9 @@ impl Tokenizer<OpenAiGptVocab> for OpenAiGptTokenizer {
     fn vocab(&self) -> &OpenAiGptVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut OpenAiGptVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         let tokens: Vec<Token> = self

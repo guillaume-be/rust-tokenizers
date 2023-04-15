@@ -133,6 +133,9 @@ impl Tokenizer<SentencePieceVocab> for SentencePieceTokenizer {
     fn vocab(&self) -> &SentencePieceVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut SentencePieceVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut token = text.to_owned();

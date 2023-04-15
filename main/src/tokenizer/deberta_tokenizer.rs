@@ -175,6 +175,9 @@ impl Tokenizer<DeBERTaVocab> for DeBERTaTokenizer {
     fn vocab(&self) -> &DeBERTaVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut DeBERTaVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         let mut tokens = split_on_special_tokens(initial_token, &self.vocab)

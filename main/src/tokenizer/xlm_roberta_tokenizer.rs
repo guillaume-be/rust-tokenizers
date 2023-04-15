@@ -136,6 +136,9 @@ impl Tokenizer<XLMRobertaVocab> for XLMRobertaTokenizer {
     fn vocab(&self) -> &XLMRobertaVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut XLMRobertaVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut tokens = split_on_special_tokens(text, &self.vocab)

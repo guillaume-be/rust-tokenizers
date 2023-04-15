@@ -219,6 +219,18 @@ pub trait Vocab {
     /// Return the map of token IDs to strings for special values
     fn special_indices(&self) -> &HashMap<i64, String>;
 
+    /// Return a mutable reference to the map of token strings to IDs
+    fn values_mut(&mut self) -> &mut HashMap<String, i64>;
+
+    /// Return a mutable reference to the map of token IDs to strings
+    fn indices_mut(&mut self) -> &mut HashMap<i64, String>;
+
+    /// Return a mutable reference to the map of token strings to IDs
+    fn special_values_mut(&mut self) -> &mut HashMap<String, i64>;
+
+    /// Return a mutable reference to the map of token IDs to strings for special values
+    fn special_indices_mut(&mut self) -> &mut HashMap<i64, String>;
+
     /// Read a vocabulary from file
     ///
     /// # Example
@@ -344,6 +356,32 @@ pub trait Vocab {
     fn convert_tokens_to_ids(&self, tokens: &[&str]) -> Vec<i64> {
         tokens.iter().map(|v| self.token_to_id(v)).collect()
     }
+
+    /// Add arbitrary tokens to the vocabulary.
+    ///
+    /// These tokens are added to the special token map and are ignored from the tokenization
+    /// algorithm chosen (e.g.
+    ///
+    /// # Parameters
+    /// - tokens (`&[&str]`): list of tokens to add to the vocabulary
+    fn add_tokens(&mut self, tokens: &[&str]) {
+        let mut tokens_to_add: Vec<&str> = Vec::with_capacity(tokens.len());
+        for token in tokens {
+            if !self.values().contains_key(*token) {
+                tokens_to_add.push(token);
+            }
+        }
+        let mut current_index = self.values().len() as i64;
+        for token in tokens_to_add {
+            self.values_mut().insert(token.to_string(), current_index);
+            self.indices_mut().insert(current_index, token.to_string());
+            self.special_values_mut()
+                .insert(token.to_string(), current_index);
+            self.special_indices_mut()
+                .insert(current_index, token.to_string());
+            current_index += 1;
+        }
+    }
 }
 
 /// # BaseVocab
@@ -390,6 +428,22 @@ impl Vocab for BaseVocab {
 
     fn special_indices(&self) -> &HashMap<i64, String> {
         &self.special_indices
+    }
+
+    fn values_mut(&mut self) -> &mut HashMap<String, i64> {
+        &mut self.values
+    }
+
+    fn indices_mut(&mut self) -> &mut HashMap<i64, String> {
+        &mut self.indices
+    }
+
+    fn special_values_mut(&mut self) -> &mut HashMap<String, i64> {
+        &mut self.special_values
+    }
+
+    fn special_indices_mut(&mut self) -> &mut HashMap<i64, String> {
+        &mut self.special_indices
     }
 
     fn from_file<P: AsRef<Path>>(path: P) -> Result<BaseVocab, TokenizerError> {

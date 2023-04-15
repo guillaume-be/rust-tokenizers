@@ -145,6 +145,9 @@ impl Tokenizer<T5Vocab> for T5Tokenizer {
     fn vocab(&self) -> &T5Vocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut T5Vocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, text: TokenRef) -> Vec<Token> {
         let mut tokens = split_on_special_tokens(text, &self.vocab)

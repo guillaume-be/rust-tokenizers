@@ -223,6 +223,9 @@ impl Tokenizer<DeBERTaV2Vocab> for DeBERTaV2Tokenizer {
     fn vocab(&self) -> &DeBERTaV2Vocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut DeBERTaV2Vocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         let mut initial_token: Token = initial_token.to_owned();

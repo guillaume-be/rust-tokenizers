@@ -465,6 +465,9 @@ pub trait Tokenizer<T: Vocab> {
     /// returns a reference to the tokenizer vocabulary
     fn vocab(&self) -> &T;
 
+    /// returns a mutable reference to the tokenizer vocabulary
+    fn vocab_mut(&mut self) -> &mut T;
+
     /// Tokenize a string, returns a vector of tokens as strings.
     /// Use `tokenize_with_offsets` or `tokenize_to_tokens` to return offset information.
     ///
@@ -1201,7 +1204,7 @@ pub trait Tokenizer<T: Vocab> {
 /// # Extension for multithreaded tokenizers
 pub trait MultiThreadedTokenizer<T: Vocab>
 where
-    Self: std::marker::Sync + Send + Tokenizer<T>,
+    Self: Sync + Send + Tokenizer<T>,
 {
     /// returns a reference to the tokenizer vocabulary
     fn vocab(&self) -> &T {
@@ -1555,6 +1558,9 @@ impl<T: Vocab + Sync> BaseTokenizer<T> {
 impl<T: Vocab + Sync + Send> Tokenizer<T> for BaseTokenizer<T> {
     fn vocab(&self) -> &T {
         &self.vocab
+    }
+    fn vocab_mut(&mut self) -> &mut T {
+        &mut self.vocab
     }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {

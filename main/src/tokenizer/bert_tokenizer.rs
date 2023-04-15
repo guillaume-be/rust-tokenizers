@@ -137,6 +137,9 @@ impl Tokenizer<BertVocab> for BertTokenizer {
     fn vocab(&self) -> &BertVocab {
         &self.vocab
     }
+    fn vocab_mut(&mut self) -> &mut BertVocab {
+        &mut self.vocab
+    }
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         //the base tokenizers does most of the work, we simply add a wordpiece tokenizer on top
