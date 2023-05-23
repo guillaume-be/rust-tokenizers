@@ -17,8 +17,7 @@ use std::path::Path;
 use itertools::Itertools;
 
 use crate::error::TokenizerError;
-use crate::tokenizer::base_tokenizer::{
-    BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenIdsWithOffsets,
+use crate::tokenizer::base_tokenizer::{Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenIdsWithOffsets,
     TokenIdsWithSpecialTokens, TokenRef, Tokenizer,
 };
 
@@ -32,7 +31,6 @@ use super::tokenization_utils::{split_on_special_tokens};
 /// - WordPiece tokenization
 pub struct Wav2Vec2Tokenizer {
     vocab: Wav2Vec2Vocab,
-    base_tokenizer: BaseTokenizer<Wav2Vec2Vocab>,
 }
 
 impl Wav2Vec2Tokenizer {
@@ -55,15 +53,10 @@ impl Wav2Vec2Tokenizer {
     /// ```
     pub fn from_file<P: AsRef<Path>>(
         path: P,
-        lower_case: bool,
-        strip_accents: bool,
     ) -> Result<Wav2Vec2Tokenizer, TokenizerError> {
         let vocab = Wav2Vec2Vocab::from_file(path)?;
-        let base_tokenizer =
-            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
         Ok(Wav2Vec2Tokenizer {
             vocab,
-            base_tokenizer,
         })
     }
 
@@ -92,17 +85,12 @@ impl Wav2Vec2Tokenizer {
     /// ```
     pub fn from_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
         path: P,
-        lower_case: bool,
-        strip_accents: bool,
         special_token_mapping_path: S,
     ) -> Result<Wav2Vec2Tokenizer, TokenizerError> {
         let vocab =
             Wav2Vec2Vocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
-        let base_tokenizer =
-            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
         Ok(Wav2Vec2Tokenizer {
             vocab,
-            base_tokenizer,
         })
     }
     /// Create a new instance of a `Wav2Vec2Tokenizer` from an existing vocabulary
@@ -125,14 +113,9 @@ impl Wav2Vec2Tokenizer {
     /// ```
     pub fn from_existing_vocab(
         vocab: Wav2Vec2Vocab,
-        lower_case: bool,
-        strip_accents: bool,
     ) -> Wav2Vec2Tokenizer {
-        let base_tokenizer =
-            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
         Wav2Vec2Tokenizer {
             vocab,
-            base_tokenizer,
         }
     }
 }
@@ -341,7 +324,7 @@ mod tests {
     fn test_wav_tokenizer() {
         //        Given
         let vocab = generate_test_vocab();
-        let wav_tokenizer: Wav2Vec2Tokenizer = Wav2Vec2Tokenizer::from_existing_vocab(vocab, true, true);
+        let wav_tokenizer: Wav2Vec2Tokenizer = Wav2Vec2Tokenizer::from_existing_vocab(vocab);
         let test_tuples = [
             ("HELLO|WORLD", vec!["H", "E", "L", "L", "O", "|", "W", "O", "R", "L", "D"]),
             (
