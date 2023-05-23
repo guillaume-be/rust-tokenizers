@@ -21,10 +21,10 @@ use crate::tokenizer::base_tokenizer::{
     BaseTokenizer, Mask, MultiThreadedTokenizer, Offset, OffsetSize, Token, TokenIdsWithOffsets,
     TokenIdsWithSpecialTokens, TokenRef, Tokenizer,
 };
-use crate::tokenizer::tokenization_utils::tokenize_wordpiece;
+
 use crate::vocab::{Wav2Vec2Vocab, Vocab};
 
-use super::tokenization_utils::{split_on_char, split_on_special_tokens, clean_text};
+use super::tokenization_utils::{split_on_special_tokens};
 
 /// # BERT tokenizer
 /// BERT tokenizer performing:
@@ -257,11 +257,11 @@ impl MultiThreadedTokenizer<Wav2Vec2Vocab> for Wav2Vec2Tokenizer {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tokenizer::base_tokenizer::TruncationStrategy;
+    
     use crate::vocab::base_vocab::{swap_key_values, SpecialTokenMap};
     use crate::vocab::Wav2Vec2Vocab;
-    use crate::TokenizedInput;
-    use itertools::Itertools;
+    
+    
     use std::collections::HashMap;
 
     fn generate_test_vocab() -> Wav2Vec2Vocab {
