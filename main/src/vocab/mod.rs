@@ -54,6 +54,7 @@ mod sentence_piece_unigram_model;
 mod sentence_piece_vocab;
 pub(crate) mod sentencepiece_proto;
 mod t5_vocab;
+mod wav2vec2_vocab;
 mod xlm_roberta_vocab;
 mod xlnet_vocab;
 
@@ -79,5 +80,6 @@ pub use sentence_piece_bpe_model::SentencePieceBpeModel;
 pub use sentence_piece_unigram_model::SentencePieceModel;
 pub use sentence_piece_vocab::SentencePieceVocab;
 pub use t5_vocab::T5Vocab;
+pub use wav2vec2_vocab::Wav2Vec2Vocab;
 pub use xlm_roberta_vocab::XLMRobertaVocab;
 pub use xlnet_vocab::XLNetVocab;

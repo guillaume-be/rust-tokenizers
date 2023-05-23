@@ -57,6 +57,7 @@ mod sentence_piece_bpe_tokenizer;
 mod sentence_piece_tokenizer;
 mod t5_tokenizer;
 pub(crate) mod tokenization_utils;
+mod wav2vec2_tokenizer;
 mod xlm_roberta_tokenizer;
 mod xlnet_tokenizer;
 
@@ -81,5 +82,6 @@ pub use sentence_piece_bpe_tokenizer::SentencePieceBpeTokenizer;
 pub use sentence_piece_tokenizer::SentencePieceTokenizer;
 pub use t5_tokenizer::T5Tokenizer;
 pub use tokenization_utils::truncate_sequences;
+pub use wav2vec2_tokenizer::Wav2Vec2Tokenizer;
 pub use xlm_roberta_tokenizer::XLMRobertaTokenizer;
 pub use xlnet_tokenizer::XLNetTokenizer;
