@@ -27,14 +27,17 @@ thiserror = "1"
 [dev-dependencies]
 tempfile = "3"
 dirs = "4"
-cached-path = "0.6"
+cached-path = { version = "0.6", default-features = false }
 anyhow = "1"
 
 [build-dependencies]
 protobuf-codegen-pure = {version = "2", optional = true}
 
 [features]
+default = ["default-tls"]
 proto-compile = [ "protobuf-codegen-pure" ]
+default-tls = ["cached-path/default-tls"]
+rustls-tls = ["cached-path/rustls-tls"]
 
 [lib]
 name = "rust_tokenizers"
