@@ -160,7 +160,7 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         tokens_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
     ) -> TokenIdsWithSpecialTokens {
         let mut output: Vec<i64> = vec![];
-        let mut token_segment_ids: Vec<i8> = vec![];
+        let mut token_segment_ids: Vec<i8> = vec![0; tokens_ids_with_offsets_1.ids.len() + 2];
         let mut special_tokens_mask: Vec<i8> = vec![];
         let mut offsets: Vec<Option<Offset>> = vec![];
         let mut original_offsets: Vec<Vec<OffsetSize>> = vec![];
@@ -168,7 +168,6 @@ impl Tokenizer<BertVocab> for BertTokenizer {
         special_tokens_mask.push(1);
         special_tokens_mask.extend(vec![0; tokens_ids_with_offsets_1.ids.len()]);
         special_tokens_mask.push(1);
-        token_segment_ids.extend(vec![0; tokens_ids_with_offsets_1.ids.len() + 2]);
         output.push(self.vocab.token_to_id(self.vocab.get_cls_value()));
         output.extend(tokens_ids_with_offsets_1.ids);
         output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
