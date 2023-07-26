@@ -64,7 +64,7 @@ pub fn replace_string(token: &mut Token, pattern: &str, replacement_string: &str
     let pattern_len = pattern.len();
     let pattern_char_len = pattern.chars().count();
     let replacement_char_len = replacement_string.chars().count();
-    let matches: Vec<usize> = token.text.rmatch_indices(pattern).map(|v| v.0).collect();
+    let matches = token.text.rmatch_indices(pattern).map(|v| v.0);
     let char_indices: HashMap<usize, usize> = token
         .text
         .char_indices()
