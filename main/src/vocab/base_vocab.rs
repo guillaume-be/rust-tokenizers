@@ -12,11 +12,13 @@
 use crate::error::TokenizerError;
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use protobuf::Message;
-use serde::Deserialize;
+use serde::{de, Deserialize, Deserializer, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufRead, BufReader, Read};
+use std::marker::PhantomData;
 use std::path::Path;
 
 pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
@@ -161,8 +163,64 @@ pub struct SpecialTokenMap {
     pub sep_token: Option<String>,
     pub cls_token: Option<String>,
     pub eos_token: Option<String>,
+    #[serde(default)]
+    #[serde(deserialize_with = "string_or_struct::<AddedToken,_>")]
     pub mask_token: Option<String>,
     pub additional_special_tokens: Option<HashSet<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AddedToken {
+    id: i64,
+    content: String,
+    single_word: bool,
+    lstrip: bool,
+    rstrip: bool,
+    normalized: bool,
+    special: bool,
+}
+
+fn string_or_struct<'de, T, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    T: Deserialize<'de>,
+    D: Deserializer<'de>,
+{
+    struct StringOrStruct<T>(PhantomData<fn() -> T>);
+
+    impl<'de, T> de::Visitor<'de> for StringOrStruct<T>
+    where
+        T: Deserialize<'de>,
+    {
+        type Value = Option<String>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("string or map")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value.to_string()))
+        }
+
+        fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+        where
+            M: de::MapAccess<'de>,
+        {
+            let mut value = None;
+            while let Some(key) = map.next_key::<String>()? {
+                if key == "content" {
+                    value = Some(map.next_value::<String>()?);
+                } else {
+                    _ = map.next_value::<String>();
+                }
+            }
+            Ok(value)
+        }
+    }
+
+    Ok(deserializer.deserialize_any(StringOrStruct::<AddedToken>(PhantomData))?)
 }
 
 impl SpecialTokenMap {

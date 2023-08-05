@@ -1,3 +1,4 @@
+use crate::vocab::base_vocab::AddedToken;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
@@ -22,16 +23,6 @@ where
         let config: Self = serde_json::from_reader(br).expect("could not parse configuration");
         config
     }
-}
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AddedToken {
-    id: i64,
-    content: String,
-    single_word: bool,
-    lstrip: bool,
-    rstrip: bool,
-    normalized: bool,
-    special: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
