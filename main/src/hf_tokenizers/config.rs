@@ -1,8 +1,8 @@
-use crate::vocab::base_vocab::AddedToken;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
+use tokenizers::AddedToken;
 
 /// # Utility to deserialize JSON config files
 pub trait Config

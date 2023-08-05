@@ -12,13 +12,12 @@
 use crate::error::TokenizerError;
 use crate::vocab::sentencepiece_proto::sentencepiece_model::ModelProto;
 use protobuf::Message;
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{de, Deserialize, Deserializer};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::{BufRead, BufReader, Read};
-use std::marker::PhantomData;
 use std::path::Path;
 
 pub(crate) fn swap_key_values<T: Clone, U: Hash + Eq + Copy>(
@@ -158,39 +157,34 @@ pub(crate) fn register_as_special_value(
 #[derive(Debug, Default, Clone, Deserialize)]
 pub struct SpecialTokenMap {
     pub unk_token: String,
+    #[serde(default)]
+    #[serde(deserialize_with = "string_or_added_token_struct")]
     pub pad_token: Option<String>,
+    #[serde(default)]
+    #[serde(deserialize_with = "string_or_added_token_struct")]
     pub bos_token: Option<String>,
+    #[serde(default)]
+    #[serde(deserialize_with = "string_or_added_token_struct")]
     pub sep_token: Option<String>,
+    #[serde(default)]
+    #[serde(deserialize_with = "string_or_added_token_struct")]
     pub cls_token: Option<String>,
+    #[serde(default)]
+    #[serde(deserialize_with = "string_or_added_token_struct")]
     pub eos_token: Option<String>,
     #[serde(default)]
-    #[serde(deserialize_with = "string_or_struct::<AddedToken,_>")]
+    #[serde(deserialize_with = "string_or_added_token_struct")]
     pub mask_token: Option<String>,
     pub additional_special_tokens: Option<HashSet<String>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AddedToken {
-    id: i64,
-    content: String,
-    single_word: bool,
-    lstrip: bool,
-    rstrip: bool,
-    normalized: bool,
-    special: bool,
-}
-
-fn string_or_struct<'de, T, D>(deserializer: D) -> Result<Option<String>, D::Error>
+fn string_or_added_token_struct<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
-    T: Deserialize<'de>,
     D: Deserializer<'de>,
 {
-    struct StringOrStruct<T>(PhantomData<fn() -> T>);
+    struct StringOrStruct;
 
-    impl<'de, T> de::Visitor<'de> for StringOrStruct<T>
-    where
-        T: Deserialize<'de>,
-    {
+    impl<'de> de::Visitor<'de> for StringOrStruct {
         type Value = Option<String>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -220,7 +214,7 @@ where
         }
     }
 
-    Ok(deserializer.deserialize_any(StringOrStruct::<AddedToken>(PhantomData))?)
+    Ok(deserializer.deserialize_any(StringOrStruct)?)
 }
 
 impl SpecialTokenMap {
