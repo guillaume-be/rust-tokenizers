@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+use std::iter::FromIterator;
 use std::path::Path;
 
 use crate::error::TokenizerError;
@@ -22,13 +24,17 @@ use crate::tokenizer::base_tokenizer::{
 use crate::tokenizer::tokenization_utils::tokenize_wordpiece;
 use crate::vocab::{BertVocab, Vocab};
 
+use crate::vocab::base_vocab::read_special_token_mapping_file;
+use tokenizers::tokenizer::Tokenizer as HFTokenizer;
+
 /// # BERT tokenizer
 /// BERT tokenizer performing:
 /// - BaseTokenizer tokenization (see `BaseTokenizer` for more details)
 /// - WordPiece tokenization
 pub struct BertTokenizer {
     vocab: BertVocab,
-    base_tokenizer: BaseTokenizer<BertVocab>,
+    base_tokenizer: Option<BaseTokenizer<BertVocab>>,
+    hf_tokenizer: Option<HFTokenizer>,
 }
 
 impl BertTokenizer {
@@ -55,11 +61,15 @@ impl BertTokenizer {
         strip_accents: bool,
     ) -> Result<BertTokenizer, TokenizerError> {
         let vocab = BertVocab::from_file(path)?;
-        let base_tokenizer =
-            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
+        let base_tokenizer = Some(BaseTokenizer::from_existing_vocab(
+            vocab.clone(),
+            lower_case,
+            strip_accents,
+        ));
         Ok(BertTokenizer {
             vocab,
             base_tokenizer,
+            hf_tokenizer: None,
         })
     }
 
@@ -94,13 +104,40 @@ impl BertTokenizer {
     ) -> Result<BertTokenizer, TokenizerError> {
         let vocab =
             BertVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
-        let base_tokenizer =
-            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
+        let base_tokenizer = Some(BaseTokenizer::from_existing_vocab(
+            vocab.clone(),
+            lower_case,
+            strip_accents,
+        ));
         Ok(BertTokenizer {
             vocab,
             base_tokenizer,
+            hf_tokenizer: None,
         })
     }
+
+    pub fn from_hf_file_with_special_token_mapping<P: AsRef<Path>, S: AsRef<Path>>(
+        path: P,
+        special_token_mapping_path: S,
+    ) -> Result<BertTokenizer, TokenizerError> {
+        let hf_tokenizer = HFTokenizer::from_file(path)?;
+        let vocab_values = hf_tokenizer.get_vocab(true);
+        let vocab_values: HashMap<String, i64> =
+            HashMap::from_iter(vocab_values.into_iter().map(|(k, v)| (k, v as i64)));
+
+        let special_token_map = read_special_token_mapping_file(special_token_mapping_path)?;
+        let vocab = BertVocab::from_values_and_special_token_map(vocab_values, special_token_map)?;
+        // let vocab =
+        //     BertVocab::from_file_with_special_token_mapping(path, special_token_mapping_path)?;
+        // let base_tokenizer =
+        //     BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
+        Ok(BertTokenizer {
+            vocab,
+            base_tokenizer: None,
+            hf_tokenizer: Some(hf_tokenizer),
+        })
+    }
+
     /// Create a new instance of a `BertTokenizer` from an existing vocabulary
     ///
     /// # Parameters
@@ -124,11 +161,15 @@ impl BertTokenizer {
         lower_case: bool,
         strip_accents: bool,
     ) -> BertTokenizer {
-        let base_tokenizer =
-            BaseTokenizer::from_existing_vocab(vocab.clone(), lower_case, strip_accents);
+        let base_tokenizer = Some(BaseTokenizer::from_existing_vocab(
+            vocab.clone(),
+            lower_case,
+            strip_accents,
+        ));
         BertTokenizer {
             vocab,
             base_tokenizer,
+            hf_tokenizer: None,
         }
     }
 }
@@ -143,11 +184,15 @@ impl Tokenizer<BertVocab> for BertTokenizer {
 
     fn tokenize_to_tokens(&self, initial_token: TokenRef) -> Vec<Token> {
         //the base tokenizers does most of the work, we simply add a wordpiece tokenizer on top
-        self.base_tokenizer
-            .tokenize_to_tokens(initial_token)
-            .into_iter()
-            .flat_map(|token| tokenize_wordpiece(token.as_ref(), &self.vocab, 100))
-            .collect()
+        if let Some(tokenizer) = &self.base_tokenizer {
+            tokenizer
+                .tokenize_to_tokens(initial_token)
+                .into_iter()
+                .flat_map(|token| tokenize_wordpiece(token.as_ref(), &self.vocab, 100))
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 
     fn convert_tokens_to_string(&self, tokens: Vec<String>) -> String {

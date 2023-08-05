@@ -65,6 +65,7 @@
 //! # }
 //! ```
 
+pub mod hf_tokenizers;
 pub mod tokenizer;
 pub mod vocab;
 
