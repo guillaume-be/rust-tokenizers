@@ -123,7 +123,7 @@ class TestTokenizationSST2:
 
     def test_tokenization_ctrl(self):
         # Given
-        self.base_tokenizer = CTRLTokenizer.from_pretrained('ctrl',
+        self.base_tokenizer = CTRLTokenizer.from_pretrained('Salesforce/ctrl',
                                                             do_lower_case=True,
                                                             cache_dir=self.test_dir)
         self.rust_tokenizer = PyCtrlTokenizer(
