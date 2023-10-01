@@ -31,10 +31,17 @@ The sentence piece model loads the same `.model` proto files as the [C++ library
 # Usage example (Rust)
 
 ```rust
-let vocab = Arc::new(rust_tokenizers::BertVocab::from_file(&vocab_path));
+use std::path::PathBuf;
 
-let test_sentence = Example::new_from_string("This is a sample sentence to be tokenized");
-let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab.clone());
+use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer, TruncationStrategy};
+use rust_tokenizers::vocab::{BertVocab, Vocab};
+
+let lowercase: bool = true;
+let strip_accents: bool = true;
+let vocab_path: PathBuf  = PathBuf::from("path/to/vocab");
+let vocab: BertVocab = BertVocab::from_file(&vocab_path)?;
+let test_sentence: Example = Example::new_from_string("This is a sample sentence to be tokenized");
+let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, lowercase, strip_accents);
 
 println!("{:?}", bert_tokenizer.encode(&test_sentence.sentence_1,
                                        None,
