@@ -292,7 +292,8 @@ impl Tokenizer<RobertaVocab> for RobertaTokenizer {
             special_tokens_mask.extend(vec![0; length]);
             special_tokens_mask.push(1);
             token_segment_ids.push(0);
-            token_segment_ids.extend(vec![1; length + 1]);
+            // RobERTa does not use segment id, the entire sequence is set to zeros.
+            token_segment_ids.extend(vec![0; length + 1]);
             output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
             output.extend(tokens_ids_with_offsets_2_value.ids);
             output.push(self.vocab.token_to_id(self.vocab.get_sep_value()));
