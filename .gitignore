@@ -1,4 +1,5 @@
 main/target
+main/Cargo.lock
 python-bindings/build
 python-bindings/dist
 python-bindings/*egg-info*
@@ -6,6 +7,7 @@ python-bindings/tests/__pycache__*
 python-bindings/__pycache__*
 python-bindings/*eggs*
 python-bindings/target
+python-bindings/Cargo.lock
 main/src/sentencepiece_model.rs
 **/*.rs.bk
 .idea*
