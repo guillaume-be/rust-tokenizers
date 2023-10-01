@@ -47,9 +47,11 @@
 //! use rust_tokenizers::vocab::{BertVocab, Vocab};
 //! let vocab_path = "path/to/vocab";
 //! let vocab = BertVocab::from_file(&vocab_path)?;
+//! let lowercase: bool = true;
+//! let strip_accents: bool = true;
 //!
 //! let test_sentence = Example::new_from_string("This is a sample sentence to be tokenized");
-//! let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, true, true);
+//! let bert_tokenizer: BertTokenizer = BertTokenizer::from_existing_vocab(vocab, lowercase, strip_accents);
 //!
 //! println!(
 //!     "{:?}",
