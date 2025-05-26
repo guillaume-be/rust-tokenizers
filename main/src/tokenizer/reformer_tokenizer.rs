@@ -150,7 +150,7 @@ impl Tokenizer<ReformerVocab> for ReformerTokenizer {
             let mut prev_is_unk = false;
             let mut indices_to_remove = vec![];
             for (index, sub_token) in sub_tokens.iter_mut().enumerate() {
-                if self.vocab.values.get(&sub_token.text).is_none() {
+                if !self.vocab.values.contains_key(&sub_token.text) {
                     sub_token.mask = Mask::Unknown;
                 }
                 if sub_token.mask == Mask::Unknown {

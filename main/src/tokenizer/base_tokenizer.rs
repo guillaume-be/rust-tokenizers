@@ -558,7 +558,7 @@ pub trait Tokenizer<T: Vocab> {
     ///
     /// # Parameters
     /// - text (`TokenRef`): TokenRef to tokenize (this is especially useful for nested tokenization,
-    /// where a tokenizer is called on the ouput of a pre-tokenizer, such as BERT).
+    ///   where a tokenizer is called on the ouput of a pre-tokenizer, such as BERT).
     ///
     /// # Returns
     /// `Vec<Token>` tokenization of the original `TokenRef`
@@ -685,12 +685,12 @@ pub trait Tokenizer<T: Vocab> {
     /// # Parameters
     /// - text_1: input text (string-like) to encode
     /// - text_2: optional additional input text (string-like) to encode. When provided, both texts are
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
+    ///   combined into a single encoding by using the `build_input_with_special_tokens` method.
     /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
+    ///   max_len, the encoding is truncated following the `TruncationStrategy` provided.
     /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
     /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    ///   (allowing for the generation of overlapping sequences with overflowing tokens)
     ///
     /// # Returns
     /// `TokenizedInput` containing the encoding output (token indices, token types, segment ids,
@@ -770,11 +770,7 @@ pub trait Tokenizer<T: Vocab> {
             },
         );
         let total_len = len_1 + len_2 + additional_tokens.token_ids.len();
-        let num_truncated_tokens = if total_len > max_len {
-            total_len - max_len
-        } else {
-            0
-        };
+        let num_truncated_tokens = total_len.saturating_sub(max_len);
         let (
             token_ids_with_offsets_1,
             token_ids_with_offsets_2,
@@ -808,13 +804,13 @@ pub trait Tokenizer<T: Vocab> {
     /// with `encode` optional second text, each text provided is encoded independently.
     ///
     /// # Parameters
-    /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
+    /// - text_list: sequence of input text (`&str`) to encode. Each text is encoded independently and
+    ///   combined into a single encoding by using the `build_input_with_special_tokens` method.
     /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
+    ///   max_len, the encoding is truncated following the `TruncationStrategy` provided.
     /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
     /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    ///   (allowing for the generation of overlapping sequences with overflowing tokens)
     ///
     /// # Returns
     /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
@@ -861,13 +857,13 @@ pub trait Tokenizer<T: Vocab> {
     /// with `encode` with the list processing of `encode_list`.
     ///
     /// # Parameters
-    /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
+    /// - text_list: sequence of input text (`&str`) to encode. Each text is encoded independently and
+    ///   combined into a single encoding by using the `build_input_with_special_tokens` method.
     /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
+    ///   max_len, the encoding is truncated following the `TruncationStrategy` provided.
     /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
     /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    ///   (allowing for the generation of overlapping sequences with overflowing tokens)
     ///
     /// # Returns
     /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
@@ -1303,13 +1299,13 @@ where
     /// with `encode` optional second text, each text provided is encoded independently.
     ///
     /// # Parameters
-    /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
+    /// - text_list: sequence of input text (`&str`) to encode. Each text is encoded independently and
+    ///   combined into a single encoding by using the `build_input_with_special_tokens` method.
     /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
+    ///   max_len, the encoding is truncated following the `TruncationStrategy` provided.
     /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
     /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    ///   (allowing for the generation of overlapping sequences with overflowing tokens)
     ///
     /// # Returns
     /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,
@@ -1356,13 +1352,13 @@ where
     /// with `encode` with the list processing of `encode_list`.
     ///
     /// # Parameters
-    /// - text_list: sequence of input text (`&str`) to encode
-    /// combined into a single encoding by using the `build_input_with_special_tokens` method.
+    /// - text_list: sequence of input text (`&str`) to encode. Each text is encoded independently and
+    ///   combined into a single encoding by using the `build_input_with_special_tokens` method.
     /// - max_len (`usize`): maximum combined sequence length. If the combined encoding would exceed this
-    /// max_len, the encoding is truncated following the `TruncationStrategy` provided.
+    ///   max_len, the encoding is truncated following the `TruncationStrategy` provided.
     /// - truncation_strategy (`&TruncationStrategy`): strategy to follow for the truncation, if required
     /// - stride (`usize`): amount of tokens to shift the input by if truncation is required
-    /// (allowing for the generation of overlapping sequences with overflowing tokens)
+    ///   (allowing for the generation of overlapping sequences with overflowing tokens)
     ///
     /// # Returns
     /// `Vec<TokenizedInput>` containing the encoding output (token indices, token types, segment ids,

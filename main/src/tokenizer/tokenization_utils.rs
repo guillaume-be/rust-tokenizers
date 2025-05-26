@@ -434,10 +434,10 @@ pub fn split_at_regex<'a>(token: TokenRef<'a>, pattern_tokenization: &Regex) -> 
 /// Split a token on one or more substrings (given a substring test function)
 /// * token: The token to split
 /// * test_str: A function that contains the string buffer from the current point forward and
-/// returns a 3-tuple with the length of the match in bytes, chars and the mask to set (if the
-/// length is zero then there is no match.
+///   returns a 3-tuple with the length of the match in bytes, chars and the mask to set (if the
+///   length is zero then there is no match.
 /// * add_separators: Add the separating characters to the tokens as well? (bool), separating tokens
-/// will be indicated in the returned mask by the value set in `set_mask`, which is returned by the test_substr function
+///   will be indicated in the returned mask by the value set in `set_mask`, which is returned by the test_substr function
 pub fn split_on_substr<'a, F>(
     token: TokenRef<'a>,
     test_substr: F,
@@ -591,26 +591,24 @@ pub fn tokenize_wordpiece(token: TokenRef, vocab: &impl Vocab, max_word_len: usi
 
 /// # Truncates a sequence pair in place to the maximum length.
 ///
-///   * tokens_1: list of tokenized input ids. Can be obtained from a string by chaining the
-///       `tokenize` and `convert_tokens_to_ids` methods.
-///   * tokens_2: Optional second list of input ids. Can be obtained from a string by chaining the
-///       `tokenize` and `convert_tokens_to_ids` methods.
-///   * offsets: list of offsets for tokens_1 (must be same length or empty if not used at all)
-///   * offsets_2: optional second list of offsets for tokens_2 (must be same length or empty if not used at all)
-///   * tokens_2: Optional second list of input ids. Can be obtained from a string by chaining the
-///       `tokenize` and `convert_tokens_to_ids` methods.
-///   * num_tokens_to_remove
-///       number of tokens to remove using the truncation strategy
-///   * truncation_strategy: truncation strategy
-///       - TruncationStrategy::LongestFirst (default) Iteratively reduce the inputs sequence until the input is under max_length
-///           starting from the longest one at each token (when there is a pair of input sequences).
-///           Overflowing tokens only contains overflow from the first sequence.
-///       - TruncationStrategy::OnlyFirst: Only truncate the first sequence. raise an error if the first sequence is shorter or equal to than num_tokens_to_remove.
-///       - TruncationStrategy::OnlySecond: Only truncate the second sequence
-///       - TruncationStrategy::DoNotTruncate: Does not truncate (raise an error if the input sequence is longer than max_length)
-///   * stride
-///       If set to a number along with max_length, the overflowing tokens returned will contain some tokens
-///       from the main sequence returned. The value of this argument defines the number of additional tokens.
+/// * tokens_1: list of tokenized input ids. Can be obtained from a string by chaining the
+///   `tokenize` and `convert_tokens_to_ids` methods.
+/// * tokens_2: Optional second list of input ids. Can be obtained from a string by chaining the
+///   `tokenize` and `convert_tokens_to_ids` methods.
+/// * offsets: list of offsets for tokens_1 (must be same length or empty if not used at all)
+/// * offsets_2: optional second list of offsets for tokens_2 (must be same length or empty if not used at all)
+/// * num_tokens_to_remove
+///   number of tokens to remove using the truncation strategy
+/// * truncation_strategy: truncation strategy
+///   - TruncationStrategy::LongestFirst (default) Iteratively reduce the inputs sequence until the input is under max_length
+///     starting from the longest one at each token (when there is a pair of input sequences).
+///     Overflowing tokens only contains overflow from the first sequence.
+///   - TruncationStrategy::OnlyFirst: Only truncate the first sequence. raise an error if the first sequence is shorter or equal to than num_tokens_to_remove.
+///   - TruncationStrategy::OnlySecond: Only truncate the second sequence
+///   - TruncationStrategy::DoNotTruncate: Does not truncate (raise an error if the input sequence is longer than max_length)
+/// * stride
+///   If set to a number along with max_length, the overflowing tokens returned will contain some tokens
+///   from the main sequence returned. The value of this argument defines the number of additional tokens.
 pub fn truncate_sequences(
     mut token_ids_with_offsets_1: TokenIdsWithOffsets,
     mut token_ids_with_offsets_2: Option<TokenIdsWithOffsets>,
@@ -1064,7 +1062,7 @@ where
     tokens
 }
 
-pub fn fix_mask(tokens: &mut Vec<Token>) {
+pub fn fix_mask(tokens: &mut [Token]) {
     for i in 1..tokens.len() {
         if tokens[i].mask == Mask::Continuation && tokens[i - 1].mask == Mask::None {
             if let Some(token) = tokens.get_mut(i - 1) {
@@ -1079,7 +1077,7 @@ pub(crate) fn split_on_language_code<'a>(
     code_length: usize,
     language_codes_bytes: &HashSet<Vec<u8>>,
 ) -> Vec<TokenRef<'a>> {
-    if token.text.as_bytes().len() < code_length {
+    if token.text.len() < code_length {
         return vec![token];
     }
     let mut tokens: Vec<TokenRef<'a>> = Vec::new();

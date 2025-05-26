@@ -250,7 +250,7 @@ impl SentencePieceModel {
     /// let lattice_nodes = sentence_piece_model.decode_forward_token_ref(token);
     /// let best_nodes_sequence = sentence_piece_model.decode_backward(&lattice_nodes);
     /// ```
-    pub fn decode_backward<'a>(&'a self, nodes: &'a [Option<Node<'a>>]) -> Vec<&'a Node> {
+    pub fn decode_backward<'a>(&'a self, nodes: &'a [Option<Node<'a>>]) -> Vec<&'a Node<'a>> {
         let mut best_sequence = vec![];
         let mut next_node = match nodes.last() {
             Some(value) => value,
